@@ -1,0 +1,557 @@
+import React, { useState, useEffect } from 'react';
+import AppLayout from '@/layouts/app-layout';
+import { Head, useForm, router } from '@inertiajs/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Plus, Trash2, Edit, Save, X, ArrowRight, GripVertical } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import axios from 'axios';
+
+interface Step {
+    id?: number;
+    order: number;
+    approver_id: string;
+    approver_type?: string;
+    step_type?: 'sequential' | 'parallel' | 'conditional';
+    condition_field?: string;
+    condition_operator?: string;
+    condition_value?: string;
+}
+
+interface LetterType {
+    id: number;
+    name: string;
+    code: string;
+    description: string;
+    template_id?: number;
+    template?: {
+        id: number;
+        name: string;
+    };
+    approval_workflows: {
+        id: number;
+        unit_id?: number;
+        unit?: {
+            id: number;
+            nama: string;
+        };
+        steps: Step[];
+    }[];
+}
+
+interface UnitKerja {
+    id: number;
+    nama: string;
+    kode: string;
+}
+
+interface Jabatan {
+    id: number;
+    nama: string;
+}
+
+interface LetterTemplate {
+    id: number;
+    name: string;
+}
+
+interface Props {
+    letterTypes: LetterType[];
+}
+
+export default function MasterDataIndex({ letterTypes }: Props) {
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editingType, setEditingType] = useState<LetterType | null>(null);
+    const [unitKerjas, setUnitKerjas] = useState<UnitKerja[]>([]);
+    const [jabatans, setJabatans] = useState<Jabatan[]>([]);
+    const [templates, setTemplates] = useState<LetterTemplate[]>([]);
+
+    const { data, setData, post, put, delete: destroy, processing, errors, reset, transform } = useForm({
+        name: '',
+        code: '',
+        description: '',
+        template_id: 'none' as string | null,
+        unit_id: 'global', // Default to Global
+        workflow_steps: [] as Step[],
+    });
+
+    useEffect(() => {
+        axios.get(route('api.unit-kerja'))
+            .then(response => setUnitKerjas(response.data))
+            .catch(error => console.error("Failed to fetch units", error));
+
+        axios.get(route('api.jabatan'))
+            .then(response => setJabatans(response.data))
+            .catch(error => console.error("Failed to fetch jabatans", error));
+
+        axios.get(route('api.letter-templates'))
+            .then(response => setTemplates(response.data))
+            .catch(error => console.error("Failed to fetch templates", error));
+    }, []);
+
+    // Transform data before submission
+    transform((data) => ({
+        ...data,
+        unit_id: data.unit_id === 'global' ? null : data.unit_id,
+        template_id: data.template_id === 'none' ? null : data.template_id,
+    }));
+
+    const handleCreate = () => {
+        setEditingType(null);
+        reset();
+        setData(data => ({ ...data, unit_id: 'global', template_id: 'none', workflow_steps: [] }));
+        setIsCreateOpen(true);
+    };
+
+    const handleEdit = (type: LetterType, workflowIndex: number = 0) => {
+        setEditingType(type);
+        const workflow = type.approval_workflows[workflowIndex];
+        const steps = workflow ? workflow.steps.map(s => ({
+            order: s.order,
+            approver_id: s.approver_id
+        })) : [];
+
+        setData({
+            name: type.name,
+            code: type.code,
+            description: type.description || '',
+            template_id: type.template_id?.toString() || 'none',
+            unit_id: workflow?.unit_id?.toString() || 'global',
+            workflow_steps: steps,
+        });
+        setIsCreateOpen(true);
+    };
+
+    const handleDelete = (type: LetterType) => {
+        if (confirm('Are you sure you want to delete this Letter Type?')) {
+            router.delete(route('master-data.destroy', type.id), {
+                onSuccess: () => toast.success('Letter Type deleted successfully'),
+                onError: () => toast.error('Failed to delete Letter Type'),
+            });
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (editingType) {
+            put(route('master-data.update', editingType.id), {
+                onSuccess: () => {
+                    setIsCreateOpen(false);
+                    toast.success('Letter Type updated successfully');
+                    reset();
+                },
+            });
+        } else {
+            post(route('master-data.store'), {
+                onSuccess: () => {
+                    setIsCreateOpen(false);
+                    toast.success('Letter Type created successfully');
+                    reset();
+                },
+            });
+        }
+    };
+
+    const addStep = () => {
+        setData('workflow_steps', [
+            ...data.workflow_steps,
+            {
+                order: data.workflow_steps.length + 1,
+                approver_id: '',
+                step_type: 'sequential'
+            }
+        ]);
+    };
+
+    const removeStep = (index: number) => {
+        const newSteps = data.workflow_steps.filter((_, i) => i !== index);
+        // Reorder
+        const reorderedSteps = newSteps.map((step, i) => ({ ...step, order: i + 1 }));
+        setData('workflow_steps', reorderedSteps);
+    };
+
+    const updateStepApprover = (index: number, value: string) => {
+        const newSteps = [...data.workflow_steps];
+        newSteps[index].approver_id = value;
+        setData('workflow_steps', newSteps);
+    };
+
+    const updateStepField = (index: number, field: keyof Step, value: any) => {
+        const newSteps = [...data.workflow_steps];
+        newSteps[index] = { ...newSteps[index], [field]: value };
+        setData('workflow_steps', newSteps);
+    };
+
+    return (
+        <AppLayout breadcrumbs={[{ title: 'Master Data', href: '/master-data' }]}>
+            <Head title="Master Data Management" />
+
+            <div className="p-6 space-y-8 max-w-7xl mx-auto">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tight text-foreground">Global Workflow</h2>
+                        <p className="text-muted-foreground mt-1">Manage Letter Types and configure approval workflows.</p>
+                    </div>
+                    <Button onClick={handleCreate} size="lg" className="shadow-sm">
+                        <Plus className="mr-2 h-5 w-5" /> Add Letter Type
+                    </Button>
+                </div>
+
+                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                                <TableHead className="w-[100px]">Kode Surat</TableHead>
+                                <TableHead className="w-[200px]">Name</TableHead>
+                                <TableHead className="w-[150px]">Template</TableHead>
+                                <TableHead className="w-[250px]">Description</TableHead>
+                                <TableHead>Workflow Steps</TableHead>
+                                <TableHead className="text-right w-[100px]">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {letterTypes.map((type) => (
+                                <TableRow key={type.id} className="hover:bg-muted/5">
+                                    <TableCell className="font-mono text-xs font-medium text-muted-foreground">
+                                        <Badge variant="outline" className="font-mono">{type.code}</Badge>
+                                    </TableCell>
+                                    <TableCell className="font-semibold text-foreground">{type.name}</TableCell>
+                                    <TableCell>
+                                        {type.template ? (
+                                            <div className="flex items-center gap-2 text-sm text-primary font-medium">
+                                                <span className="truncate max-w-[120px]" title={type.template.name}>
+                                                    {type.template.name}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs italic">No template</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-sm truncate max-w-[200px]" title={type.description}>
+                                        {type.description || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="space-y-3 py-1">
+                                            {type.approval_workflows.map((workflow, idx) => (
+                                                <div key={workflow.id} className="flex flex-col gap-2 p-3 bg-muted/20 rounded-lg border border-border/50">
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant={workflow.unit ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 h-5">
+                                                            {workflow.unit ? workflow.unit.nama : 'Global (All Units)'}
+                                                        </Badge>
+                                                    </div>
+
+                                                    {workflow.steps.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-2 items-center mt-1">
+                                                            {workflow.steps.sort((a, b) => a.order - b.order).map((step, i) => (
+                                                                <React.Fragment key={step.id || i}>
+                                                                    <div className="flex items-center gap-2 bg-background border px-2 py-1 rounded-md shadow-sm">
+                                                                        <span className="flex items-center justify-center bg-primary/10 text-primary text-[10px] font-bold h-5 w-5 rounded-full">
+                                                                            {step.order}
+                                                                        </span>
+                                                                        <span className="text-xs font-medium">
+                                                                            {(() => {
+                                                                                const jabatan = jabatans.find(j => j.id.toString() === step.approver_id);
+                                                                                return jabatan ? jabatan.nama : step.approver_id;
+                                                                            })()}
+                                                                        </span>
+                                                                    </div>
+                                                                    {i < workflow.steps.length - 1 && (
+                                                                        <ArrowRight className="h-3 w-3 text-muted-foreground/50" />
+                                                                    )}
+                                                                </React.Fragment>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground italic pl-1">No approval required</span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {type.approval_workflows.length === 0 && (
+                                                <div className="text-xs text-muted-foreground italic p-2">No workflow defined</div>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => handleEdit(type)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(type)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {letterTypes.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        No letter types found. Create one to get started.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl">{editingType ? 'Edit Letter Type' : 'Create Letter Type'}</DialogTitle>
+                            <DialogDescription>
+                                Configure the letter type details and approval workflow steps.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        id="name"
+                                        value={data.name}
+                                        onChange={(e) => setData('name', e.target.value)}
+                                        placeholder="e.g. Surat Dinas"
+                                        required
+                                        className="font-medium"
+                                    />
+                                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="code">Kode Surat <span className="text-destructive">*</span></Label>
+                                    <Input
+                                        id="code"
+                                        value={data.code}
+                                        onChange={(e) => setData('code', e.target.value)}
+                                        placeholder="e.g. SD-001"
+                                        required
+                                        className="font-mono"
+                                    />
+                                    {errors.code && <p className="text-sm text-destructive">{errors.code}</p>}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="template_id">Letter Template</Label>
+                                <Select
+                                    value={data.template_id || 'none'}
+                                    onValueChange={(val) => setData('template_id', val)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a Template (Optional)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none" className="text-muted-foreground">No Template</SelectItem>
+                                        {templates.map(template => (
+                                            <SelectItem key={template.id} value={template.id.toString()}>
+                                                {template.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-[10px] text-muted-foreground">Select a template to auto-fill content when creating this type of letter.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    value={data.description}
+                                    onChange={(e) => setData('description', e.target.value)}
+                                    placeholder="Brief description of this letter type..."
+                                    className="resize-none h-20"
+                                />
+                            </div>
+
+                            <div className="space-y-4 border rounded-xl p-5 bg-muted/20">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div>
+                                        <Label className="text-base font-semibold">Approval Workflow</Label>
+                                        <p className="text-xs text-muted-foreground">Define the sequence of approvals required.</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                        <div className="w-full sm:w-48">
+                                            <Select
+                                                value={data.unit_id}
+                                                onValueChange={(val) => setData('unit_id', val)}
+                                            >
+                                                <SelectTrigger className="h-9">
+                                                    <SelectValue placeholder="Global (All Units)" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="global">Global (All Units)</SelectItem>
+                                                    {unitKerjas.map(unit => (
+                                                        <SelectItem key={unit.id} value={unit.id.toString()}>
+                                                            {unit.nama}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Button type="button" variant="secondary" size="sm" onClick={addStep} className="shrink-0">
+                                            <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Step
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 mt-2">
+                                    {data.workflow_steps.map((step, index) => (
+                                        <div key={index} className="group bg-background p-4 rounded-lg border shadow-sm space-y-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                                                    {index + 1}
+                                                </div>
+
+                                                {/* Step Type Selector */}
+                                                <div className="flex-1">
+                                                    <Select
+                                                        value={step.step_type || 'sequential'}
+                                                        onValueChange={(val) => updateStepField(index, 'step_type', val)}
+                                                    >
+                                                        <SelectTrigger className="h-8 text-xs">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="sequential">Sequential</SelectItem>
+                                                            <SelectItem value="parallel">Parallel</SelectItem>
+                                                            <SelectItem value="conditional">Conditional</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => removeStep(index)}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+
+                                            {/* Approver Selector */}
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">Approver</Label>
+                                                <Select
+                                                    value={step.approver_id}
+                                                    onValueChange={(val) => updateStepApprover(index, val)}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select Approver Position" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {jabatans.map(jabatan => (
+                                                            <SelectItem key={jabatan.id} value={jabatan.id.toString()}>
+                                                                {jabatan.nama}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            {/* Conditional Routing Fields */}
+                                            {step.step_type === 'conditional' && (
+                                                <div className="space-y-2 p-3 bg-muted/30 rounded border border-dashed">
+                                                    <Label className="text-xs font-semibold">Condition</Label>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <Select
+                                                            value={step.condition_field || ''}
+                                                            onValueChange={(val) => updateStepField(index, 'condition_field', val)}
+                                                        >
+                                                            <SelectTrigger className="h-8 text-xs">
+                                                                <SelectValue placeholder="Field" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="priority">Priority</SelectItem>
+                                                                <SelectItem value="category">Category</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+
+                                                        <Select
+                                                            value={step.condition_operator || ''}
+                                                            onValueChange={(val) => updateStepField(index, 'condition_operator', val)}
+                                                        >
+                                                            <SelectTrigger className="h-8 text-xs">
+                                                                <SelectValue placeholder="Operator" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="=">=</SelectItem>
+                                                                <SelectItem value="!=">!=</SelectItem>
+                                                                <SelectItem value="in">In</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+
+                                                        <Input
+                                                            placeholder="Value"
+                                                            value={step.condition_value || ''}
+                                                            onChange={(e) => updateStepField(index, 'condition_value', e.target.value)}
+                                                            className="h-8 text-xs"
+                                                        />
+                                                    </div>
+                                                    <p className="text-[10px] text-muted-foreground">
+                                                        Example: priority = urgent
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {data.workflow_steps.length === 0 && (
+                                        <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed rounded-lg">
+                                            <div className="p-3 rounded-full bg-muted/50 mb-3">
+                                                <GripVertical className="h-6 w-6 text-muted-foreground" />
+                                            </div>
+                                            <p className="text-sm font-medium text-foreground">No workflow steps</p>
+                                            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                                                Add steps to define the approval hierarchy for this letter type.
+                                            </p>
+                                            <Button type="button" variant="link" size="sm" onClick={addStep} className="mt-2">
+                                                Add First Step
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <DialogFooter className="gap-2 sm:gap-0">
+                                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={processing}>
+                                    {processing ? 'Saving...' : 'Save Changes'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        </AppLayout>
+    );
+}
