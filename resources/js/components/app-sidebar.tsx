@@ -6,7 +6,13 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Activity, CheckSquare, FileText, Home, List, Mail, MapPin, Users, Share2, Star, Archive } from 'lucide-react';
+import { Activity, CheckSquare, FileText, Home, List, Mail, MapPin, Users, Share2, Star, Archive, MoreHorizontal } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
@@ -93,12 +99,12 @@ export function AppSidebar() {
             </Sidebar>
 
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-sidebar-border z-50 flex justify-around items-center h-16 px-2 pb-safe bg-white dark:bg-sidebar">
-                {mainNavItems.filter(item => !item.items || item.items.length === 0).map((item) => {
+                {/* Primary Items */}
+                {mainNavItems.filter(item => ['Dashboard', 'Surat', 'Pesan Berbintang', 'Arsip'].includes(item.title)).map((item) => {
                     const Icon = item.icon;
                     const targetHref = item.href as string;
                     const currentUrl = usePage().url;
 
-                    // Determine if this item is active
                     const isActive =
                         currentUrl === targetHref ||
                         (targetHref !== '/' && currentUrl.startsWith(targetHref)) ||
@@ -109,8 +115,8 @@ export function AppSidebar() {
                             key={item.title}
                             href={targetHref}
                             className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${isActive
-                                    ? 'text-red-600'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'text-red-600'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             {Icon && <Icon className="h-5 w-5" />}
@@ -118,6 +124,29 @@ export function AppSidebar() {
                         </Link>
                     );
                 })}
+
+                {/* Lain-lain Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button className="flex flex-col items-center justify-center w-full h-full space-y-1 text-muted-foreground hover:text-foreground transition-colors">
+                            <MoreHorizontal className="h-5 w-5" />
+                            <span className="text-[10px] font-medium">Lain-lain</span>
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 mb-2">
+                        {mainNavItems.filter(item => !['Dashboard', 'Surat', 'Pesan Berbintang', 'Arsip'].includes(item.title)).map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <DropdownMenuItem key={item.title} asChild>
+                                    <Link href={item.href as string} className="flex items-center gap-2 cursor-pointer">
+                                        {Icon && <Icon className="h-4 w-4" />}
+                                        <span>{item.title}</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                            );
+                        })}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </>
     );

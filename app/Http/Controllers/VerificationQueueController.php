@@ -38,7 +38,30 @@ class VerificationQueueController extends Controller
             'verification_locked_by' => null,
         ]);
 
-        return redirect()->back()->with('success', 'User berhasil diverifikasi.');
+        // Automatically create Staff record
+        $detail = $user->detail;
+        if ($detail) {
+            \App\Models\Staff::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'manager_id' => auth()->id() ?? 1, // Default to auth user or Super Admin (ID 1)
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone_number ?? '0000000000',
+                    'nip' => $detail->nik,
+                    'nia' => $detail->nia_nrp,
+                    'pangkat_id' => $detail->pangkat_id,
+                    'jabatan_id' => $detail->jabatan_id,
+                    'unit_kerja_id' => $detail->unit_kerja_id,
+                    'status_keanggotaan_id' => $detail->status_keanggotaan_id,
+                    'tanggal_masuk' => now(),
+                    'role' => 'staff',
+                    'status' => 'active',
+                ]
+            );
+        }
+
+        return redirect()->back()->with('success', 'User berhasil diverifikasi dan ditambahkan sebagai Staff.');
     }
 
     public function lock(User $user)

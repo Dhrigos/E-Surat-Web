@@ -45,14 +45,13 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'is_active' => true,
                 'verifikasi' => true,
-                'nip_nik' => '12345678',
-                'nia_nrp' => '12345678',
+                'verifikasi' => true,
             ]
         );
         $superAdmin->syncRoles(['super-admin']);
 
         // Create Super Admin Jabatan if not exists
-        $superAdminJabatan = Jabatan::firstOrCreate(['nama' => 'Super Administrator'], ['kode' => 'SA', 'is_active' => true]);
+        $superAdminJabatan = Jabatan::firstOrCreate(['nama' => 'Super Administrator'], ['is_active' => true]);
         
         // Create Detail for Super Admin to ensure Jabatan is displayed
         \App\Models\UserDetail::updateOrCreate(
@@ -107,8 +106,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'is_active' => true,
                 'verifikasi' => true,
-                'nip_nik' => rand(10000000, 99999999),
-                'nia_nrp' => rand(10000000, 99999999),
+                'verifikasi' => true,
             ]
         );
         

@@ -127,12 +127,22 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
         }
 
         // Convert to percentage
+        // Convert to percentage
         const xPercent = (x / containerRect.width) * 100;
         const yPercent = (y / containerRect.height) * 100;
 
+        // Find step details to store with position
+        const step = workflowSteps.find(s => s.id === draggedItem.id);
+        let metadata = {};
+        if (step) {
+            const name = (step.approver_type === 'user' ? step.approver_user?.name : null) || (customApproverNames[step.id] || step.current_holder?.name || step.approver_jabatan?.nama);
+            const jabatan = step.approver_jabatan?.nama || step.approver_user?.staff?.jabatan?.nama || 'Pejabat';
+            metadata = { name, jabatan };
+        }
+
         setSignaturePositions(prev => ({
             ...prev,
-            [draggedItem.id]: { x: xPercent, y: yPercent }
+            [draggedItem.id]: { x: xPercent, y: yPercent, ...metadata }
         }));
         setDraggedItem(null);
     };
@@ -197,9 +207,18 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                 const xPercent = (x / containerRect.width) * 100;
                 const yPercent = (y / containerRect.height) * 100;
 
+                // Find step details to store with position
+                const step = workflowSteps.find(s => s.id === draggedItem.id);
+                let metadata = {};
+                if (step) {
+                    const name = (step.approver_type === 'user' ? step.approver_user?.name : null) || (customApproverNames[step.id] || step.current_holder?.name || step.approver_jabatan?.nama);
+                    const jabatan = step.approver_jabatan?.nama || step.approver_user?.staff?.jabatan?.nama || 'Pejabat';
+                    metadata = { name, jabatan };
+                }
+
                 setSignaturePositions(prev => ({
                     ...prev,
-                    [draggedItem.id]: { x: xPercent, y: yPercent }
+                    [draggedItem.id]: { x: xPercent, y: yPercent, ...metadata }
                 }));
             }
         }
@@ -829,7 +848,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                     {Object.entries(signaturePositions).map(([stepId, pos]) => {
                                                         const step = workflowSteps.find(s => s.id === parseInt(stepId));
                                                         if (!step) return null;
-                                                        const name = step.approver_user?.name || (customApproverNames[step.id] || step.approver_jabatan?.nama);
+                                                        const name = (step.approver_type === 'user' ? step.approver_user?.name : null) || (customApproverNames[step.id] || step.current_holder?.name || step.approver_jabatan?.nama);
                                                         const jabatan = step.approver_jabatan?.nama || step.approver_user?.staff?.jabatan?.nama || 'Pejabat';
 
                                                         return (
@@ -854,7 +873,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                             {workflowSteps
                                                                 .filter(s => !signaturePositions[s.id])
                                                                 .map(s => {
-                                                                    const name = s.approver_user?.name || (customApproverNames[s.id] || s.approver_jabatan?.nama);
+                                                                    const name = (s.approver_type === 'user' ? s.approver_user?.name : null) || (customApproverNames[s.id] || s.current_holder?.name || s.approver_jabatan?.nama);
                                                                     const jabatan = s.approver_jabatan?.nama || s.approver_user?.staff?.jabatan?.nama || 'Pejabat';
                                                                     return `${jabatan} - ${name}`;
                                                                 })
@@ -908,7 +927,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                             <CardContent className="space-y-2">
                                                 {workflowSteps.map(step => {
                                                     const isDropped = !!signaturePositions[step.id];
-                                                    const name = step.approver_user?.name || (customApproverNames[step.id] || step.approver_jabatan?.nama);
+                                                    const name = (step.approver_type === 'user' ? step.approver_user?.name : null) || (customApproverNames[step.id] || step.current_holder?.name || step.approver_jabatan?.nama);
                                                     const jabatan = step.approver_jabatan?.nama || step.approver_user?.staff?.jabatan?.nama || 'Pejabat';
 
                                                     if (isDropped) return null;

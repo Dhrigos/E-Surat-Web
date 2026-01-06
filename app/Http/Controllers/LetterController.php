@@ -30,6 +30,59 @@ class LetterController extends Controller
         $this->workflowService = $workflowService;
     }
 
+    private function transformLetter($letter)
+    {
+        return [
+            'id' => $letter->id,
+            'subject' => $letter->subject,
+            'recipient' => $letter->recipients->map(function ($r) {
+                return $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name;
+            })->join(', '),
+            'sender' => $letter->creator->name,
+            'status' => $letter->status,
+            'priority' => $letter->priority,
+            'category' => $letter->category,
+            'date' => $letter->created_at->format('Y-m-d'),
+            'description' => $letter->description,
+            'content' => $letter->content,
+            'letter_type' => $letter->letterType?->name,
+            'is_starred' => (bool) $letter->is_starred,
+            'attachments' => $letter->attachments->map(fn($a) => [
+                'id' => $a->id,
+                'name' => $a->file_name,
+                'url' => Storage::url($a->file_path),
+                'size' => $a->file_size,
+                'type' => $a->mime_type
+            ]),
+            'approvers' => $letter->approvers->map(fn($a) => [
+                'user_id' => $a->user_id,
+                'approver_id' => $a->approver_id, // Add this line
+                'position' => $a->user?->staff?->jabatan?->nama ?? 'Pejabat',
+                'status' => $a->status,
+                'order' => $a->order,
+                'remarks' => $a->remarks,
+                'user_name' => $a->user ? $a->user->name : null,
+                'signature_url' => $a->user?->detail?->tanda_tangan ? Storage::url($a->user->detail->tanda_tangan) : null,
+            ]),
+            'recipients_list' => $letter->recipients->map(fn($r) => [
+                'type' => $r->recipient_type,
+                'id' => $r->recipient_id,
+                'name' => $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name
+            ]),
+            'dispositions' => $letter->dispositions->map(fn($d) => [
+                'id' => $d->id,
+                'sender' => ['name' => $d->sender->name],
+                'recipient' => ['name' => $d->recipient->name],
+                'instruction' => $d->instruction,
+                'note' => $d->note,
+                'due_date' => $d->due_date,
+                'status' => $d->status,
+                'created_at' => $d->created_at->format('Y-m-d H:i'),
+            ]),
+            'signature_positions' => $letter->signature_positions,
+        ];
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -39,48 +92,8 @@ class LetterController extends Controller
         $search = $request->input('search');
         $category = $request->input('category');
 
-        // Helper for transforming letter data
-        $transformLetter = function ($letter) {
-            return [
-                'id' => $letter->id,
-                'subject' => $letter->subject,
-                'recipient' => $letter->recipients->map(function ($r) {
-                    return $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name;
-                })->join(', '),
-                'sender' => $letter->creator->name,
-                'status' => $letter->status,
-                'priority' => $letter->priority,
-                'category' => $letter->category,
-                'date' => $letter->created_at->format('Y-m-d'),
-                'description' => $letter->description,
-                'content' => $letter->content,
-                'letter_type' => $letter->letterType?->name, // Added letter type
-                'is_starred' => (bool) $letter->is_starred,
-                'attachments' => $letter->attachments->map(fn($a) => [
-                    'id' => $a->id,
-                    'name' => $a->file_name,
-                    'url' => Storage::url($a->file_path),
-                    'size' => $a->file_size,
-                    'type' => $a->mime_type
-                ]),
-                'approvers' => $letter->approvers->map(fn($a) => [
-                    'user_id' => $a->user_id,
-                    'position' => $a->approver_id,
-                    'status' => $a->status,
-                    'order' => $a->order,
-                    'remarks' => $a->remarks,
-                    'user_name' => $a->user ? $a->user->name : null, // Added user name
-                ]),
-                'recipients_list' => $letter->recipients->map(fn($r) => [
-                    'type' => $r->recipient_type,
-                    'id' => $r->recipient_id,
-                    'name' => $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name
-                ]),
-            ];
-        };
-
         // Sent mails query
-        $sentQuery = Letter::with(['recipients', 'approvers.user', 'attachments', 'creator', 'letterType'])
+        $sentQuery = Letter::with(['recipients', 'approvers.user.staff.jabatan', 'approvers.user.detail', 'attachments', 'creator', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where('created_by', $user->id);
 
         if ($search) {
@@ -108,13 +121,14 @@ class LetterController extends Controller
 
         $sentMails = $sentQuery->orderBy('created_at', 'desc')
             ->paginate(10, ['*'], 'sent_page')
-            ->through($transformLetter)
+            ->through(fn($l) => $this->transformLetter($l))
             ->withQueryString();
 
         // Inbox mails query
+        // Inbox mails query
         $inboxQuery = LetterRecipient::where('recipient_type', 'user')
             ->where('recipient_id', $user->id)
-            ->with(['letter.creator', 'letter.attachments', 'letter.approvers.user', 'letter.recipients', 'letter.letterType']);
+            ->with(['letter.creator', 'letter.attachments', 'letter.approvers.user.staff.jabatan', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $inboxQuery->whereHas('letter', function($q) use ($search) {
@@ -151,8 +165,8 @@ class LetterController extends Controller
 
         $inboxMails = $inboxQuery->latest()
             ->paginate(10, ['*'], 'inbox_page')
-            ->through(function ($recipient) use ($transformLetter) {
-                $data = $transformLetter($recipient->letter);
+            ->through(function ($recipient) {
+                $data = $this->transformLetter($recipient->letter);
                 $data['status'] = $recipient->is_read ? 'read' : 'new';
                 return $data;
             })
@@ -172,7 +186,7 @@ class LetterController extends Controller
                 AND prev.order < letter_approvers.order 
                 AND prev.status != "approved"
             )')
-            ->with(['letter.creator', 'letter.attachments', 'letter.approvers.user', 'letter.recipients', 'letter.letterType']);
+            ->with(['letter.creator', 'letter.attachments', 'letter.approvers.user.staff.jabatan', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $approvalsQuery->whereHas('letter', function($q) use ($search) {
@@ -186,16 +200,60 @@ class LetterController extends Controller
 
         $incomingApprovals = $approvalsQuery->orderBy('id', 'desc') // Order by latest
             ->paginate(10, ['*'], 'approval_page')
-            ->through(function ($approver) use ($transformLetter) {
-                return $transformLetter($approver->letter);
+            ->through(function ($approver) {
+                return $this->transformLetter($approver->letter);
             })
             ->withQueryString();
+
+        // Already Approved Query
+        $alreadyApprovedQuery = LetterApprover::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereHas('letter', function($q) {
+                $q->where('status', '!=', 'archived');
+            })
+            ->with(['letter.creator', 'letter.attachments', 'letter.approvers.user.staff.jabatan', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+
+        if ($search) {
+            $alreadyApprovedQuery->whereHas('letter', function($q) use ($search) {
+                $q->where('subject', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('creator', function($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $alreadyApprovedMails = $alreadyApprovedQuery->orderBy('updated_at', 'desc') // Order by approval time (updated_at)
+            ->paginate(10, ['*'], 'approved_page')
+            ->through(function ($approver) {
+                return $this->transformLetter($approver->letter);
+            })
+            ->withQueryString();
+
+        $openedMail = null;
+        if ($request->has('open_mail_id')) {
+            $mail = Letter::with(['recipients', 'approvers.user.staff.jabatan', 'approvers.user.detail', 'attachments', 'creator', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
+                ->find($request->input('open_mail_id'));
+            
+            if ($mail) {
+                $this->authorize('view', $mail);
+                $openedMail = $this->transformLetter($mail);
+                
+                // If it's an inbox mail, check read status
+                $recipient = $mail->recipients()->where('recipient_type', 'user')->where('recipient_id', $user->id)->first();
+                if ($recipient) {
+                    $openedMail['status'] = $recipient->is_read ? 'read' : 'new';
+                }
+            }
+        }
 
         return Inertia::render('MailManagement/MailList', [
             'sentMails' => $sentMails,
             'inboxMails' => $inboxMails,
             'incomingApprovals' => $incomingApprovals,
+            'alreadyApprovedMails' => $alreadyApprovedMails, // Pass to view
             'filters' => $request->only(['search', 'category', 'status']),
+            'openedMail' => $openedMail,
         ]);
     }
 
@@ -313,7 +371,7 @@ class LetterController extends Controller
         // Log Activity
         \App\Services\ActivityLogger::log('create', 'Created new letter: ' . $letter->subject, $letter);
 
-        return redirect()->back()->with('success', 'Surat berhasil dikirim.');
+        return redirect()->route('letters.index')->with('success', 'Surat berhasil dikirim.');
     }
 
     public function downloadAttachment(Letter $letter, LetterAttachment $attachment)
@@ -352,16 +410,22 @@ class LetterController extends Controller
         
         try {
             // Update signature position if provided
-            if (isset($validated['signature_position']) && isset($validated['step_id'])) {
-                $positions = $letter->signature_positions ?? [];
-                $positions[$validated['step_id']] = $validated['signature_position'];
-                $letter->update(['signature_positions' => $positions]);
+            // Update signature position if provided
+            if (isset($validated['signature_position'])) {
+                $approver = $letter->approvers()->where('user_id', $user->id)->first();
+                if ($approver) {
+                    $positions = $letter->signature_positions ?? [];
+                    $positions[$approver->order] = $validated['signature_position'];
+                    $letter->update(['signature_positions' => $positions]);
+                }
             }
 
             // Use WorkflowService to process approval
             $action = $validated['status'] === 'approved' ? 'approve' : ($validated['status'] === 'rejected' ? 'reject' : 'return');
             $this->workflowService->processApproval($letter, $user, $action, $validated['remarks']);
         } catch (\Exception $e) {
+            \Log::error('Approval Error: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             return redirect()->back()->with('error', 'Gagal memproses approval: ' . $e->getMessage());
         }
 
@@ -379,43 +443,7 @@ class LetterController extends Controller
         // Check authorization using Policy
         $this->authorize('view', $letter);
 
-        $user = Auth::user();
-        $isRecipient = $letter->recipients()->where('recipient_type', 'user')->where('recipient_id', $user->id)->exists();
-
-        // Mark as read if recipient
-        if ($isRecipient) {
-            $letter->recipients()->where('recipient_type', 'user')->where('recipient_id', $user->id)->update(['is_read' => true]);
-        }
-
-        $letter->load(['creator', 'recipients', 'approvers.user', 'attachments', 'dispositions.sender', 'dispositions.recipient', 'comments.user']);
-
-        // Map approvers to include step_id (Workflow Step ID)
-        $workflow = $letter->letterType->approvalWorkflows()
-            ->where(function($q) use ($letter) {
-                $q->where('unit_id', $letter->unit_id)
-                  ->orWhereNull('unit_id');
-            })
-            ->orderBy('unit_id', 'desc')
-            ->first();
-
-        $approvers = $letter->approvers->map(function ($approver) use ($workflow) {
-            $step = $workflow ? $workflow->steps->where('order', $approver->order)->first() : null;
-            $approver->step_id = $step ? $step->id : null;
-            return $approver;
-        });
-
-        // Replace approvers collection with mapped one (or just use it in response)
-        $letter->setRelation('approvers', $approvers);
-
-        return response()->json([
-            'letter' => $letter,
-            'signature_positions' => $letter->signature_positions, // Added signature_positions
-            'attachment_urls' => $letter->attachments->map(fn($a) => [
-                'name' => $a->file_name,
-                // Use secure download route
-                'url' => route('letters.download-attachment', ['letter' => $letter->id, 'attachment' => $a->id])
-            ]),
-        ]);
+        return redirect()->route('letters.index', ['open_mail_id' => $letter->id]);
     }
 
     /**

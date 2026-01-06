@@ -3,6 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Video, ArrowRight } from 'lucide-react';
+import { toast, Toaster } from 'sonner';
 
 declare global {
     interface Window {
@@ -13,8 +14,17 @@ declare global {
 export default function VerificationVideoCall() {
     const [isCallStarted, setIsCallStarted] = useState(false);
     const jitsiContainerRef = useRef<HTMLDivElement>(null);
-    const { auth } = usePage().props as any;
+    const { auth, flash } = usePage().props as any;
     const user = auth.user;
+
+    useEffect(() => {
+        if (flash?.warning) {
+            toast.warning(flash.warning, {
+                duration: 5000,
+                position: 'top-center',
+            });
+        }
+    }, [flash]);
 
     useEffect(() => {
         let pollInterval: NodeJS.Timeout;
@@ -114,6 +124,7 @@ export default function VerificationVideoCall() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-black/95 p-4 relative overflow-hidden">
+            <Toaster richColors />
             {/* Background Effects */}
             <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-red-600/20 rounded-full blur-[120px] animate-pulse" />
             <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-red-900/20 rounded-full blur-[100px] animate-pulse delay-700" />
@@ -128,6 +139,15 @@ export default function VerificationVideoCall() {
                         </div>
                         <h1 className="text-3xl font-bold text-red-600 tracking-tight">Ruang Tunggu</h1>
                         <p className="text-gray-400">Mohon tunggu, Admin akan segera memulai verifikasi.</p>
+
+                        {!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
+                            <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-4 mt-4 max-w-md mx-auto">
+                                <p className="text-yellow-500 font-medium text-sm">
+                                    Peringatan: Browser Anda mungkin memblokir akses kamera karena koneksi tidak aman (HTTP).
+                                    Harap gunakan <strong>localhost</strong> atau <strong>HTTPS</strong>.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
 

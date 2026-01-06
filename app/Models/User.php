@@ -72,4 +72,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    /**
+     * Get the user's avatar URL.
+     */
+    public function getAvatarAttribute(): ?string
+    {
+        return $this->detail?->foto_profil ? \Illuminate\Support\Facades\Storage::url($this->detail->foto_profil) : null;
+    }
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = [
+        'avatar',
+    ];
 }

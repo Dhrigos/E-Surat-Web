@@ -1,8 +1,9 @@
 import React, { Suspense, lazy } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Activity, Mail, Send, Clock, FileText, CheckCircle2, XCircle, Download, MapPin } from 'lucide-react';
+import { SharedData } from '@/types';
 import {
     BarChart,
     Bar,
@@ -37,14 +38,16 @@ interface DashboardProps {
         };
     }[];
     usersByProvince: {
+        province_code: string;
         province: string;
         total: number;
-        coordinates: [number, number] | null;
     }[];
     totalUsers: number;
 }
 
 export default function Dashboard({ stats, chartData, activities, usersByProvince, totalUsers }: DashboardProps) {
+    const { auth } = usePage<SharedData>().props;
+    const isSuperAdmin = auth.user.roles?.some(r => r.name === 'super-admin');
 
     const getActionIcon = (action: string) => {
         switch (action) {
@@ -68,50 +71,49 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
 
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <div className="flex flex-col gap-6 p-6">
+                {/* Stats Grid */}
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Surat Keluar</CardTitle>
+                            <Send className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.sent}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Surat yang Anda buat
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Surat Masuk</CardTitle>
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.inbox}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Surat ditujukan kepada Anda
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Menunggu Approval</CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.pending}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Perlu persetujuan Anda
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Surat Keluar</CardTitle>
-                                <Send className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stats.sent}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Surat yang Anda buat
-                                </p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Surat Masuk</CardTitle>
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stats.inbox}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Surat ditujukan kepada Anda
-                                </p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Menunggu Approval</CardTitle>
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stats.pending}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Perlu persetujuan Anda
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* User Distribution Map */}
+                {/* User Distribution Map - Only for Super Admin */}
+                {isSuperAdmin && (
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">
@@ -139,67 +141,67 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                             </Suspense>
                         </CardContent>
                     </Card>
+                )}
 
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                        {/* Chart */}
-                        <Card className="col-span-4">
-                            <CardHeader>
-                                <CardTitle>Aktivitas Surat Keluar</CardTitle>
-                                <CardDescription>
-                                    Jumlah surat yang Anda buat per bulan tahun ini.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="pl-2">
-                                <div className="h-[300px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={chartData}>
-                                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                                            <XAxis dataKey="name" className="text-xs" />
-                                            <YAxis className="text-xs" allowDecimals={false} />
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--popover-foreground))' }}
-                                                itemStyle={{ color: 'hsl(var(--primary))' }}
-                                            />
-                                            <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </CardContent>
-                        </Card>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                    {/* Chart */}
+                    <Card className="col-span-4">
+                        <CardHeader>
+                            <CardTitle>Aktivitas Surat Keluar</CardTitle>
+                            <CardDescription>
+                                Jumlah surat yang Anda buat per bulan tahun ini.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pl-2">
+                            <div className="h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                                        <XAxis dataKey="name" className="text-xs" />
+                                        <YAxis className="text-xs" allowDecimals={false} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--popover-foreground))' }}
+                                            itemStyle={{ color: 'hsl(var(--primary))' }}
+                                        />
+                                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                        {/* Recent Activity */}
-                        <Card className="col-span-3">
-                            <CardHeader>
-                                <CardTitle>Aktivitas Terbaru</CardTitle>
-                                <CardDescription>
-                                    Log aktivitas terakhir Anda di sistem.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-8">
-                                    {activities.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground text-center py-4">Belum ada aktivitas.</p>
-                                    ) : (
-                                        activities.map((activity) => (
-                                            <div key={activity.id} className="flex items-start">
-                                                <div className="mt-1 mr-4 bg-muted p-2 rounded-full">
-                                                    {getActionIcon(activity.action)}
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-sm font-medium leading-none">
-                                                        {activity.description}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {new Date(activity.created_at).toLocaleString()}
-                                                    </p>
-                                                </div>
+                    {/* Recent Activity */}
+                    <Card className="col-span-3">
+                        <CardHeader>
+                            <CardTitle>Aktivitas Terbaru</CardTitle>
+                            <CardDescription>
+                                Log aktivitas terakhir Anda di sistem.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-8">
+                                {activities.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground text-center py-4">Belum ada aktivitas.</p>
+                                ) : (
+                                    activities.map((activity) => (
+                                        <div key={activity.id} className="flex items-start">
+                                            <div className="mt-1 mr-4 bg-muted p-2 rounded-full">
+                                                {getActionIcon(activity.action)}
                                             </div>
-                                        ))
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-medium leading-none">
+                                                    {activity.description}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {new Date(activity.created_at).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </AppLayout>

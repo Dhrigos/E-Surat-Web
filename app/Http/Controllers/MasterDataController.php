@@ -88,6 +88,29 @@ class MasterDataController extends Controller
             return response()->json(['steps' => []]);
         }
 
+        if ($workflow) {
+            foreach ($workflow->steps as $step) {
+                if ($step->approver_type === 'jabatan') {
+                    $staffQuery = \App\Models\Staff::where('jabatan_id', $step->approver_id)
+                        ->where('status', 'active')
+                        ->with('user');
+
+                    if ($unitId) {
+                        $staffInUnit = (clone $staffQuery)->where('unit_kerja_id', $unitId)->first();
+                        if ($staffInUnit) {
+                            $step->current_holder = $staffInUnit->user;
+                            continue;
+                        }
+                    }
+                    
+                    $staffGlobal = $staffQuery->first();
+                    if ($staffGlobal) {
+                        $step->current_holder = $staffGlobal->user;
+                    }
+                }
+            }
+        }
+
         return response()->json($workflow);
     }
     /**

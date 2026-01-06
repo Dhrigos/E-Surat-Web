@@ -11,6 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // 2. Create workflow_step_groups table for parallel approval
+        Schema::create('workflow_step_groups', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('workflow_id')->constrained('approval_workflows')->onDelete('cascade');
+            $table->integer('group_order'); // Order of this group in the workflow
+            $table->enum('approval_type', ['all', 'any', 'majority'])->default('all');
+            // 'all' = all approvers must approve
+            // 'any' = any one approver can approve
+            // 'majority' = more than 50% must approve
+            $table->text('description')->nullable();
+            $table->timestamps();
+        });
+
         // 1. Add new columns to approval_workflow_steps for complex workflows
         Schema::table('approval_workflow_steps', function (Blueprint $table) {
             $table->enum('step_type', ['sequential', 'parallel', 'conditional'])->default('sequential');
@@ -25,19 +38,6 @@ return new class extends Migration
             // Additional metadata
             $table->boolean('is_required')->default(true)->after('condition_value');
             $table->integer('timeout_hours')->nullable()->after('is_required'); // Optional deadline
-        });
-
-        // 2. Create workflow_step_groups table for parallel approval
-        Schema::create('workflow_step_groups', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workflow_id')->constrained('approval_workflows')->onDelete('cascade');
-            $table->integer('group_order'); // Order of this group in the workflow
-            $table->enum('approval_type', ['all', 'any', 'majority'])->default('all');
-            // 'all' = all approvers must approve
-            // 'any' = any one approver can approve
-            // 'majority' = more than 50% must approve
-            $table->text('description')->nullable();
-            $table->timestamps();
         });
 
         // 3. Create workflow_delegations table

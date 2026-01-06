@@ -34,6 +34,7 @@ import {
     Send,
     Check,
     X,
+    Eye,
     ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,11 +53,13 @@ interface Attachment {
 
 interface Approver {
     user_id?: number;
+    approver_id: number; // Add this line
     position: string;
     user_name?: string;
     status: 'pending' | 'approved' | 'rejected';
     order: number;
     remarks?: string;
+    signature_url?: string;
 }
 
 interface Recipient {
@@ -117,6 +120,7 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
 
     const currentApprover = mail.approvers?.find(a => a.user_id === auth.user.id);
     const canApprove = currentApprover?.status === 'pending';
+    const isRecipient = mail.recipients_list?.some(r => r.type === 'user' && String(r.id) === String(auth.user.id));
 
     console.log('Auth User ID:', auth.user.id);
     console.log('Mail Approvers:', mail.approvers);
@@ -138,7 +142,7 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
             status: action === 'approve' ? 'approved' : 'rejected',
             remarks: finalRemarks,
             signature_position: signaturePosition,
-            step_id: currentApprover?.position // Using approver_id/jabatan_id as key for now
+            step_id: currentApprover?.approver_id // Use approver_id (workflow step id)
         }, {
             onSuccess: () => {
                 setApprovalAction(null);
@@ -191,13 +195,10 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                                 setPendingSignature(data.signature_position);
                                 setApprovalAction('approve');
                             }}
-                            onReject={(r) => {
-                                setRemarks(r);
-                                setPendingSignature(null);
-                                setApprovalAction('reject');
-                            }}
+                            onReject={(remarks) => handleApproval({ remarks, signature_position: null }, 'reject')}
                             onCancel={() => setViewMode('detail')}
                             isSubmitting={isSubmitting}
+                            readonly={!canApprove}
                         />
                     ) : (
                         <>
@@ -412,7 +413,20 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                                             <ArrowRight className="h-5 w-5 ml-2.5" />
                                         </Button>
                                     )}
-                                    {mail.status !== 'approved' && !canApprove && (
+                                    {!canApprove && currentApprover && (currentApprover.status === 'approved' || currentApprover.status === 'rejected') && (
+                                        <Button
+                                            size="lg"
+                                            variant="outline"
+                                            className="w-full md:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white h-12 text-base"
+                                            onClick={() => {
+                                                setViewMode('approval');
+                                            }}
+                                        >
+                                            <Eye className="h-5 w-5 mr-2.5" />
+                                            Preview
+                                        </Button>
+                                    )}
+                                    {mail.status !== 'approved' && !canApprove && isRecipient && (
                                         <Button
                                             variant="outline"
                                             size="lg"
@@ -423,7 +437,7 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                                             Disposisi
                                         </Button>
                                     )}
-                                    {!canApprove && (
+                                    {!canApprove && isRecipient && (
                                         <Button
                                             variant="outline"
                                             size="lg"

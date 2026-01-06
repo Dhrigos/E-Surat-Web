@@ -32,18 +32,8 @@ class LetterPolicy
         }
 
         // Approver (current or past) can view
-        $staff = $user->staff;
-        if (!$staff || !$staff->jabatan) {
-            return false;
-        }
-        
-        $userPosition = strtolower($staff->jabatan->nama);
-        
-        foreach ($letter->approvers as $approver) {
-            $requiredPosition = str_replace('-', ' ', strtolower($approver->approver_id));
-            if (str_contains($userPosition, $requiredPosition) || str_contains($requiredPosition, $userPosition)) {
-                return true;
-            }
+         if ($letter->approvers()->where('user_id', $user->id)->exists()) {
+            return true;
         }
 
         return false;
@@ -94,11 +84,6 @@ class LetterPolicy
      */
     public function approve(User $user, Letter $letter): bool
     {
-        $staff = $user->staff;
-        if (!$staff || !$staff->jabatan) {
-            return false;
-        }
-
         $currentApprover = $letter->approvers()
             ->where('status', 'pending')
             ->orderBy('order', 'asc')
@@ -108,9 +93,8 @@ class LetterPolicy
             return false;
         }
 
-        $userPosition = strtolower($staff->jabatan->nama);
-        $requiredPosition = str_replace('-', ' ', strtolower($currentApprover->approver_id));
-
-        return str_contains($userPosition, $requiredPosition) || str_contains($requiredPosition, $userPosition);
+        // Check if user is the assigned approver or the original approver (delegation)
+        return $currentApprover->user_id === $user->id || 
+               ($currentApprover->original_user_id ?? null) === $user->id;
     }
 }

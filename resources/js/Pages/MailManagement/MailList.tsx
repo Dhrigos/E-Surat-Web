@@ -44,6 +44,7 @@ interface Props {
     sentMails: PaginatedData;
     inboxMails: PaginatedData;
     incomingApprovals: PaginatedData;
+    alreadyApprovedMails: PaginatedData; // Add this line
     filters: {
         search?: string;
         category?: string;
@@ -51,7 +52,7 @@ interface Props {
     };
 }
 
-export default function MailList({ sentMails, inboxMails, incomingApprovals, filters }: Props) {
+export default function MailList({ sentMails, inboxMails, incomingApprovals, alreadyApprovedMails, filters }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [selectedCategory, setSelectedCategory] = useState(filters.category || 'all');
     const [selectedMail, setSelectedMail] = useState<any>(null);
@@ -299,6 +300,12 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, fil
                         >
                             Sent {sentMails.total > 0 ? `(${sentMails.total})` : ''}
                         </TabsTrigger>
+                        <TabsTrigger
+                            value="approved"
+                            className="flex-1 rounded-full py-2 text-muted-foreground data-[state=active]:!bg-red-600 data-[state=active]:!text-white transition-all hover:text-foreground"
+                        >
+                            Sudah di Approve {alreadyApprovedMails?.total > 0 ? `(${alreadyApprovedMails.total})` : ''}
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="inbox" className="space-y-4 mt-6">
@@ -348,6 +355,23 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, fil
                                     <MailCard key={mail.id} mail={mail} type="sent" />
                                 ))}
                                 <Pagination links={sentMails.links} />
+                            </>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="approved" className="space-y-4 mt-6">
+                        {alreadyApprovedMails?.data.length === 0 ? (
+                            <div className="text-center py-12 bg-card dark:bg-[#18181b] rounded-xl border border-border dark:border-zinc-800 shadow-sm">
+                                <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-semibold mb-2 text-foreground">Belum ada surat yang disetujui</h3>
+                                <p className="text-muted-foreground">Surat yang sudah Anda setujui akan muncul di sini</p>
+                            </div>
+                        ) : (
+                            <>
+                                {alreadyApprovedMails?.data.map((mail) => (
+                                    <MailCard key={mail.id} mail={mail} type="inbox" />
+                                ))}
+                                <Pagination links={alreadyApprovedMails?.links || []} />
                             </>
                         )}
                     </TabsContent>

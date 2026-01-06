@@ -32,6 +32,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/status-by-jabatan', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'getStatusByJabatan']);
     Route::get('/api/pangkat-by-status', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'getPangkatByStatus']);
 
+    // API Routes for Letter Creation / Workflow
+    Route::get('/api/workflow', [\App\Http\Controllers\MasterDataController::class, 'getWorkflow'])->name('api.workflow');
+    Route::get('/api/users-by-jabatan', [\App\Http\Controllers\MasterDataController::class, 'getUsersByJabatan'])->name('api.users-by-jabatan');
+    Route::get('/api/unit-kerja', [\App\Http\Controllers\MasterDataController::class, 'getUnitKerjas'])->name('api.unit-kerja');
+    Route::get('/api/jabatan', [\App\Http\Controllers\MasterDataController::class, 'getJabatan'])->name('api.jabatan');
+    Route::get('/api/letter-templates', [\App\Http\Controllers\MasterDataController::class, 'getLetterTemplates'])->name('api.letter-templates');
+
     Route::middleware([\App\Http\Middleware\EnsureUserIsVerified::class])->group(function () {
         Route::get('dashboard', [\App\Http\Controllers\MailDashboardController::class, 'index'])->name('dashboard');
 
@@ -81,10 +88,18 @@ Route::middleware(['auth'])->group(function () {
         Route::post('letters/{letter}/comments', [\App\Http\Controllers\LetterCommentController::class, 'store'])->name('letters.comments.store');
         Route::resource('letters', \App\Http\Controllers\LetterController::class)->except(['index', 'edit']);
 
+        // Disposition Routes
+        Route::get('/dispositions', [\App\Http\Controllers\DispositionController::class, 'index'])->name('dispositions.index');
+        Route::post('/letters/{letter}/dispositions', [\App\Http\Controllers\DispositionController::class, 'store'])->name('dispositions.store');
+        Route::put('/dispositions/{disposition}/status', [\App\Http\Controllers\DispositionController::class, 'updateStatus'])->name('dispositions.update-status');
+        Route::delete('/dispositions/{disposition}', [\App\Http\Controllers\DispositionController::class, 'destroy'])->name('dispositions.destroy');
+        Route::get('/api/disposition-recipients', [\App\Http\Controllers\DispositionController::class, 'getRecipients'])->name('dispositions.recipients');
+
         // Notification Routes
         Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
-        Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/notifications/clear-all', [\App\Http\Controllers\NotificationController::class, 'clearAll'])->name('notifications.clear-all');
+        Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
         
         // Audit Log
         Route::get('/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit-logs.index');

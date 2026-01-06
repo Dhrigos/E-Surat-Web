@@ -17,7 +17,7 @@ import {
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { BreadcrumbItem, SharedData } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
-import { Bell, ChevronDown, LogOut, Menu, UserCog } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, UserCog, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -31,9 +31,10 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
     const user = auth.user;
     const notifications = auth.notifications || [];
 
-    const unreadCount = notifications.length;
+    const unreadCount = notifications.filter((n: any) => !n.read_at).length;
 
     const markAsRead = (id: string) => {
+        if (!id) return;
         router.post(route('notifications.read', id), {}, {
             preserveScroll: true,
         });
@@ -131,22 +132,41 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                         <div className="overflow-y-auto max-h-80">
                             {notifications.length === 0 ? (
                                 <div className="p-4 text-center text-muted-foreground text-sm">
-                                    Tidak ada notifikasi baru
+                                    Tidak ada notifikasi
                                 </div>
                             ) : (
                                 notifications.map((notification: any) => (
                                     <div
                                         key={notification.id}
-                                        className={`p-3 md:p-4 border-b border-border cursor-pointer hover:bg-accent/50 active:bg-accent transition-colors bg-accent/20`}
-                                        onClick={() => markAsRead(notification.id)}
+                                        className={`p-3 md:p-4 border-b border-border hover:bg-accent/50 transition-colors ${!notification.read_at ? 'bg-accent/20' : ''}`}
                                     >
                                         <div className="flex justify-between items-start gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-sm truncate text-foreground">{notification.data.subject}</p>
+                                            <div
+                                                className="flex-1 min-w-0 cursor-pointer"
+                                                onClick={() => !notification.read_at && markAsRead(notification.id)}
+                                            >
+                                                <p className={`font-medium text-sm truncate text-foreground ${!notification.read_at ? 'font-bold' : ''}`}>
+                                                    {notification.data.subject}
+                                                </p>
                                                 <p className="text-sm text-muted-foreground line-clamp-2">{notification.data.message}</p>
                                                 <p className="text-xs text-muted-foreground mt-1">{new Date(notification.created_at).toLocaleString()}</p>
                                             </div>
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
+                                            <div className="flex flex-col items-center gap-2">
+                                                {!notification.read_at && (
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                                                )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        router.delete(route('notifications.destroy', notification.id), {
+                                                            preserveScroll: true,
+                                                        });
+                                                    }}
+                                                    className="text-muted-foreground hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))
@@ -188,10 +208,7 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                                 </AvatarFallback>
                             </Avatar>
-                            <div className="text-left hidden md:block">
-                                <p className="text-sm lg:text-base font-medium">{user.name.split(' ')[0]}</p>
-                                <p className="text-xs lg:text-sm text-muted-foreground capitalize">{user.role || 'User'}</p>
-                            </div>
+
                             <ChevronDown className="h-4 w-4 hidden md:block" />
                         </Button>
                     </DropdownMenuTrigger>
@@ -228,10 +245,7 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                                     <p className="text-xs text-muted-foreground mb-0.5">Unit Kerja:</p>
                                     <p className="text-sm font-semibold text-foreground truncate">{user.detail?.unit_kerja?.nama || '-'}</p>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground mb-0.5">Role:</p>
-                                    <p className="text-sm font-semibold text-foreground capitalize">{user.role || 'User'}</p>
-                                </div>
+
                             </div>
                         </DropdownMenuLabel>
 

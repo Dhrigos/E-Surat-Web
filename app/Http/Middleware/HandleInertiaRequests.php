@@ -45,7 +45,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user() ? $request->user()->load('roles', 'permissions', 'detail.jabatan', 'detail.unitKerja') : null,
                 'can' => $request->user() ? $request->user()->getAllPermissions()->pluck('name') : [],
-                'notifications' => $request->user() ? $request->user()->unreadNotifications : [],
+                'notifications' => $request->user() ? $request->user()->notifications()->latest()->take(10)->get() : [],
+            ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'warning' => fn () => $request->session()->get('warning'),
+                'info' => fn () => $request->session()->get('info'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

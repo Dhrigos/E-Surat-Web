@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
     plugins: [
@@ -20,6 +21,36 @@ export default defineConfig({
         wayfinder({
             formVariants: true,
         }),
+        VitePWA({
+            registerType: 'autoUpdate',
+            outDir: 'public',
+            buildBase: '/',
+            scope: '/',
+            workbox: {
+                cleanupOutdatedCaches: true,
+                directoryIndex: null,
+            },
+            manifest: {
+                name: 'E-Surat Web',
+                short_name: 'E-Surat',
+                description: 'Aplikasi E-Surat Modern',
+                theme_color: '#ffffff',
+                background_color: '#ffffff',
+                display: 'standalone',
+                icons: [
+                    {
+                        src: '/android-chrome-192x192.png',
+                        sizes: '192x192',
+                        type: 'image/png',
+                    },
+                    {
+                        src: '/android-chrome-512x512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                    },
+                ],
+            },
+        }),
     ],
     esbuild: {
         jsx: 'automatic',
@@ -29,23 +60,15 @@ export default defineConfig({
         port: 5173,
         strictPort: true,
         cors: {
-            origin: [
-                'https://project-bacadnas.dhrigo.biz.id',
-                'https://api-project-bacadnas.dhrigo.biz.id',
-            ],
+            origin: '*',
             credentials: true,
         },
         hmr: {
-            host: 'api-project-bacadnas.dhrigo.biz.id',
-            clientPort: 443,
-            protocol: 'wss',
+            host: '192.168.1.6',
         },
         watch: {
             usePolling: true,
             ignored: ['**/vendor/**', '**/node_modules/**'],
         },
-        allowedHosts: [
-            "api-project-bacadnas.dhrigo.biz.id",
-        ],
     },
 });

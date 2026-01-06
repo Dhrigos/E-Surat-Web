@@ -2,15 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Check, FileText, ArrowLeft, ZoomIn, ZoomOut } from 'lucide-react';
+import { Check, FileText, ArrowLeft, ZoomIn, ZoomOut, XCircle } from 'lucide-react';
 
 interface ApprovalViewProps {
     mail: any;
     approver: any;
-    onApprove: (data: { remarks: string; signature_position: { x: number; y: number } | null }) => void;
+    onApprove: (data: { remarks: string; signature_position: any }) => void;
     onReject: (remarks: string) => void;
     onCancel: () => void;
-    isSubmitting: boolean;
+    readonly?: boolean;
+    isSubmitting?: boolean; // Add isSubmitting prop
 }
 
 export default function ApprovalView({
@@ -19,7 +20,8 @@ export default function ApprovalView({
     onApprove,
     onReject,
     onCancel,
-    isSubmitting
+    readonly = false,
+    isSubmitting = false // Default to false
 }: ApprovalViewProps) {
     const [signaturePosition, setSignaturePosition] = useState<{ x: number; y: number } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -28,9 +30,14 @@ export default function ApprovalView({
     const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
     const [zoom, setZoom] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
+    // Removed local isSubmitting state
+
+    // Determine if view should be read-only
+    const isReadOnly = readonly || approver.status === 'approved' || approver.status === 'rejected';
 
     // --- Mouse Drag Handlers (Desktop) ---
     const handleDragStart = (e: React.DragEvent, source: 'sidebar' | 'placed') => {
+        if (isReadOnly) return; // Prevent drag if read-only
         e.dataTransfer.setData('text/plain', 'signature');
         e.dataTransfer.effectAllowed = 'move';
         setIsDragging(true);
@@ -66,8 +73,19 @@ export default function ApprovalView({
         const y = e.clientY - containerRect.top - dragOffset.y;
 
         // Convert to percentage
-        const xPercent = (x / containerRect.width) * 100;
-        const yPercent = (y / containerRect.height) * 100;
+        let xPercent = (x / containerRect.width) * 100;
+        let yPercent = (y / containerRect.height) * 100;
+
+        // Snap to placeholder if close (within 5%)
+        if (mail.signature_positions) {
+            for (const pos of Object.values(mail.signature_positions) as any[]) {
+                if (Math.abs(pos.x - xPercent) < 5 && Math.abs(pos.y - yPercent) < 5) {
+                    xPercent = pos.x;
+                    yPercent = pos.y;
+                    break;
+                }
+            }
+        }
 
         setSignaturePosition({ x: xPercent, y: yPercent });
     };
@@ -123,8 +141,19 @@ export default function ApprovalView({
             const x = touch.clientX - containerRect.left - dragOffset.x;
             const y = touch.clientY - containerRect.top - dragOffset.y;
 
-            const xPercent = (x / containerRect.width) * 100;
-            const yPercent = (y / containerRect.height) * 100;
+            let xPercent = (x / containerRect.width) * 100;
+            let yPercent = (y / containerRect.height) * 100;
+
+            // Snap to placeholder if close (within 5%)
+            if (mail.signature_positions) {
+                for (const pos of Object.values(mail.signature_positions) as any[]) {
+                    if (Math.abs(pos.x - xPercent) < 5 && Math.abs(pos.y - yPercent) < 5) {
+                        xPercent = pos.x;
+                        yPercent = pos.y;
+                        break;
+                    }
+                }
+            }
 
             setSignaturePosition({ x: xPercent, y: yPercent });
         }
@@ -173,10 +202,16 @@ export default function ApprovalView({
                             width: '150px'
                         }}
                     >
-                        <div className="p-2 border-2 border-dashed border-blue-500 bg-blue-50/50 rounded text-center">
-                            <p className="text-xs font-semibold uppercase text-black">{approver.position.replace(/-/g, ' ')}</p>
-                            <div className="h-12"></div>
-                            <p className="text-xs font-bold underline text-black">{approver.user_name || 'Anda'}</p>
+                        <div className={`border-2 border-dashed border-blue-500 bg-blue-50/50 rounded text-center min-w-[150px] p-2`}>
+                            {approver.signature_url ? (
+                                <img src={approver.signature_url} alt="Signature" className="w-auto h-auto object-contain max-h-[60px] mx-auto" />
+                            ) : (
+                                <>
+                                    <p className="text-xs font-semibold uppercase text-black">{approver.position.replace(/-/g, ' ')}</p>
+                                    <div className="h-12"></div>
+                                    <p className="text-xs font-bold underline text-black">{approver.user_name || 'Anda'}</p>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
@@ -222,20 +257,49 @@ export default function ApprovalView({
 
                             {/* Existing Signatures (Placeholder logic) */}
                             {mail.signature_positions && Object.entries(mail.signature_positions).map(([stepId, pos]: [string, any]) => {
-                                return null;
+                                // Find the approver for this step
+                                // Find the approver for this step
+                                const stepApprover = mail.approvers.find((a: any) => a.order === parseInt(stepId));
+                                const isApproved = stepApprover?.status === 'approved';
+
+                                return (
+                                    <div
+                                        key={stepId}
+                                        className={`absolute ${isApproved ? '' : 'border-2 border-dashed border-gray-400 bg-gray-50/50'} p-2 rounded text-center min-w-[150px] pointer-events-none flex flex-col justify-between`}
+                                        style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                                    >
+                                        <p className="text-[10px] font-semibold uppercase text-gray-600">{pos.jabatan || 'Posisi Tanda Tangan'}</p>
+                                        <div className="h-12 flex items-center justify-center relative">
+                                            {isApproved && stepApprover?.signature_url && (
+                                                <img
+                                                    src={stepApprover.signature_url}
+                                                    alt="Signature"
+                                                    className="absolute inset-0 w-full h-full object-contain"
+                                                />
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] font-bold text-gray-800">{pos.name || '...'}</p>
+                                    </div>
+                                );
                             })}
 
                             {/* Current User's Signature (Dropped) */}
                             {signaturePosition && (
                                 <div
-                                    className="absolute cursor-move border-2 border-dashed border-blue-500 bg-blue-50/50 p-2 rounded text-center min-w-[150px] touch-none"
+                                    className={`absolute cursor-move border-2 border-dashed border-blue-500 bg-blue-50/50 rounded text-center touch-none min-w-[150px] p-2`}
                                     style={{ left: `${signaturePosition.x}%`, top: `${signaturePosition.y}%` }}
                                     draggable
                                     onDragStart={(e) => handleDragStart(e, 'placed')}
                                     onTouchStart={(e) => handleTouchStart(e, 'placed')}
                                 >
                                     <p className="text-xs font-semibold uppercase">{approver.position.replace(/-/g, ' ')}</p>
-                                    <div className="h-12"></div>
+                                    <div className="h-12 flex items-center justify-center relative">
+                                        {approver.signature_url ? (
+                                            <img src={approver.signature_url} alt="Signature" className="absolute inset-0 w-full h-full object-contain" />
+                                        ) : (
+                                            <div className="h-full w-full border border-dashed border-blue-300 rounded bg-blue-50/50"></div>
+                                        )}
+                                    </div>
                                     <p className="text-xs font-bold underline">{approver.user_name || 'Anda'}</p>
                                 </div>
                             )}
@@ -276,51 +340,75 @@ export default function ApprovalView({
                         </div>
                     </div>
 
-                    {!signaturePosition && (
-                        <div className="space-y-3">
-                            <Label className="text-zinc-400">Tanda Tangan Anda</Label>
-                            <div
-                                className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg cursor-move hover:border-blue-500 hover:bg-zinc-800/80 transition-all flex items-center gap-3 touch-none"
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, 'sidebar')}
-                                onTouchStart={(e) => handleTouchStart(e, 'sidebar')}
-                            >
-                                <div className="h-10 w-10 bg-blue-500/20 rounded flex items-center justify-center text-blue-400">
-                                    <FileText className="h-5 w-5" />
+                    {isReadOnly ? (
+                        <div className="mt-auto p-4 bg-zinc-800 rounded-lg border border-zinc-700">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className={`p-2 rounded-full ${approver.status === 'approved' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-rose-500/20 text-rose-500'}`}>
+                                    {approver.status === 'approved' ? <Check className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-zinc-200 uppercase">{approver.position.replace(/-/g, ' ')}</p>
-                                    <p className="text-xs text-zinc-500">Drag ke area surat</p>
+                                    <p className="font-medium text-zinc-200">
+                                        {approver.status === 'approved' ? 'Surat Disetujui' : 'Surat Ditolak'}
+                                    </p>
+                                    <p className="text-xs text-zinc-500">
+                                        Anda telah {approver.status === 'approved' ? 'menyetujui' : 'menolak'} surat ini.
+                                    </p>
                                 </div>
                             </div>
                         </div>
+                    ) : (
+                        <>
+                            {!signaturePosition && (
+                                <div className="space-y-3">
+                                    <Label className="text-zinc-400">Tanda Tangan Anda</Label>
+                                    <div
+                                        className="p-4 bg-zinc-800 border border-zinc-700 rounded-lg cursor-move hover:border-blue-500 hover:bg-zinc-800/80 transition-all flex items-center gap-3 touch-none"
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, 'sidebar')}
+                                        onTouchStart={(e) => handleTouchStart(e, 'sidebar')}
+                                    >
+                                        <div className="h-10 w-10 bg-blue-500/20 rounded flex items-center justify-center text-blue-400 overflow-hidden">
+                                            {approver.signature_url ? (
+                                                <img src={approver.signature_url} alt="Sig" className="w-full h-full object-contain" />
+                                            ) : (
+                                                <FileText className="h-5 w-5" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-zinc-200 uppercase">{approver.position.replace(/-/g, ' ')}</p>
+                                            <p className="text-xs text-zinc-500">Drag ke area surat</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {signaturePosition && (
+                                <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm flex items-center gap-2">
+                                    <Check className="h-4 w-4" />
+                                    Tanda tangan ditempatkan.
+                                </div>
+                            )}
+
+
+                            <div className="mt-auto space-y-3 pt-6 border-t border-zinc-800">
+                                <Button
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    onClick={handleApproveClick}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? 'Memproses...' : 'Approve & Tanda Tangan'}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="w-full border-rose-500/50 text-rose-500 hover:bg-rose-500/10"
+                                    onClick={() => onReject('')}
+                                    disabled={isSubmitting}
+                                >
+                                    Reject
+                                </Button>
+                            </div>
+                        </>
                     )}
-
-                    {signaturePosition && (
-                        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm flex items-center gap-2">
-                            <Check className="h-4 w-4" />
-                            Tanda tangan ditempatkan.
-                        </div>
-                    )}
-
-
-                    <div className="mt-auto space-y-3 pt-6 border-t border-zinc-800">
-                        <Button
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={handleApproveClick}
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? 'Memproses...' : 'Approve & Tanda Tangan'}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="w-full border-rose-500/50 text-rose-500 hover:bg-rose-500/10"
-                            onClick={() => onReject('')}
-                            disabled={isSubmitting}
-                        >
-                            Reject
-                        </Button>
-                    </div>
                 </div>
             </div>
         </div>

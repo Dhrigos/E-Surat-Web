@@ -3,7 +3,7 @@ import { useForm, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Lock, Shield } from 'lucide-react';
+import { User, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import GuestLayout from '@/layouts/GuestLayout';
 
@@ -33,10 +33,15 @@ export default function Login() {
     return (
         <GuestLayout title="Login">
             {/* Institutional Badge */}
+            {/* Institutional Badge */}
             <div className="text-center mb-6">
-                <div className="inline-flex items-center gap-3 bg-[#252525] border-2 border-red-600/30 rounded-full px-8 py-3 shadow-lg">
-                    <Shield className="h-6 w-6 text-red-600" />
-                    <span className="text-white font-black text-lg">AKSES RESMI</span>
+                <div className="flex items-center justify-center gap-2 md:gap-4">
+                    <div className="h-px w-8 md:w-24 bg-gradient-to-r from-transparent via-red-600 to-transparent"></div>
+                    <p className="text-sm md:text-xl font-bold text-red-600 drop-shadow-lg uppercase tracking-wider text-center leading-tight">
+                        <span className="whitespace-nowrap">KEMENTERIAN PERTAHANAN</span><br />
+                        <span className="whitespace-nowrap">REPUBLIK INDONESIA</span>
+                    </p>
+                    <div className="h-px w-8 md:w-24 bg-gradient-to-r from-transparent via-red-600 to-transparent"></div>
                 </div>
             </div>
 
@@ -45,8 +50,13 @@ export default function Login() {
 
                 {/* Card Header */}
                 <div className="text-center mb-8">
-                    <h2 className="text-2xl font-black text-white mb-2">Portal Login</h2>
-                    <p className="text-gray-400">Sistem Manajemen Dokumen BCN</p>
+                    <img
+                        src="/images/KEMENTERIAN-PERTAHANAN.png"
+                        alt="Logo Kementerian Pertahanan"
+                        className="h-28 w-28 object-contain mx-auto mb-4 drop-shadow-2xl"
+                    />
+                    <h2 className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight whitespace-nowrap">Badan Cadangan Nasional</h2>
+                    <p className="text-gray-400 font-medium">Buat akun baru untuk mengakses sistem</p>
                 </div>
 
                 {/* Login Form */}
@@ -109,11 +119,6 @@ export default function Login() {
             </div>
 
             {/* Bottom Info */}
-            <div className="mt-6 text-center">
-                <p className="text-white/50 text-xs">
-                    Portal ini dilindungi dengan enkripsi tingkat militer
-                </p>
-            </div>
         </GuestLayout>
     );
 }

@@ -213,7 +213,7 @@ export default function MasterDataIndex({ letterTypes }: Props) {
         <AppLayout breadcrumbs={[{ title: 'Master Data', href: '/master-data' }]}>
             <Head title="Master Data Management" />
 
-            <div className="p-6 space-y-8 max-w-7xl mx-auto">
+            <div className="flex h-full flex-1 flex-col gap-8 p-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight text-foreground">Global Workflow</h2>
