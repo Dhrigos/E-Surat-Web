@@ -22,7 +22,7 @@ import { CascadingJabatanSelector } from '@/components/CascadingJabatanSelector'
 // E-KYC imports removed
 
 interface Props {
-    jabatans: Array<{ id: number; nama: string; }>;
+    jabatans: Array<{ id: number; nama: string; nama_lengkap?: string }>;
     rejectionReason?: string;
 }
 
@@ -74,7 +74,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
         jabatan_id: '',
         tanggal_pengangkatan: '',
         nomor_sk: '',
-        nomor_kta: '',
+
 
         // Step 3: Alamat & Dokumen
         alamat_domisili_lengkap: '',
@@ -249,6 +249,10 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
 
     useEffect(() => {
         axios.get(route('regions.provinces')).then(res => setProvinces(Object.entries(res.data).map(([code, name]) => ({ code, name }))));
+
+        if ((user as any).detail?.scan_ktp) {
+            setPreviews(prev => ({ ...prev, scan_ktp: `/storage/${(user as any).detail.scan_ktp}` }));
+        }
     }, []);
 
     const fetchCities = (provinceCode: string) => {
@@ -342,7 +346,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                     }
 
                     // Step 3
-                    const step3Fields = ['jabatan_id', 'tanggal_pengangkatan', 'nomor_sk', 'nomor_kta', 'tanda_tangan'];
+                    const step3Fields = ['jabatan_id', 'tanggal_pengangkatan', 'nomor_sk', 'tanda_tangan'];
                     const hasStep3Error = step3Fields.some(f => errorFields.includes(f));
                     if (hasStep3Error) {
                         toast.warning('Terdapat error pada Data Kepegawaian (Step 3)');
@@ -380,7 +384,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
         }
     };
 
-    // Validate NIA/NRP uniqueness
+    // Validate NRP uniqueness
     const validateNiaNrp = async (niaNrp: string) => {
         if (!niaNrp) {
             setNiaNrpExists(false);
@@ -400,7 +404,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
             }
             return !exists;
         } catch (error) {
-            console.error('Error validating NIA/NRP:', error);
+            console.error('Error validating NRP:', error);
             return true; // Allow to proceed on error
         } finally {
             setIsValidatingNiaNrp(false);
@@ -408,34 +412,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
     };
 
     // Validate KTA uniqueness
-    const validateKta = async (kta: string) => {
-        if (!kta) {
-            setKtaExists(false);
-            return true;
-        }
 
-        setIsValidatingKta(true);
-        try {
-            const response = await axios.post(route('api.validate.nomor-kta'), { nomor_kta: kta });
-            const exists = response.data.exists;
-            setKtaExists(exists);
-            if (exists) {
-                setError('nomor_kta', 'Nomor KTA sudah terdaftar');
-                toast.error('Nomor KTA sudah terdaftar');
-            } else {
-                clearErrors('nomor_kta');
-            }
-            return !exists;
-        } catch (error) {
-            console.error('Error validating KTA:', error);
-            // Allow proceed on network error to avoid blocking user, or block?
-            // User requested strict blocking "terapkan agar tidak bisa lanjut step".
-            // So if error, maybe safeguard, but for now let's assume network is fine or fail safe.
-            return true;
-        } finally {
-            setIsValidatingKta(false);
-        }
-    };
 
     const nextStep = async () => {
         clearErrors();
@@ -470,7 +447,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                 return;
             }
         } else if (step === 3) {
-            const requiredFields = ['jabatan_id', 'tanggal_pengangkatan', 'nomor_sk', 'nomor_kta'];
+            const requiredFields = ['jabatan_id', 'tanggal_pengangkatan', 'nomor_sk'];
             requiredFields.forEach(field => {
                 if (!data[field as keyof typeof data]) {
                     setError(field as any, 'Wajib diisi');
@@ -490,12 +467,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                 return;
             }
 
-            // Validate KTA uniqueness
-            const ktaValid = await validateKta(data.nomor_kta);
-            if (!ktaValid) {
-                // Toast already shown by individual validation
-                return;
-            }
+
         }
         setStep(s => Math.min(s + 1, 4));
     };
@@ -560,13 +532,14 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                         {step === 1 && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">NIA / NRP</Label>
+                                    <Label className="text-white font-medium">NRP</Label>
                                     <FastInput
                                         value={data.nia_nrp}
                                         onBlur={(e) => { setData('nia_nrp', e.target.value); clearErrors('nia_nrp'); }}
                                         onPaste={(e) => e.preventDefault()}
                                         onCopy={(e) => e.preventDefault()}
                                         onCut={(e) => e.preventDefault()}
+                                        minLength={14}
                                         className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nia_nrp || niaNrpExists ? 'border-red-500' : ''}`}
                                         placeholder="Nomor Induk Anggota"
                                     />
@@ -580,6 +553,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                         onPaste={(e) => e.preventDefault()}
                                         onCopy={(e) => e.preventDefault()}
                                         onCut={(e) => e.preventDefault()}
+                                        maxLength={16}
                                         className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nik || nikExists ? 'border-red-500' : ''}`}
                                         placeholder="Nomor Induk Kependudukan"
                                     />
@@ -590,7 +564,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <Select value={data.birthplace_province_id} onValueChange={fetchBirthplaceCities}>
                                             <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.tempat_lahir ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent className="max-w-[280px]">
                                                 {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
@@ -651,7 +625,14 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                         {step === 3 && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                 <div className="space-y-6 col-span-1 md:col-span-2">
-                                    <Label className="text-white font-medium">Jabatan *</Label>
+                                    <div className="flex justify-between items-center">
+                                        <Label className="text-white font-medium">Jabatan *</Label>
+                                        {data.jabatan_id && (
+                                            <span className="text-xs text-green-400 font-bold animate-in fade-in">
+                                                Jabatan Terpilih : {jabatans.find(j => j.id === Number(data.jabatan_id))?.nama_lengkap || jabatans.find(j => j.id === Number(data.jabatan_id))?.nama}
+                                            </span>
+                                        )}
+                                    </div>
                                     <CascadingJabatanSelector
                                         jabatans={jabatans}
                                         value={data.jabatan_id}
@@ -669,14 +650,10 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                     <Input value={data.nomor_sk} onChange={e => { setData('nomor_sk', e.target.value); clearErrors('nomor_sk'); }} className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nomor_sk ? 'border-red-500' : ''}`} placeholder="Nomor SK Pengangkatan" />
                                     {errors.nomor_sk && <p className="text-red-500 text-sm">{errors.nomor_sk}</p>}
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-white font-medium">Nomor KTA</Label>
-                                    <Input value={data.nomor_kta} onChange={e => { setData('nomor_kta', e.target.value); clearErrors('nomor_kta'); }} className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nomor_kta || ktaExists ? 'border-red-500' : ''}`} placeholder="Nomor Kartu Tanda Anggota" />
-                                    {errors.nomor_kta && <p className="text-red-500 text-sm">{errors.nomor_kta}</p>}
-                                </div>
+
 
                                 {/* Signature Field - Click to Open Modal */}
-                                <div className="space-y-2 col-span-1 md:col-span-2">
+                                <div className="space-y-2">
                                     <Label className="text-white font-medium">Tanda Tangan Digital *</Label>
                                     <div
                                         onClick={() => setIsSignatureModalOpen(true)}
@@ -717,7 +694,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                         <Label className="text-white font-medium">Provinsi</Label>
                                         <Select value={data.province_id} onValueChange={fetchCities}>
                                             <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.province_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent className="max-w-[280px]">
                                                 {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
@@ -758,17 +735,35 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-white/10">
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Scan KTP</Label>
-                                        <Input type="file" onChange={e => handleFileInput(e, 'scan_ktp')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_ktp ? 'border-red-500' : ''}`} />
+                                        {previews.scan_ktp && (
+                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group">
+                                                <img src={previews.scan_ktp} alt="Preview KTP" className="w-full h-full object-contain" />
+                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <a href={previews.scan_ktp} target="_blank" rel="noreferrer" className="text-white text-xs bg-black/50 px-2 py-1 rounded">Lihat Full</a>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <Input type="file" accept="image/*" onChange={e => handleFileInput(e, 'scan_ktp')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_ktp ? 'border-red-500' : ''}`} />
                                         {errors.scan_ktp && <p className="text-red-500 text-sm">{errors.scan_ktp}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Scan KTA</Label>
-                                        <Input type="file" onChange={e => handleFileInput(e, 'scan_kta')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_kta ? 'border-red-500' : ''}`} />
+                                        {previews.scan_kta && (
+                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group">
+                                                <img src={previews.scan_kta} alt="Preview KTA" className="w-full h-full object-contain" />
+                                            </div>
+                                        )}
+                                        <Input type="file" accept="image/*" onChange={e => handleFileInput(e, 'scan_kta')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_kta ? 'border-red-500' : ''}`} />
                                         {errors.scan_kta && <p className="text-red-500 text-sm">{errors.scan_kta}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Scan SK</Label>
-                                        <Input type="file" onChange={e => handleFileInput(e, 'scan_sk')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_sk ? 'border-red-500' : ''}`} />
+                                        {previews.scan_sk && (
+                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group">
+                                                <img src={previews.scan_sk} alt="Preview SK" className="w-full h-full object-contain" />
+                                            </div>
+                                        )}
+                                        <Input type="file" accept="image/*" onChange={e => handleFileInput(e, 'scan_sk')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_sk ? 'border-red-500' : ''}`} />
                                         {errors.scan_sk && <p className="text-red-500 text-sm">{errors.scan_sk}</p>}
                                     </div>
                                 </div>

@@ -211,10 +211,7 @@ export default function StarredMails({ starredMails, filters }: Props) {
     );
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'List Surat', href: '/list-surat' },
-            { title: 'Starred', href: '/starred-mails' },
-        ]}>
+        <AppLayout>
             <Head title="Starred Mails" />
             <div className="p-4 md:p-6 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

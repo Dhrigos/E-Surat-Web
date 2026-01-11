@@ -9,8 +9,10 @@ class Message extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'body' => 'encrypted',
         'attachments' => 'array',
         'read_at' => 'datetime',
+        'delivered_at' => 'datetime',
     ];
 
     public function conversation()

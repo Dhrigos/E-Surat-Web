@@ -33,10 +33,13 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
 
     const unreadCount = notifications.filter((n: any) => !n.read_at).length;
 
-    const markAsRead = (id: string) => {
+    const markAsRead = (id: string, onSuccess?: () => void) => {
         if (!id) return;
         router.post(route('notifications.read', id), {}, {
             preserveScroll: true,
+            onSuccess: () => {
+                if (onSuccess) onSuccess();
+            }
         });
     };
 
@@ -168,12 +171,30 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                                         <div className="flex justify-between items-start gap-2">
                                             <div
                                                 className="flex-1 min-w-0 cursor-pointer"
-                                                onClick={() => !notification.read_at && markAsRead(notification.id)}
+                                                onClick={() => {
+                                                    const visitUrl = () => router.visit(notification.data.type === 'message' ? notification.data.url : route('notifications.index')); // Fallback for others
+
+                                                    if (notification.data.type === 'message') {
+                                                        if (!notification.read_at) {
+                                                            markAsRead(notification.id, visitUrl);
+                                                        } else {
+                                                            visitUrl();
+                                                        }
+                                                    } else {
+                                                        if (!notification.read_at) {
+                                                            markAsRead(notification.id);
+                                                        }
+                                                        // For other types, maybe we don't visit or we do?
+                                                        // Previous logic implied just marking as read.
+                                                    }
+                                                }}
                                             >
                                                 <p className={`font-medium text-sm truncate text-foreground ${!notification.read_at ? 'font-bold' : ''}`}>
-                                                    {notification.data.subject}
+                                                    {notification.data.type === 'message' ? notification.data.sender_name : notification.data.subject}
                                                 </p>
-                                                <p className="text-sm text-muted-foreground line-clamp-2">{notification.data.message}</p>
+                                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                                    {notification.data.type === 'message' ? notification.data.body : notification.data.message}
+                                                </p>
                                                 <p className="text-xs text-muted-foreground mt-1">{new Date(notification.created_at).toLocaleString()}</p>
                                             </div>
                                             <div className="flex flex-col items-center gap-2">

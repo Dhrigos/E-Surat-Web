@@ -9,9 +9,10 @@ interface CameraCaptureProps {
     label?: string;
     overlayType?: 'card' | 'face';
     className?: string;
+    facingMode?: "user" | "environment";
 }
 
-export function CameraCapture({ onCapture, label = "Ambil Foto", overlayType = 'card', className }: CameraCaptureProps) {
+export function CameraCapture({ onCapture, label = "Ambil Foto", overlayType = 'card', className, facingMode = "user" }: CameraCaptureProps) {
     const webcamRef = useRef<Webcam>(null);
     const [imgSrc, setImgSrc] = useState<string | null>(null);
 
@@ -50,8 +51,9 @@ export function CameraCapture({ onCapture, label = "Ambil Foto", overlayType = '
                             audio={false}
                             ref={webcamRef}
                             screenshotFormat="image/jpeg"
+                            mirrored={false} // Disable mirroring for all modes
                             videoConstraints={{
-                                facingMode: "user",
+                                facingMode: facingMode,
                                 width: 1280,
                                 height: 720
                             }}
@@ -61,13 +63,14 @@ export function CameraCapture({ onCapture, label = "Ambil Foto", overlayType = '
                         {/* Overlays */}
                         <div className="absolute inset-0 pointer-events-none border-2 border-white/20">
                             {overlayType === 'card' && (
-                                <div className="absolute inset-x-4 top-[15%] bottom-[25%] border-2 border-dashed border-white/70 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.8)]">
-                                    <div className="absolute top-2 left-0 right-0 text-center text-white/80 text-xs font-semibold uppercase tracking-wider">
-                                        Posisikan KTP di sini
+                                /* Landscape Card Aspect Ratio ~1.58:1 */
+                                <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 aspect-[86/54] border-2 border-dashed border-white/90 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.85)]">
+                                    <div className="absolute -top-8 left-0 right-0 text-center text-white font-bold text-shadow-sm">
+                                        POSISIKAN KTP DALAM KOTAK
                                     </div>
-                                    {/* Photo Placeholder Guide */}
-                                    <div className="absolute top-[15%] bottom-[15%] right-[5%] w-[25%] border-2 border-dashed border-white/50 rounded-md bg-white/10 flex items-center justify-center">
-                                        <span className="text-[10px] text-white/70">FOTO</span>
+                                    {/* Photo Placeholder Guide (Right side of card) */}
+                                    <div className="absolute top-[10%] bottom-[10%] right-[8%] w-[25%] border-2 border-dotted border-white/30 rounded-md bg-white/5 flex items-center justify-center">
+                                        <span className="text-[10px] text-white/50 font-medium tracking-widest -rotate-90">FOTO</span>
                                     </div>
                                 </div>
                             )}

@@ -59,8 +59,32 @@ class Jabatan extends Model
     /**
      * Scope a query to only include active jabatan.
      */
+    /**
+     * Scope a query to only include active jabatan.
+     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    protected $appends = ['nama_lengkap'];
+
+    public function getNamaLengkapAttribute()
+    {
+        $genericNames = [
+            'KETUA',
+            'WAKIL KETUA',
+            'ANGGOTA',
+            'STAFF KHUSUS',
+            'STAFF AHLI',
+            // Add other generic roles if needed
+        ];
+
+        // Check if current name matches any generic name (case insensitive just in case, though we force upper)
+        if (in_array(strtoupper($this->nama), $genericNames) && $this->parent) {
+            return $this->nama.' '.$this->parent->nama;
+        }
+
+        return $this->nama;
     }
 }

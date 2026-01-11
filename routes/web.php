@@ -22,12 +22,12 @@ Route::get('/regions/villages', [\App\Http\Controllers\RegionController::class, 
 Route::middleware(['auth'])->group(function () {
     Route::get('/complete-profile', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'create'])->name('complete-profile.create');
     Route::post('/complete-profile', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'store'])->name('complete-profile.store');
-    
+
     // E-KYC Routes
     Route::get('/ekyc', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'ekyc'])->name('verification.ekyc');
     Route::post('/ekyc/approve', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'approveEkyc'])->name('verification.approve-ekyc');
     Route::get('/pending-verification', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'pending'])->name('verification.pending');
-    
+
     Route::get('/complete-profile/verification-status', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'verificationStatus'])->name('complete-profile.verification-status');
 
     // API Routes for Letter Creation / Workflow
@@ -47,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
         // Data Master Routes - Super Admin Only
         Route::middleware(['role:super-admin'])->group(function () {
             Route::resource('jabatan', \App\Http\Controllers\JabatanController::class);
+            Route::resource('jenis-surat', \App\Http\Controllers\JenisSuratController::class)->except(['create', 'show', 'edit']);
 
             // Master Data Approval Routes
             Route::get('master-data', [\App\Http\Controllers\MasterDataController::class, 'index'])->name('master-data.index');
@@ -87,9 +88,13 @@ Route::middleware(['auth'])->group(function () {
         // Messages
         Route::get('messages', [\App\Http\Controllers\ChatController::class, 'index'])->name('messages.index');
         Route::get('messages/{conversation}', [\App\Http\Controllers\ChatController::class, 'show'])->name('messages.show');
+        Route::get('/api/users/search', [\App\Http\Controllers\ChatController::class, 'searchUsers'])->name('api.users.search');
+        Route::post('conversations', [\App\Http\Controllers\ChatController::class, 'storeConversation'])->name('conversations.store');
+        Route::patch('conversations/{conversation}', [\App\Http\Controllers\ChatController::class, 'update'])->name('conversations.update');
         Route::post('messages/{conversation}', [\App\Http\Controllers\ChatController::class, 'store'])->name('messages.store');
+        Route::post('messages/{conversation}/read', [\App\Http\Controllers\ChatController::class, 'markRead'])->name('messages.read');
 
-        Route::resource('letters', \App\Http\Controllers\LetterController::class)->except(['index', 'edit']);
+        Route::resource('letters', \App\Http\Controllers\LetterController::class)->except(['index', 'edit', 'create']);
 
         // Disposition Routes
         Route::get('/dispositions', [\App\Http\Controllers\DispositionController::class, 'index'])->name('dispositions.index');

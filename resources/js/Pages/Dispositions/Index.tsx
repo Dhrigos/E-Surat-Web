@@ -35,7 +35,7 @@ interface Props {
 
 export default function DispositionIndex({ dispositions }: Props) {
     return (
-        <AppLayout breadcrumbs={[{ title: 'Disposisi Masuk', href: '/dispositions' }]}>
+        <AppLayout>
             <Head title="Disposisi Masuk" />
 
             <div className="p-6 space-y-6">

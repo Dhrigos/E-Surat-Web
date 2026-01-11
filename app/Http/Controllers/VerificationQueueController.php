@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\VerificationApprovedMail;
+use App\Mail\VerificationRejectedMail;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class VerificationQueueController extends Controller
@@ -12,14 +15,11 @@ class VerificationQueueController extends Controller
     {
         $users = User::query()
             ->where('verifikasi', false)
+            ->whereNull('rejection_reason') // Only show pending queues (not rejected ones)
             ->whereHas('detail') // Only users who have completed their profile
             ->with([
-                'detail.unitKerja',
-                'detail.subunit',
                 'detail.jabatan',
-                'detail.statusKeanggotaan',
-                'detail.pangkat',
-                'locker'
+                'locker',
             ])
             ->orderBy('updated_at', 'asc') // FIFO
             ->get();
@@ -36,6 +36,7 @@ class VerificationQueueController extends Controller
             'verifikasi' => true,
             'verification_locked_at' => null,
             'verification_locked_by' => null,
+            'rejection_reason' => null, // Clear any previous rejection
         ]);
 
         // Automatically create Staff record
@@ -61,7 +62,14 @@ class VerificationQueueController extends Controller
             );
         }
 
-        return redirect()->back()->with('success', 'User berhasil diverifikasi dan ditambahkan sebagai Staff.');
+        // Send Approved Email
+        try {
+            Mail::to($user)->send(new VerificationApprovedMail($user));
+        } catch (\Exception $e) {
+            // Log error or ignore if mail fails, but continue flow
+        }
+
+        return redirect()->back()->with('success', 'User berhasil diverifikasi dan email notifikasi telah dikirim.');
     }
 
     public function lock(User $user)
@@ -102,6 +110,13 @@ class VerificationQueueController extends Controller
             'rejection_reason' => $request->reason,
         ]);
 
-        return redirect()->back()->with('success', 'User berhasil ditolak.');
+        // Send Rejected Email
+        try {
+            Mail::to($user)->send(new VerificationRejectedMail($user, $request->reason));
+        } catch (\Exception $e) {
+            // Log error
+        }
+
+        return redirect()->back()->with('success', 'User berhasil ditolak dan email notifikasi telah dikirim.');
     }
 }

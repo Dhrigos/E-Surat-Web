@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,8 +8,10 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import InputError from '@/components/input-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, MapPin, FileText, Briefcase, Camera, Loader2, UploadCloud, FileType, Check } from 'lucide-react';
+import { User, MapPin, FileText, Briefcase, Camera, Loader2, UploadCloud, FileType, Check, PenTool, BadgeCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import SignatureCanvas from 'react-signature-canvas';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Props {
     userDetail: any;
@@ -44,6 +46,12 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
     });
 
 
+
+    // Signature states
+    const signatureRef = useRef<SignatureCanvas>(null);
+    const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+    const [signatureFilename, setSignatureFilename] = useState<string>('');
+    const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
 
     // Region Data States
     const [provinces, setProvinces] = useState<any[]>([]);
@@ -110,6 +118,41 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
         });
     };
 
+    // Signature handlers
+    const handleSaveSignature = () => {
+        if (signatureRef.current && !signatureRef.current.isEmpty()) {
+            const dataUrl = signatureRef.current.toDataURL('image/png');
+            setSignatureDataUrl(dataUrl);
+
+            const filename = `signature_${Date.now()}.png`;
+            setSignatureFilename(filename);
+
+            fetch(dataUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], filename, { type: 'image/png' });
+                    setData('tanda_tangan', file);
+                    toast.success('Tanda tangan berhasil disimpan');
+                    setIsSignatureModalOpen(false);
+                })
+                .catch(() => {
+                    toast.error('Gagal menyimpan tanda tangan');
+                });
+        } else {
+            toast.error('Silakan buat tanda tangan terlebih dahulu');
+        }
+    };
+
+    const handleClearSignature = () => {
+        if (signatureRef.current) {
+            signatureRef.current.clear();
+            setSignatureDataUrl(null);
+            setSignatureFilename('');
+            setData('tanda_tangan', null);
+        }
+    };
+
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('profile.update-details'), {
@@ -120,7 +163,7 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
 
     const SubmitButton = () => (
         <div className="flex justify-end border-t bg-muted/10 p-4">
-            <Button size="sm" disabled={processing} className="shadow-sm hover:shadow-primary/20 rounded-lg px-6 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-sm">
+            <Button size="sm" disabled={processing} className="w-full md:w-auto shadow-sm hover:shadow-red-500/20 rounded-lg px-6 bg-red-600 hover:bg-red-700 text-sm font-medium transition-all duration-200">
                 {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>
@@ -140,23 +183,63 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
         </div>
     );
 
-    const FileUploadCard = ({ label, field, icon: Icon, description, accept = "image/*" }: { label: string, field: string, icon: any, description: string, accept?: string }) => (
-        <div className="space-y-3 group">
-            <Label className="text-base font-medium group-hover:text-primary transition-colors">{label}</Label>
-            <div className="relative border border-dashed border-input hover:border-primary/50 hover:bg-primary/5 rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center h-40">
-                <Input type="file" onChange={e => handleFileInput(e, field)} accept={accept} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" />
-                <div className="p-3 bg-background rounded-full shadow-sm ring-1 ring-border group-hover:scale-110 transition-transform duration-300 mb-3">
-                    <Icon className="w-5 h-5 text-primary" />
+    const FileUploadCard = ({ label, field, icon: Icon, description, accept = "image/*" }: { label: string, field: string, icon: any, description: string, accept?: string }) => {
+        const existingFile = userDetail?.[field];
+        const hasFile = data[field as keyof typeof data] || existingFile;
+        const previewUrl = existingFile ? `/storage/${existingFile}` : null;
+
+        return (
+            <div className="space-y-3 group">
+                <Label className="text-base font-medium group-hover:text-primary transition-colors">{label}</Label>
+
+                {/* Image Preview */}
+                {previewUrl && (
+                    <div className="relative w-full h-40 bg-muted rounded-lg overflow-hidden border border-border mb-2 group/preview">
+                        <img src={previewUrl} alt={`Preview ${label}`} className="w-full h-full object-contain" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity">
+                            <a
+                                href={previewUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-white text-xs bg-black/50 px-3 py-1.5 rounded hover:bg-black/70 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                Lihat Full
+                            </a>
+                        </div>
+                    </div>
+                )}
+
+                {/* Upload Area */}
+                <div className={cn(
+                    "relative border border-dashed border-input hover:border-primary/50 hover:bg-primary/5 rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center",
+                    previewUrl ? "h-24" : "h-40"
+                )}>
+                    <Input type="file" onChange={e => handleFileInput(e, field)} accept={accept} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" />
+                    <div className="p-3 bg-background rounded-full shadow-sm ring-1 ring-border group-hover:scale-110 transition-transform duration-300 mb-3">
+                        <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                        {hasFile ? (
+                            <>
+                                <p className="text-sm font-medium text-green-600 flex items-center gap-1 justify-center">
+                                    <Check className="w-4 h-4" />
+                                    File tersedia
+                                </p>
+                                <p className="text-xs text-muted-foreground">Klik untuk ganti</p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm font-medium text-foreground">Upload file</p>
+                                <p className="text-xs text-muted-foreground px-4">{description}</p>
+                            </>
+                        )}
+                    </div>
                 </div>
-                <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">Upload file</p>
-                    <p className="text-xs text-muted-foreground px-4">{description}</p>
-                </div>
-                {/* Success Indicator if needed could go here */}
+                <InputError message={errors[field as keyof typeof errors]} />
             </div>
-            <InputError message={errors[field as keyof typeof errors]} />
-        </div>
-    );
+        );
+    };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 pb-24">
@@ -176,7 +259,7 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                     <CardContent className="p-6 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>NIA / NRP</Label>
+                                <Label>NRP</Label>
                                 <Input value={data.nia_nrp} onChange={e => setData('nia_nrp', e.target.value)} />
                                 <InputError message={errors.nia_nrp} />
                             </div>
@@ -335,12 +418,39 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                             icon={Camera}
                             description="Foto resmi (JPG/PNG)"
                         />
-                        <FileUploadCard
-                            label="Tanda Tangan"
-                            field="tanda_tangan"
-                            icon={UploadCloud}
-                            description="Scan transparan (PNG)"
-                        />
+
+                        {/* Signature Field - Click to Open Modal */}
+                        <div className="space-y-3 group">
+                            <Label className="text-base font-medium group-hover:text-primary transition-colors">Tanda Tangan Digital</Label>
+                            <div
+                                onClick={() => setIsSignatureModalOpen(true)}
+                                className={cn(
+                                    "cursor-pointer relative border border-dashed border-input hover:border-primary/50 hover:bg-primary/5 rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center h-40"
+                                )}
+                            >
+                                <div className="p-3 bg-background rounded-full shadow-sm ring-1 ring-border group-hover:scale-110 transition-transform duration-300 mb-3">
+                                    <PenTool className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="space-y-1">
+                                    {signatureDataUrl ? (
+                                        <>
+                                            <p className="text-sm font-medium text-green-600 flex items-center gap-1 justify-center">
+                                                <BadgeCheck className="w-4 h-4" />
+                                                Tanda tangan tersedia
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">Klik untuk ubah</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm font-medium text-foreground">Buat tanda tangan</p>
+                                            <p className="text-xs text-muted-foreground px-4">Klik untuk menggambar</p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            <InputError message={errors.tanda_tangan} />
+                        </div>
+
                         <FileUploadCard
                             label="Scan KTP"
                             field="scan_ktp"
@@ -367,6 +477,51 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
             </CardContainer>
 
             {/* Sticky Action Bar */}
+
+            {/* Signature Modal */}
+            <Dialog open={isSignatureModalOpen} onOpenChange={setIsSignatureModalOpen}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Buat Tanda Tangan Digital</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="border-2 border-dashed border-border rounded-lg overflow-hidden bg-white">
+                            <SignatureCanvas
+                                ref={signatureRef}
+                                canvasProps={{
+                                    className: 'w-full h-64',
+                                }}
+                                backgroundColor="white"
+                            />
+                        </div>
+                        <div className="flex justify-between gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleClearSignature}
+                            >
+                                Hapus
+                            </Button>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsSignatureModalOpen(false)}
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={handleSaveSignature}
+                                    className="bg-green-600 hover:bg-green-700"
+                                >
+                                    Simpan Tanda Tangan
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
         </form>
     );

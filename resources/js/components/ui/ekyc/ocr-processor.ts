@@ -33,12 +33,25 @@ function parseKTPText(text: string): OCRResult {
         const line = lines[i];
 
         // Find NIK
-        // NIK is usually 16 digits
-        // Regex allows some noise like '?' or ':' before it
-        const nikMatch = line.match(/\d{16}/);
-        if (nikMatch && !nik) {
-            nik = nikMatch[0];
-            continue;
+        // NIK is usually 16 digits, but OCR often sees 'B' as '8', 'O' as '0', '?' as '7', etc.
+        // Also might have spaces: 3273 05...
+        // Regex: Look for 12-17 "digit-like" characters
+        const possibleNikMatch = line.match(/[0-9\s?OolLiI]{12,20}/);
+
+        if (possibleNikMatch && !nik) {
+            // Clean the match
+            let clean = possibleNikMatch[0].toUpperCase()
+                .replace(/O/g, '0')
+                .replace(/L/g, '1')
+                .replace(/I/g, '1')
+                .replace(/\?/g, '7')
+                .replace(/B/g, '8')
+                .replace(/[^0-9]/g, '');
+
+            if (clean.length === 16) {
+                nik = clean;
+                continue;
+            }
         }
 
         // Find Nama

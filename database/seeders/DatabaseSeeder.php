@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             // LetterTransactionSeeder::class,
             \Laravolt\Indonesia\Seeds\DatabaseSeeder::class,
+            JabatanSeeder::class,
         ]);
     }
 }

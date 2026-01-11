@@ -34,6 +34,8 @@ class UserDetail extends Model
         'district_id',
         'village_id',
         'jalan',
+        'scan_selfie',
+        'ekyc_score',
     ];
 
     public function user(): BelongsTo

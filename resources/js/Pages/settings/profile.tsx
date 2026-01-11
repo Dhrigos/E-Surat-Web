@@ -68,42 +68,42 @@ export default function Profile({
                     </div>
 
                     <Tabs defaultValue="account" className="flex flex-col lg:flex-row gap-8 w-full">
-                        <TabsList className="flex flex-col w-full lg:w-64 h-auto bg-transparent p-0 space-y-2 lg:sticky lg:top-6 self-start">
+                        <TabsList className="grid grid-cols-5 lg:flex lg:flex-col w-full lg:w-64 h-auto bg-transparent p-0 gap-2 lg:space-y-2 lg:sticky lg:top-6 self-start">
                             <TabsTrigger
                                 value="account"
-                                className="w-full justify-start px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
                             >
-                                <User className="w-4 h-4" />
-                                Akun
+                                <User className="w-5 h-5 lg:w-4 lg:h-4" />
+                                <span className="hidden lg:inline">Akun</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="details"
-                                className="w-full justify-start px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
                             >
-                                <Shield className="w-4 h-4" />
-                                Detail Profil
+                                <Shield className="w-5 h-5 lg:w-4 lg:h-4" />
+                                <span className="hidden lg:inline">Detail Profil</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="password"
-                                className="w-full justify-start px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
                             >
-                                <Lock className="w-4 h-4" />
-                                Password
+                                <Lock className="w-5 h-5 lg:w-4 lg:h-4" />
+                                <span className="hidden lg:inline">Password</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="appearance"
-                                className="w-full justify-start px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
                             >
-                                <Palette className="w-4 h-4" />
-                                Tampilan
+                                <Palette className="w-5 h-5 lg:w-4 lg:h-4" />
+                                <span className="hidden lg:inline">Tampilan</span>
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="activity"
-                                className="w-full justify-start px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
                             >
-                                <Activity className="w-4 h-4" />
-                                Aktifitas
+                                <Activity className="w-5 h-5 lg:w-4 lg:h-4" />
+                                <span className="hidden lg:inline">Aktifitas</span>
                             </TabsTrigger>
                         </TabsList>
 
@@ -130,6 +130,7 @@ export default function Profile({
                                                 onSubmit={(e) => {
                                                     e.preventDefault();
                                                     const formData = new FormData(e.currentTarget);
+                                                    formData.append('_method', 'PATCH');
                                                     router.post(ProfileController.update.url(), formData, {
                                                         preserveScroll: true,
                                                         forceFormData: true,
@@ -264,7 +265,7 @@ export default function Profile({
                                                                 <div className="flex items-center gap-4 pt-2">
                                                                     <Button
                                                                         type="submit"
-                                                                        className="min-w-[120px]"
+                                                                        className="w-full md:min-w-[120px] bg-red-600 hover:bg-red-700 transition-colors"
                                                                     >
                                                                         Simpan Perubahan
                                                                     </Button>
@@ -353,7 +354,7 @@ export default function Profile({
                                                     </div>
 
                                                     <div className="flex items-center gap-4 pt-2">
-                                                        <Button disabled={processing}>Update Password</Button>
+                                                        <Button disabled={processing} className="w-full md:w-auto bg-red-600 hover:bg-red-700 transition-colors">Update Password</Button>
                                                         <Transition
                                                             show={recentlySuccessful}
                                                             enter="transition ease-in-out"

@@ -28,7 +28,7 @@ class ValidationController extends Controller
     }
 
     /**
-     * Cek apakah NIA/NRP sudah digunakan oleh user lain
+     * Cek apakah NRP sudah digunakan oleh user lain
      */
     public function checkNiaNrp(Request $request)
     {
@@ -41,7 +41,7 @@ class ValidationController extends Controller
 
         return response()->json([
             'exists' => $exists,
-            'message' => $exists ? 'NIA/NRP sudah terdaftar' : 'NIA/NRP tersedia',
+            'message' => $exists ? 'NRP sudah terdaftar' : 'NRP tersedia',
         ]);
     }
 

@@ -63,7 +63,7 @@ export default defineConfig({
             origin: '*',
             credentials: true,
         },
-        allowedHosts: ['api.bacadnas.com'],
+        allowedHosts: ['api.bacadnas.com', 'wss.bacadnas.com'],
         hmr: {
             host: 'api.bacadnas.com',
             clientPort: 443,

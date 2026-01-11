@@ -42,25 +42,44 @@ export default function VerificationEkyc() {
     const processVerification = async () => {
         if (!ktpImg || !selfieImg) return;
 
-        try {
-            const score = await compareFaces(ktpImg, selfieImg);
-            setSimilarityScore(score);
+        const tId = toast.loading('Mengunggah data E-KYC...');
 
-            if (score > 0.4) {
-                // Success - Call Backend to Verify User
-                await axios.post(route('verification.approve-ekyc'));
+        try {
+            // Convert Base64/Blob URL to File for KTP
+            const ktpResponse = await fetch(ktpImg);
+            const ktpBlob = await ktpResponse.blob();
+            const ktpFile = new File([ktpBlob], "scan_ktp.jpg", { type: "image/jpeg" });
+
+            const formData = new FormData();
+            formData.append('image_selfie', selfieImg); // Base64 string
+            formData.append('scan_ktp', ktpFile);
+
+            // Submit FormData
+            const response = await axios.post(route('verification.approve-ekyc'), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            toast.dismiss(tId);
+
+            if (response.data.status === 'success') {
                 setStep('success');
-                toast.success('Verifikasi Berhasil!');
+                toast.success('Foto berhasil diunggah!');
+
+                // Redirect to Profile Completion or Pending based on response
                 setTimeout(() => {
-                    window.location.href = route('verification.pending');
+                    if (response.data.redirect) {
+                        window.location.href = response.data.redirect;
+                    } else {
+                        window.location.href = route('complete-profile.create');
+                    }
                 }, 2000);
-            } else {
-                setStep('failed');
-                toast.error('Wajah tidak cocok. Silakan coba lagi.');
             }
         } catch (e: any) {
+            toast.dismiss(tId);
             console.error(e);
-            toast.error('Terjadi kesalahan verifikasi: ' + e.message);
+            toast.error('Terjadi kesalahan saat mengunggah foto: ' + (e.response?.data?.message || e.message));
             setStep('failed');
         }
     };
@@ -126,14 +145,24 @@ export default function VerificationEkyc() {
                     {step === 'ktp' && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right">
                             <h3 className="text-xl font-bold text-center text-white">Langkah 1: Foto E-KTP</h3>
-                            <CameraCapture onCapture={handleKtpCapture} overlayType="card" label="Ambil Foto KTP" />
+                            <CameraCapture
+                                onCapture={handleKtpCapture}
+                                overlayType="card"
+                                label="Ambil Foto KTP"
+                                facingMode="environment" // Force Back Camera
+                            />
                         </div>
                     )}
 
                     {step === 'selfie' && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right">
                             <h3 className="text-xl font-bold text-center text-white">Langkah 2: Selfie Wajah</h3>
-                            <CameraCapture onCapture={handleSelfieCapture} overlayType="face" label="Ambil Selfie" />
+                            <CameraCapture
+                                onCapture={handleSelfieCapture}
+                                overlayType="face"
+                                label="Ambil Selfie"
+                                facingMode="user" // Force Front Camera
+                            />
                         </div>
                     )}
 

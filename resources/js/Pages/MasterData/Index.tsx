@@ -96,7 +96,11 @@ export default function MasterDataIndex({ letterTypes }: Props) {
         const workflow = type.approval_workflows[workflowIndex];
         const steps = workflow ? workflow.steps.map(s => ({
             order: s.order,
-            approver_id: s.approver_id
+            approver_id: s.approver_id,
+            step_type: s.step_type || 'sequential',
+            condition_field: s.condition_field,
+            condition_operator: s.condition_operator,
+            condition_value: s.condition_value
         })) : [];
 
         setData({
@@ -108,30 +112,13 @@ export default function MasterDataIndex({ letterTypes }: Props) {
         setIsCreateOpen(true);
     };
 
-    const handleDelete = (type: LetterType) => {
-        if (confirm('Apakah Anda yakin ingin menghapus Jenis Surat ini?')) {
-            router.delete(route('master-data.destroy', type.id), {
-                onSuccess: () => toast.success('Jenis Surat berhasil dihapus'),
-                onError: () => toast.error('Gagal menghapus Jenis Surat'),
-            });
-        }
-    };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (editingType) {
             put(route('master-data.update', editingType.id), {
                 onSuccess: () => {
                     setIsCreateOpen(false);
-                    toast.success('Jenis Surat berhasil diperbarui');
-                    reset();
-                },
-            });
-        } else {
-            post(route('master-data.store'), {
-                onSuccess: () => {
-                    setIsCreateOpen(false);
-                    toast.success('Jenis Surat berhasil dibuat');
+                    toast.success('Workflow berhasil diperbarui');
                     reset();
                 },
             });
@@ -169,18 +156,15 @@ export default function MasterDataIndex({ letterTypes }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Master Data', href: '/master-data' }]}>
+        <AppLayout>
             <Head title="Master Data Management" />
 
             <div className="flex h-full flex-1 flex-col gap-8 p-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight text-foreground">Workflow Global</h2>
-                        <p className="text-muted-foreground mt-1">Kelola Jenis Surat dan konfigurasi alur persetujuan.</p>
+                        <p className="text-muted-foreground mt-1">Konfigurasi alur persetujuan untuk Jenis Surat.</p>
                     </div>
-                    <Button onClick={handleCreate} size="lg" className="shadow-sm">
-                        <Plus className="mr-2 h-5 w-5" /> Tambah Jenis Surat
-                    </Button>
                 </div>
 
                 <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
@@ -246,9 +230,6 @@ export default function MasterDataIndex({ letterTypes }: Props) {
                                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => handleEdit(type)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(type)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -256,7 +237,7 @@ export default function MasterDataIndex({ letterTypes }: Props) {
                             {letterTypes.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                                        Belum ada jenis surat. Buat satu untuk memulai.
+                                        Belum ada jenis surat. Silahkan tambahkan di menu Jenis Surat.
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -267,37 +248,31 @@ export default function MasterDataIndex({ letterTypes }: Props) {
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle className="text-xl">{editingType ? 'Edit Jenis Surat' : 'Buat Jenis Surat'}</DialogTitle>
+                            <DialogTitle className="text-xl">Konfigurasi Workflow</DialogTitle>
                             <DialogDescription>
-                                Konfigurasi detail jenis surat dan langkah-langkah alur persetujuan.
+                                Atur langkah-langkah alur persetujuan untuk jenis surat ini.
                             </DialogDescription>
                         </DialogHeader>
 
                         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
+                                    <Label htmlFor="name">Name</Label>
                                     <Input
                                         id="name"
                                         value={data.name}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        placeholder="contoh: Surat Dinas"
-                                        required
-                                        className="font-medium"
+                                        readOnly
+                                        className="font-medium bg-muted/50"
                                     />
-                                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="code">Kode Surat <span className="text-destructive">*</span></Label>
+                                    <Label htmlFor="code">Kode Surat</Label>
                                     <Input
                                         id="code"
                                         value={data.code}
-                                        onChange={(e) => setData('code', e.target.value)}
-                                        placeholder="contoh: SD-001"
-                                        required
-                                        className="font-mono"
+                                        readOnly
+                                        className="font-mono bg-muted/50"
                                     />
-                                    {errors.code && <p className="text-sm text-destructive">{errors.code}</p>}
                                 </div>
                             </div>
 
@@ -307,9 +282,8 @@ export default function MasterDataIndex({ letterTypes }: Props) {
                                 <Textarea
                                     id="description"
                                     value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                    placeholder="Deskripsi singkat tentang jenis surat ini..."
-                                    className="resize-none h-20"
+                                    readOnly
+                                    className="resize-none h-20 bg-muted/50"
                                 />
                             </div>
 

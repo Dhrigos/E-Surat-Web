@@ -1,10 +1,27 @@
-import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import React, { useEffect } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, CheckCircle, ArrowRight } from 'lucide-react';
 
 export default function VerificationPending() {
+    const { auth } = usePage().props as any;
+
+    // Check if user is verified and redirect to dashboard
+    useEffect(() => {
+        if (auth?.user?.verifikasi === 1) {
+            router.visit(route('dashboard'));
+        }
+    }, [auth?.user?.verifikasi]);
+
+    // Auto-refresh every 5 seconds to check if user has been verified
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload(); // Reload to get fresh user data
+        }, 5000); // Check every 5 seconds
+
+        return () => clearInterval(interval);
+    }, []);
     return (
         <div className="min-h-screen flex items-center justify-center bg-black/95 p-4 relative overflow-hidden text-white">
             {/* Background Effects */}
@@ -24,7 +41,7 @@ export default function VerificationPending() {
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl font-bold text-white">Menunggu Validasi Admin</CardTitle>
                         <CardDescription className="text-gray-400">
-                            Terima kasih telah melakukan E-KYC.
+                            Terima kasih telah melakukan pelengkapan data.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6 text-center">

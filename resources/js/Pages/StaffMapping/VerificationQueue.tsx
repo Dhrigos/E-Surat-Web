@@ -1,20 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Video, CheckCircle, X, Users, Shield, Key } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CheckCircle, X, Users, Shield, Key, Eye, UserCheck } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { usePermission } from '@/hooks/usePermission';
-
-declare global {
-    interface Window {
-        JitsiMeetExternalAPI: any;
-    }
-}
 
 interface UserDetail {
     nia_nrp: string;
@@ -30,6 +24,8 @@ interface UserDetail {
     status_keanggotaan?: { id: number; nama: string; };
     pangkat?: { id: number; nama: string; kode: string | null; };
     scan_ktp: string;
+    scan_selfie?: string;
+    ekyc_score?: string;
     scan_kta: string;
     scan_sk: string;
     tanda_tangan: string;
@@ -60,10 +56,9 @@ interface Props {
 
 export default function VerificationQueue({ users, currentUserId }: Props) {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [isCallOpen, setIsCallOpen] = useState(false);
+    const [isReviewOpen, setIsReviewOpen] = useState(false);
     const [isRejectOpen, setIsRejectOpen] = useState(false);
-    const jitsiContainerRef = useRef<HTMLDivElement>(null);
-    const jitsiApiRef = useRef<any>(null);
+    const [isApproveOpen, setIsApproveOpen] = useState(false);
     const { hasPermission } = usePermission();
     const { post, processing } = useForm({});
     const { data: rejectionData, setData: setRejectionData, post: postRejection, processing: rejectionProcessing, reset: resetRejection } = useForm({
@@ -81,7 +76,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                 onSuccess: () => {
                     toast.success('User berhasil ditolak');
                     setIsRejectOpen(false);
-                    setIsCallOpen(false);
+                    handleCloseReview();
                     resetRejection();
                 },
                 onError: () => toast.error('Gagal menolak user'),
@@ -90,95 +85,38 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
     };
 
     const handleVerify = (user: User) => {
-        if (confirm(`Apakah Anda yakin ingin memverifikasi user ${user.name}?`)) {
-            post(route('verification-queue.verify', user.id), {
-                onSuccess: () => {
-                    toast.success('User berhasil diverifikasi');
-                    setIsCallOpen(false);
-                },
-                onError: () => toast.error('Gagal memverifikasi user'),
-            });
-        }
+        post(route('verification-queue.verify', user.id), {
+            onSuccess: () => {
+                toast.success('User berhasil diverifikasi');
+                handleCloseReview();
+                setIsApproveOpen(false);
+            },
+            onError: () => toast.error('Gagal memverifikasi user'),
+        });
     };
 
-    const startCall = (user: User) => {
+    const startReview = (user: User) => {
         // Lock the user first
         post(route('verification-queue.lock', user.id), {
             onSuccess: () => {
                 setSelectedUser(user);
-                setIsCallOpen(true);
+                setIsReviewOpen(true);
             },
             onError: () => toast.error('Gagal mengunci user (mungkin sudah diambil admin lain)'),
         });
     };
 
-    const handleCloseCall = () => {
+    const handleCloseReview = () => {
         if (selectedUser) {
             // Unlock the user when closing
             post(route('verification-queue.unlock', selectedUser.id), {
                 onSuccess: () => {
-                    setIsCallOpen(false);
+                    setIsReviewOpen(false);
                     setSelectedUser(null);
                 }
             });
         } else {
-            setIsCallOpen(false);
-        }
-    };
-
-    useEffect(() => {
-        if (isCallOpen && selectedUser) {
-            // Load Jitsi script if not already loaded
-            if (!window.JitsiMeetExternalAPI) {
-                const script = document.createElement('script');
-                script.src = 'https://8x8.vc/external_api.js';
-                script.async = true;
-                script.onload = () => initJitsi(selectedUser);
-                document.body.appendChild(script);
-            } else {
-                initJitsi(selectedUser);
-            }
-        } else {
-            // Cleanup Jitsi when modal closes
-            if (jitsiApiRef.current) {
-                jitsiApiRef.current.dispose();
-                jitsiApiRef.current = null;
-            }
-        }
-    }, [isCallOpen, selectedUser]);
-
-    const initJitsi = (user: User) => {
-        if (window.JitsiMeetExternalAPI && jitsiContainerRef.current) {
-            const domain = '8x8.vc';
-            const options = {
-                roomName: `vpaas-magic-cookie-28ed8eb749bf4baaa08a0d979cf0df98/ProjectDevVerification_${user.id}`,
-                width: '100%',
-                height: 500,
-                parentNode: jitsiContainerRef.current,
-                userInfo: {
-                    displayName: 'Admin Interviewer',
-                },
-                configOverwrite: {
-                    startWithAudioMuted: false,
-                    startWithVideoMuted: false,
-                    prejoinPageEnabled: true,
-                    skipMeetingPrejoin: false,
-                    disableDeepLinking: true,
-                    disableThirdPartyRequests: true,
-                    analytics: {
-                        disabled: true,
-                    },
-                },
-                interfaceConfigOverwrite: {
-                    hideConferenceTimer: false,
-                },
-            };
-            jitsiApiRef.current = new window.JitsiMeetExternalAPI(domain, options);
-
-            jitsiApiRef.current.addEventListeners({
-                videoConferenceLeft: handleCloseCall,
-                readyToClose: handleCloseCall,
-            });
+            setIsReviewOpen(false);
         }
     };
 
@@ -194,46 +132,16 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
         return `/storage/${path}`;
     };
 
-    const InfoRow = ({ label, value }: { label: string, value?: string }) => (
-        <div className="grid grid-cols-3 gap-2 py-1 border-b border-gray-100 last:border-0">
-            <span className="text-sm font-medium text-gray-500">{label}</span>
-            <span className="text-sm text-gray-900 col-span-2">{value || '-'}</span>
-        </div>
-    );
-
-    const DocumentPreview = ({ label, path }: { label: string, path?: string }) => {
-        const url = getFileUrl(path);
-        if (!url) return null;
-
-        return (
-            <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-2">{label}</p>
-                <div className="border rounded-lg overflow-hidden bg-gray-50">
-                    <img
-                        src={url}
-                        alt={label}
-                        className="w-full h-auto max-h-[300px] object-contain"
-                        onError={(e) => {
-                            // Fallback if not an image or fails to load
-                            e.currentTarget.style.display = 'none';
-                            e.currentTarget.parentElement!.innerHTML += `<a href="${url}" target="_blank" class="block p-4 text-blue-600 hover:underline text-center">Download / Lihat Dokumen</a>`;
-                        }}
-                    />
-                </div>
-            </div>
-        );
-    };
-
     return (
         <AppLayout>
-            <Head title="Antrian Verifikasi" />
+            <Head title="Antrian Verifikasi E-KYC" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl font-bold">Mapping Staff</h1>
+                    <h1 className="text-3xl font-bold">Verifikasi E-KYC</h1>
                     <p className="text-muted-foreground mt-2">
-                        Kelola tim dan mapping staff di bawah Anda
+                        Validasi identitas user berdasarkan data E-KYC (KTP & Selfie)
                     </p>
                 </div>
 
@@ -266,7 +174,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                         <CardHeader>
                             <CardTitle>Daftar User Menunggu Verifikasi</CardTitle>
                             <CardDescription>
-                                User di bawah ini telah melengkapi profil dan menunggu verifikasi video call.
+                                Review hasil E-KYC (Selfie vs KTP) dan validasi data user.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -274,7 +182,6 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Nama</TableHead>
-                                        <TableHead>Email</TableHead>
                                         <TableHead>NRP / NIK</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Aksi</TableHead>
@@ -283,7 +190,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                 <TableBody>
                                     {users.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                                            <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                                                 Tidak ada antrian saat ini.
                                             </TableCell>
                                         </TableRow>
@@ -295,8 +202,12 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
 
                                             return (
                                                 <TableRow key={user.id}>
-                                                    <TableCell className="font-medium">{user.name}</TableCell>
-                                                    <TableCell>{user.email}</TableCell>
+                                                    <TableCell className="font-medium">
+                                                        <div className="flex flex-col">
+                                                            <span>{user.name}</span>
+                                                            <span className="text-xs text-gray-500">{user.email}</span>
+                                                        </div>
+                                                    </TableCell>
                                                     <TableCell>
                                                         <div className="flex flex-col text-sm">
                                                             <span>NRP: {user.detail?.nia_nrp || '-'}</span>
@@ -306,7 +217,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                                     <TableCell>
                                                         {isLocked ? (
                                                             <Badge variant={isLockedByMe ? "default" : "destructive"}>
-                                                                {isLockedByMe ? "Sedang Anda Verifikasi" : `Sedang diverifikasi oleh ${lockedByName}`}
+                                                                {isLockedByMe ? "Sedang Anda Review" : `Direview oleh ${lockedByName}`}
                                                             </Badge>
                                                         ) : (
                                                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
@@ -318,12 +229,12 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
-                                                            onClick={() => startCall(user)}
+                                                            onClick={() => startReview(user)}
                                                             className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
                                                             disabled={isLocked && !isLockedByMe}
                                                         >
-                                                            <Video className="w-4 h-4 mr-2" />
-                                                            {isLockedByMe ? "Lanjutkan Call" : "Video Call"}
+                                                            <Eye className="w-4 h-4 mr-2" />
+                                                            {isLockedByMe ? "Lanjutkan Review" : "Review E-KYC"}
                                                         </Button>
                                                     </TableCell>
                                                 </TableRow>
@@ -337,70 +248,155 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                 </div>
             </div>
 
-            {/* Video Call Modal */}
-            <Dialog open={isCallOpen} onOpenChange={(open) => !open && handleCloseCall()}>
-                <DialogContent className="!max-w-none !w-screen !h-screen flex flex-col p-0 gap-0 overflow-hidden bg-black border-none">
-                    <DialogTitle className="sr-only">Verifikasi User</DialogTitle>
+            {/* E-KYC Review Modal */}
+            <Dialog open={isReviewOpen} onOpenChange={(open) => !open && handleCloseReview()}>
+                <DialogContent className="!max-w-5xl !w-full h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background border-border sm:rounded-xl">
+                    <DialogHeader className="p-6 border-b shrink-0 bg-background">
+                        <DialogTitle>Verifikasi Data E-KYC</DialogTitle>
+                    </DialogHeader>
 
-                    <div className="flex-1 flex overflow-hidden">
-                        {/* Left Side: User Info & Actions */}
-                        <div className="w-1/3 border-r flex flex-col bg-white">
-                            <div className="flex-1 overflow-y-auto p-6">
-                                <h3 className="font-semibold text-lg mb-4">Informasi User</h3>
-
-                                <div className="space-y-4 mb-6">
-                                    <InfoRow label="Nama Lengkap" value={selectedUser?.name} />
-                                    <InfoRow label="Email" value={selectedUser?.email} />
-                                    <InfoRow label="NIK" value={selectedUser?.detail?.nik} />
-                                    <InfoRow label="NIA / NRP" value={selectedUser?.detail?.nia_nrp} />
-                                    <InfoRow label="Tempat Lahir" value={selectedUser?.detail?.tempat_lahir} />
-                                    <InfoRow label="Tanggal Lahir" value={selectedUser?.detail?.tanggal_lahir} />
-                                    <InfoRow label="Jenis Kelamin" value={selectedUser?.detail?.jenis_kelamin} />
-                                    <InfoRow label="Alamat" value={selectedUser?.detail?.alamat_domisili_lengkap} />
-                                    <InfoRow label="Status Keanggotaan" value={selectedUser?.detail?.status_keanggotaan?.nama} />
-                                    <InfoRow label="Pangkat / Golongan" value={selectedUser?.detail?.pangkat ? `${selectedUser.detail.pangkat.nama} (${selectedUser.detail.pangkat.kode})` : undefined} />
-                                    <InfoRow label="Jabatan" value={selectedUser?.detail?.jabatan?.nama} />
-                                    <InfoRow label="Unit Kesatuan" value={selectedUser?.detail?.unit_kerja?.nama} />
-                                    <InfoRow label="Sub Unit" value={selectedUser?.detail?.subunit?.nama} />
-                                    <InfoRow label="No. SK" value={selectedUser?.detail?.nomor_sk} />
-                                    <InfoRow label="No. KTA" value={selectedUser?.detail?.nomor_kta} />
-                                    <InfoRow label="Tgl Pengangkatan" value={selectedUser?.detail?.tanggal_pengangkatan} />
+                    <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+                        <div className="grid grid-cols-2 gap-8 h-full">
+                            {/* Left: Photos Comparison */}
+                            <div className="space-y-6">
+                                <div className="bg-card p-4 rounded-xl border shadow-sm">
+                                    <h3 className="font-semibold mb-4 flex items-center justify-between text-foreground">
+                                        Perbandingan Wajah
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-medium text-muted-foreground text-center">Scan E-KTP</p>
+                                            <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
+                                                {selectedUser?.detail?.scan_ktp ? (
+                                                    <img
+                                                        src={getFileUrl(selectedUser.detail.scan_ktp)!}
+                                                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                                        onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_ktp)!, '_blank')}
+                                                        alt="KTP"
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada foto</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-medium text-muted-foreground text-center">Selfie E-KYC</p>
+                                            <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
+                                                {selectedUser?.detail?.scan_selfie ? (
+                                                    <img
+                                                        src={getFileUrl(selectedUser.detail.scan_selfie)!}
+                                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                                        onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_selfie)!, '_blank')}
+                                                        alt="Selfie"
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada foto</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <h3 className="font-semibold text-lg mb-4 mt-8">Dokumen</h3>
-                                <DocumentPreview label="Foto Profil" path={selectedUser?.detail?.foto_profil} />
-                                <DocumentPreview label="Scan KTP" path={selectedUser?.detail?.scan_ktp} />
-                                <DocumentPreview label="Scan KTA" path={selectedUser?.detail?.scan_kta} />
-                                <DocumentPreview label="Scan SK" path={selectedUser?.detail?.scan_sk} />
-                                <DocumentPreview label="Tanda Tangan" path={selectedUser?.detail?.tanda_tangan} />
+                                <div className="bg-card p-4 rounded-xl border shadow-sm">
+                                    <h3 className="font-semibold mb-4 text-foreground">Dokumen Pendukung</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-medium text-muted-foreground text-center">Scan KTA</p>
+                                            <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
+                                                {selectedUser?.detail?.scan_kta ? (
+                                                    <img
+                                                        src={getFileUrl(selectedUser.detail.scan_kta)!}
+                                                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                                        onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_kta)!, '_blank')}
+                                                        alt="KTA"
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-medium text-muted-foreground text-center">Scan SK</p>
+                                            <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
+                                                {selectedUser?.detail?.scan_sk ? (
+                                                    <img
+                                                        src={getFileUrl(selectedUser.detail.scan_sk)!}
+                                                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                                        onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_sk)!, '_blank')}
+                                                        alt="SK"
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Action Buttons (Fixed at Bottom) */}
-                            <div className="p-4 border-t bg-gray-50 space-y-2 shrink-0">
-                                <Button
-                                    size="lg"
-                                    onClick={() => selectedUser && handleVerify(selectedUser)}
-                                    className="w-full bg-green-600 hover:bg-green-700"
-                                    disabled={processing}
-                                >
-                                    <CheckCircle className="w-5 h-5 mr-2" /> Verifikasi User Ini
-                                </Button>
-                                <Button
-                                    size="lg"
-                                    variant="destructive"
-                                    onClick={() => setIsRejectOpen(true)}
-                                    className="w-full"
-                                    disabled={processing}
-                                >
-                                    <X className="w-5 h-5 mr-2" /> Tolak Verifikasi
-                                </Button>
+                            {/* Right: Data Verification */}
+                            <div className="bg-card p-6 rounded-xl border shadow-sm h-fit">
+                                <h3 className="font-semibold mb-4 text-lg border-b pb-2 text-foreground">Informasi User</h3>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">Nama Lengkap</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.name}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">NIK</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.nik}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">NRP</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.nia_nrp}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">TTL</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.tempat_lahir}, {selectedUser?.detail?.tanggal_lahir}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">Jenis Kelamin</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.jenis_kelamin || '-'}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">Alamat Lengkap</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.alamat_domisili_lengkap}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">Jabatan</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.jabatan?.nama || '-'}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">Tanggal Pengangkatan</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.tanggal_pengangkatan || '-'}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
+                                        <span className="text-muted-foreground">Nomor SK</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.nomor_sk || '-'}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Right Side: Jitsi Meet */}
-                        <div className="w-2/3 bg-black relative flex flex-col">
-                            <div ref={jitsiContainerRef} className="w-full h-full" />
-                        </div>
+                    <div className="p-4 border-t bg-card flex justify-end gap-3 shrink-0">
+                        <Button
+                            variant="destructive"
+                            size="lg"
+                            onClick={() => setIsRejectOpen(true)}
+                            className="min-w-[150px]"
+                            disabled={processing}
+                        >
+                            <X className="w-5 h-5 mr-2" /> Tolak
+                        </Button>
+                        <Button
+                            size="lg"
+                            onClick={() => setIsApproveOpen(true)}
+                            className="min-w-[150px] bg-green-600 hover:bg-green-700"
+                            disabled={processing}
+                        >
+                            <UserCheck className="w-5 h-5 mr-2" /> Verifikasi & Setujui
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
@@ -417,14 +413,41 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                             <textarea
                                 id="reason"
                                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="Masukkan alasan penolakan..."
+                                placeholder="Jelaskan kenapa foto/data tidak sesuai..."
                                 value={rejectionData.reason}
                                 onChange={(e) => setRejectionData('reason', e.target.value)}
                             />
                         </div>
                         <div className="flex justify-end gap-2">
                             <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Batal</Button>
-                            <Button variant="destructive" onClick={handleReject} disabled={rejectionProcessing}>Tolak User</Button>
+                            <Button variant="destructive" onClick={handleReject} disabled={rejectionProcessing}>Kirim Penolakan</Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Approval Confirmation Dialog */}
+            <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Konfirmasi Verifikasi</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <p className="text-sm text-muted-foreground">
+                            Apakah Anda yakin ingin memverifikasi user <span className="font-semibold text-foreground">{selectedUser?.name}</span>?
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            User akan mendapatkan akses penuh ke sistem setelah diverifikasi.
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setIsApproveOpen(false)}>Batal</Button>
+                            <Button
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => selectedUser && handleVerify(selectedUser)}
+                                disabled={processing}
+                            >
+                                Ya, Verifikasi
+                            </Button>
                         </div>
                     </div>
                 </DialogContent>

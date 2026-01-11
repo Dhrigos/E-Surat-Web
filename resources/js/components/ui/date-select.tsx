@@ -115,11 +115,11 @@ export function DateSelect({
         <div className={cn("grid grid-cols-3 gap-2 w-full", className)}>
             <Select value={selectedDay} onValueChange={handleDayChange}>
                 <SelectTrigger className={cn("w-full bg-[#2a2a2a] border-white/10 text-white", error && "border-red-500")}>
-                    <SelectValue placeholder="Tgl" />
+                    <SelectValue placeholder="Tanggal" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[200px]">
                     {days.map((d) => (
-                        <SelectItem key={d} value={d.toString()}>{d}</SelectItem>
+                        <SelectItem key={d} value={d.toString()}>{d.toString().padStart(2, '0')}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>

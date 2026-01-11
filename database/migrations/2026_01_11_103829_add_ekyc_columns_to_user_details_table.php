@@ -12,9 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('user_details', function (Blueprint $table) {
-            if (Schema::hasColumn('user_details', 'postal_code')) {
-                $table->dropColumn('postal_code');
-            }
+            $table->string('scan_selfie')->nullable()->after('scan_sk');
+            $table->decimal('ekyc_score', 5, 4)->nullable()->after('scan_selfie'); // Store score (e.g., 0.9854)
         });
     }
 
@@ -24,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('user_details', function (Blueprint $table) {
-            $table->string('postal_code')->nullable()->after('village_id');
+            $table->dropColumn(['scan_selfie', 'ekyc_score']);
         });
     }
 };

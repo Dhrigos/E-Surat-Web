@@ -64,12 +64,16 @@ export default function AuditLogIndex({ logs, filters, actions }: AuditLogIndexP
     // Debounce search
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (search !== filters.search) {
+            // Normalize values to prevent unnecessary updates that reset pagination
+            const currentSearch = search || '';
+            const filterSearch = filters.search || '';
+
+            if (currentSearch !== filterSearch) {
                 applyFilters();
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [search]);
+    }, [search, filters.search]);
 
     const applyFilters = () => {
         router.get(route('audit-logs.index'), {

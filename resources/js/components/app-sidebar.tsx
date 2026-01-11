@@ -56,6 +56,7 @@ export function AppSidebar() {
             icon: Users,
             items: [
                 { title: 'Jabatan', href: '/jabatan', icon: FileText },
+                { title: 'Jenis Surat', href: '/jenis-surat', icon: FileText },
                 { title: 'Workflow Approval', href: '/master-data', icon: List },
             ]
         });

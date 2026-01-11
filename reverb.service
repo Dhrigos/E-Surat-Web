@@ -1,0 +1,14 @@
+[Unit]
+Description=Laravel Reverb Server
+After=network.target
+
+[Service]
+User=server
+Group=www-data
+WorkingDirectory=/var/www/html/E-Surat
+ExecStart=/usr/bin/php artisan reverb:start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

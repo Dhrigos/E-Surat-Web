@@ -43,6 +43,7 @@ interface WorkflowStep {
         }
     };
     approver_jabatan?: { nama: string };
+    current_holder?: { name: string };
 }
 
 // ... (existing code)

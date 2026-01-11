@@ -88,6 +88,8 @@ class LetterController extends Controller
         $search = $request->input('search');
         $category = $request->input('category');
 
+        $letterTypeFilter = $request->input('letter_type');
+
         // Sent mails query
         $sentQuery = Letter::with(['recipients', 'approvers.user.staff.jabatan', 'approvers.user.detail', 'attachments', 'creator', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where('created_by', $user->id);
@@ -101,6 +103,10 @@ class LetterController extends Controller
 
         if ($category && $category !== 'all') {
             $sentQuery->where('category', $category);
+        }
+
+        if ($letterTypeFilter && $letterTypeFilter !== 'all') {
+            $sentQuery->where('letter_type_id', $letterTypeFilter);
         }
 
         // Filter by status (e.g., for Archive)
@@ -139,6 +145,12 @@ class LetterController extends Controller
         if ($category && $category !== 'all') {
             $inboxQuery->whereHas('letter', function ($q) use ($category) {
                 $q->where('category', $category);
+            });
+        }
+
+        if ($letterTypeFilter && $letterTypeFilter !== 'all') {
+            $inboxQuery->whereHas('letter', function ($q) use ($letterTypeFilter) {
+                $q->where('letter_type_id', $letterTypeFilter);
             });
         }
 
@@ -195,6 +207,12 @@ class LetterController extends Controller
             });
         }
 
+        if ($letterTypeFilter && $letterTypeFilter !== 'all') {
+            $approvalsQuery->whereHas('letter', function ($q) use ($letterTypeFilter) {
+                $q->where('letter_type_id', $letterTypeFilter);
+            });
+        }
+
         $incomingApprovals = $approvalsQuery->orderBy('id', 'desc') // Order by latest
             ->paginate(10, ['*'], 'approval_page')
             ->through(function ($approver) {
@@ -217,6 +235,12 @@ class LetterController extends Controller
             });
         }
 
+        if ($letterTypeFilter && $letterTypeFilter !== 'all') {
+            $alreadyApprovedQuery->whereHas('letter', function ($q) use ($letterTypeFilter) {
+                $q->where('letter_type_id', $letterTypeFilter);
+            });
+        }
+
         $alreadyApprovedMails = $alreadyApprovedQuery->orderBy('updated_at', 'desc') // Order by approval time (updated_at)
             ->paginate(10, ['*'], 'approved_page')
             ->through(function ($approver) {
@@ -236,18 +260,22 @@ class LetterController extends Controller
                 // If it's an inbox mail, check read status
                 $recipient = $mail->recipients()->where('recipient_type', 'user')->where('recipient_id', $user->id)->first();
                 if ($recipient) {
-                    $openedMail['status'] = $recipient->is_read ? 'read' : 'new';
+                    $recipient->update(['is_read' => true, 'read_at' => now()]); // Fix: actually mark as read
+                    $openedMail['status'] = 'read';
                 }
             }
         }
+
+        $letterTypes = \App\Models\LetterType::select('id', 'name')->get();
 
         return Inertia::render('MailManagement/MailList', [
             'sentMails' => $sentMails,
             'inboxMails' => $inboxMails,
             'incomingApprovals' => $incomingApprovals,
             'alreadyApprovedMails' => $alreadyApprovedMails, // Pass to view
-            'filters' => $request->only(['search', 'category', 'status']),
+            'filters' => $request->only(['search', 'category', 'status', 'letter_type']),
             'openedMail' => $openedMail,
+            'letterTypes' => $letterTypes,
         ]);
     }
 

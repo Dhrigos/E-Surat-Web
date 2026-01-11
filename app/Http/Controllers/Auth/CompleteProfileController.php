@@ -24,7 +24,7 @@ class CompleteProfileController extends Controller
         $detail = $user->detail; // Get existing detail if any
 
         $rules = [
-            'nia_nrp' => 'required|string|max:255|unique:user_details,nia_nrp'.($detail ? ','.$detail->id : ''),
+            'nia_nrp' => 'required|string|min:14|max:255|unique:user_details,nia_nrp'.($detail ? ','.$detail->id : ''),
             'nik' => 'required|string|max:255|unique:user_details,nik'.($detail ? ','.$detail->id : ''),
             'tempat_lahir' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
@@ -33,7 +33,7 @@ class CompleteProfileController extends Controller
             'jabatan_id' => 'required|exists:jabatan,id',
             'tanggal_pengangkatan' => 'required|date',
             'nomor_sk' => 'required|string|max:255',
-            'nomor_kta' => 'required|string|max:255|unique:user_details,nomor_kta'.($detail ? ','.$detail->id : ''),
+
             'province_id' => 'required|string',
             'city_id' => 'required|string',
             'district_id' => 'required|string',
@@ -45,16 +45,19 @@ class CompleteProfileController extends Controller
         // But for simplicity, we make them nullable in validation if detail exists,
         // and only update if file is present.
         $fileRules = $detail ? 'nullable' : 'required';
+        // Check if KTP already exists (from E-KYC step)
+        $ktpRules = ($detail && $detail->scan_ktp) ? 'nullable' : 'required';
+        $rules['scan_ktp'] = "$ktpRules|image|max:2048";
+
         $rules['foto_profil'] = "$fileRules|image|max:2048";
-        $rules['scan_ktp'] = "$fileRules|image|max:2048";
+        // scan_ktp handled above
         $rules['scan_kta'] = "$fileRules|image|max:2048";
         $rules['scan_sk'] = "$fileRules|image|max:2048";
         $rules['tanda_tangan'] = "$fileRules|image|max:2048";
 
         $messages = [
-            'nia_nrp.unique' => 'NIA/NRP sudah terdaftar.',
+            'nia_nrp.unique' => 'NRP sudah terdaftar.',
             'nik.unique' => 'NIK sudah terdaftar.',
-            'nomor_kta.unique' => 'Nomor KTA sudah terdaftar.',
         ];
 
         $request->validate($rules, $messages);
@@ -89,8 +92,8 @@ class CompleteProfileController extends Controller
             $data
         );
 
-        // Redirect to E-KYC verification page
-        return redirect()->route('verification.ekyc');
+        // All done, redirect to pending page (since E-KYC was done first)
+        return redirect()->route('verification.pending');
     }
 
     public function ekyc()
@@ -105,8 +108,51 @@ class CompleteProfileController extends Controller
 
     public function approveEkyc(Request $request)
     {
-        $request->user()->update(['ekyc_verified_at' => now()]);
-        return response()->json(['status' => 'success']);
+        $request->validate([
+            'image_selfie' => 'required|string', // Base64
+            'scan_ktp' => 'required|file|image|max:5120', // File upload, max 5MB
+        ]);
+
+        $user = $request->user();
+        $detail = $user->detail;
+
+        // Process Selfie (Base64)
+        $image_parts = explode(';base64,', $request->image_selfie);
+        $image_type_aux = explode('image/', $image_parts[0]);
+        $image_type = $image_type_aux[1];
+        $image_base64 = base64_decode($image_parts[1]);
+        $selfieFilename = 'selfie_ekyc_'.time().'.'.$image_type;
+        $selfiePath = 'user-details/scan-selfie/'.$selfieFilename;
+        \Illuminate\Support\Facades\Storage::disk('public')->put($selfiePath, $image_base64);
+
+        // Process KTP (File)
+        $ktpPath = $request->file('scan_ktp')->store('user-details/scan-ktp', 'public');
+
+        if ($detail) {
+            // Update existing detail
+            $detail->update([
+                'scan_selfie' => $selfiePath,
+                'scan_ktp' => $ktpPath,
+            ]);
+        } else {
+            // Create partial detail
+            \App\Models\UserDetail::create([
+                'user_id' => $user->id,
+                'scan_selfie' => $selfiePath,
+                'scan_ktp' => $ktpPath,
+                // Initial empty values for required fields to avoid DB errors if strict mode is on,
+                // otherwise nullable columns will handle it.
+                // Assuming columns are nullable as per migration check.
+            ]);
+        }
+
+        $user->update(['ekyc_verified_at' => now()]);
+
+        // Return redirect URL for frontend
+        return response()->json([
+            'status' => 'success',
+            'redirect' => route('complete-profile.create'),
+        ]);
     }
 
     public function verificationStatus(Request $request)

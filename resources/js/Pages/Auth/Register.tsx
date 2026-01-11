@@ -407,6 +407,7 @@ export default function Register() {
                                             value={data.password}
                                             onChange={(e) => setData('password', e.target.value)}
                                             onPaste={(e) => e.preventDefault()}
+                                            autoComplete="new-password"
                                             className={inputClasses}
                                             required
                                         />
@@ -449,6 +450,7 @@ export default function Register() {
                                             value={data.password_confirmation}
                                             onChange={(e) => setData('password_confirmation', e.target.value)}
                                             onPaste={(e) => e.preventDefault()}
+                                            autoComplete="new-password"
                                             className={inputClasses}
                                             required
                                         />

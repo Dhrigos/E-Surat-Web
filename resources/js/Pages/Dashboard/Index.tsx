@@ -14,8 +14,8 @@ import {
     ResponsiveContainer
 } from 'recharts';
 
-// Lazy load map component to avoid SSR issues with Leaflet
 const IndonesiaMap = lazy(() => import('@/components/IndonesiaMap'));
+import DashboardBackground from '@/components/DashboardBackground';
 
 interface DashboardProps {
     stats: {
@@ -61,15 +61,17 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
     };
 
     return (
-        <AppLayout className="min-h-full bg-brand-gradient">
+        <AppLayout className="min-h-full">
+            <DashboardBackground />
             <Head title="Dashboard" />
 
             <div className="flex flex-col gap-4 md:gap-6 p-4 md:p-6">
                 {/* Welcome Banner */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-transparent border-transparent rounded-2xl p-4 md:p-6 text-white shadow-lg relative overflow-hidden">
+                {/* Welcome Banner */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-transparent border-transparent rounded-2xl p-4 md:p-6 text-foreground shadow-sm relative overflow-hidden">
                     <div className="relative z-10 space-y-1">
-                        <h2 className="text-2xl font-bold tracking-tight">Selamat Datang, {auth.user.name}! 👋</h2>
-                        <p className="text-zinc-400">
+                        <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Selamat Datang, {auth.user.name}! 👋</h2>
+                        <p className="text-gray-500 dark:text-zinc-400">
                             Berikut adalah ringkasan aktivitas surat Anda hari ini, {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
                         </p>
                     </div>
@@ -78,24 +80,24 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                     </div>
 
                     {/* Decorative Background Elements */}
-                    <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
+                    <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-red-500/5 dark:bg-white/5 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-red-500/5 dark:bg-white/5 rounded-full blur-2xl"></div>
                 </div>
 
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
                     {/* Sent Letters Stats */}
-                    <Card className="shadow-sm hover:shadow-md transition-all duration-300 group border-l-4 border-l-blue-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Surat Keluar</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors">
-                                <Send className="h-4 w-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                    <Card className="relative overflow-hidden border shadow-sm group bg-card dark:bg-black dark:border-2 dark:border-[#450a0a] hover:border-red-600 transition-colors duration-300">
+                        <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Total Surat Keluar</CardTitle>
+                            <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center transition-colors">
+                                <Send className="h-4 w-4 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform" />
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold mb-1">{stats.sent}</div>
+                        <CardContent className="relative z-10">
+                            <div className="text-2xl font-bold mb-1 text-foreground">{stats.sent}</div>
                             <div className="flex items-center justify-between">
                                 <p className="text-xs text-muted-foreground">Surat yang Anda buat</p>
-                                <span className="flex items-center text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                                <span className="flex items-center text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
                                     Aktif
                                 </span>
                             </div>
@@ -103,18 +105,18 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                     </Card>
 
                     {/* Inbox Stats */}
-                    <Card className="shadow-sm hover:shadow-md transition-all duration-300 group border-l-4 border-l-emerald-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Surat Masuk</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/40 transition-colors">
-                                <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <Card className="relative overflow-hidden border shadow-sm group bg-card dark:bg-black dark:border-2 dark:border-[#450a0a] hover:border-red-600 transition-colors duration-300">
+                        <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Surat Masuk</CardTitle>
+                            <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center transition-colors">
+                                <Mail className="h-4 w-4 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform" />
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold mb-1">{stats.inbox}</div>
+                        <CardContent className="relative z-10">
+                            <div className="text-2xl font-bold mb-1 text-foreground">{stats.inbox}</div>
                             <div className="flex items-center justify-between">
                                 <p className="text-xs text-muted-foreground">Ditujukan kepada Anda</p>
-                                <span className="flex items-center text-[10px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">
+                                <span className="flex items-center text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
                                     Terbaru
                                 </span>
                             </div>
@@ -122,18 +124,18 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                     </Card>
 
                     {/* Pending Approval Stats */}
-                    <Card className="shadow-sm hover:shadow-md transition-all duration-300 group border-l-4 border-l-orange-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Menunggu Approval</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center group-hover:bg-orange-100 dark:group-hover:bg-orange-900/40 transition-colors">
-                                <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400 group-hover:animate-pulse" />
+                    <Card className="relative overflow-hidden border shadow-sm group bg-card dark:bg-black dark:border-2 dark:border-[#450a0a] hover:border-red-600 transition-colors duration-300">
+                        <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Menunggu Approval</CardTitle>
+                            <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center transition-colors">
+                                <Clock className="h-4 w-4 text-red-600 dark:text-red-400 group-hover:animate-pulse" />
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold mb-1">{stats.pending}</div>
+                        <CardContent className="relative z-10">
+                            <div className="text-2xl font-bold mb-1 text-foreground">{stats.pending}</div>
                             <div className="flex items-center justify-between">
                                 <p className="text-xs text-muted-foreground">Perlu persetujuan</p>
-                                <span className="flex items-center text-[10px] font-medium text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">
+                                <span className="flex items-center text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
                                     Penting
                                 </span>
                             </div>
@@ -190,36 +192,36 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                                     <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8} />
-                                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1} />
+                                                <stop offset="5%" stopColor="#dc2626" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#dc2626" stopOpacity={0.1} />
                                             </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-gray-200 dark:stroke-zinc-800" />
                                         <XAxis
                                             dataKey="name"
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fill: 'currentColor', fontSize: 12 }}
                                             dy={10}
-                                            className="text-muted-foreground"
+                                            className="text-gray-500 dark:text-zinc-400"
                                         />
                                         <YAxis
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fill: 'currentColor', fontSize: 12 }}
                                             allowDecimals={false}
-                                            className="text-muted-foreground"
+                                            className="text-gray-500 dark:text-zinc-400"
                                         />
                                         <Tooltip
-                                            cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
+                                            cursor={{ fill: 'currentColor', opacity: 0.1 }}
                                             contentStyle={{
-                                                backgroundColor: 'hsl(var(--card))',
-                                                borderColor: 'hsl(var(--border))',
+                                                backgroundColor: 'var(--card)',
+                                                borderColor: 'var(--border)',
                                                 borderRadius: '8px',
-                                                color: 'hsl(var(--foreground))'
+                                                color: 'var(--foreground)'
                                             }}
-                                            itemStyle={{ color: 'hsl(var(--primary))', fontWeight: 600 }}
-                                            labelStyle={{ color: 'hsl(var(--muted-foreground))', marginBottom: '0.25rem' }}
+                                            itemStyle={{ color: '#dc2626', fontWeight: 600 }}
+                                            labelStyle={{ color: 'var(--muted-foreground)', marginBottom: '0.25rem' }}
                                         />
                                         <Bar
                                             dataKey="total"
@@ -246,7 +248,7 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-0">
+                            <div className="space-y-0 max-h-[400px] overflow-y-auto pr-2">
                                 {activities.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
                                         <div className="p-3 bg-muted rounded-full">

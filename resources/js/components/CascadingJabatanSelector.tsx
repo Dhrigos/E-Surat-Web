@@ -133,12 +133,6 @@ export function CascadingJabatanSelector({ jabatans, value, onChange, error }: P
                 {renderedLevels}
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
-
-            {value && (
-                <p className="text-xs text-green-400 mt-2 flex items-center gap-1 animate-in fade-in">
-                    ✓ Jabatan dipilih: <span className="font-bold text-white">{itemMap[Number(value)]?.nama}</span>
-                </p>
-            )}
         </div>
     );
 }
