@@ -11,18 +11,14 @@ import { usePermission } from '@/hooks/usePermission';
 interface Props {
     staff: any[];
     jabatan: any[];
-    pangkat: any[];
-    unitKerja: any[];
-    statusKeanggotaan: any[];
     roles?: any[];
     permissions?: any[];
     filters?: {
         search?: string;
-        unit_kerja_id?: string;
     };
 }
 
-export default function Index({ staff, jabatan, pangkat, unitKerja, statusKeanggotaan, roles, permissions, filters }: Props) {
+export default function Index({ staff, jabatan, roles, permissions, filters }: Props) {
     const [activeTab, setActiveTab] = useState<'staff-list' | 'mutations' | 'roles' | 'permissions'>('staff-list');
     const { hasPermission } = usePermission();
 
@@ -82,9 +78,6 @@ export default function Index({ staff, jabatan, pangkat, unitKerja, statusKeangg
                         <StaffList
                             staff={staff}
                             jabatan={jabatan}
-                            pangkat={pangkat}
-                            unitKerja={unitKerja}
-                            statusKeanggotaan={statusKeanggotaan}
                             filters={filters}
                         />
                     )}

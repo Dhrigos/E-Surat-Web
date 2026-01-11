@@ -25,11 +25,20 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
             'userDetail' => $user->detail,
-            'unitKerjas' => \App\Models\UnitKerja::active()->root()->get(),
-            'allUnits' => \App\Models\UnitKerja::active()->get(),
-            'statusKeanggotaans' => \App\Models\StatusKeanggotaan::all(),
-            // We might need to pass initial lists for dropdowns based on current selection
-            // But for now, we can fetch them via API like in CompleteProfile
+            'jabatans' => \App\Models\Jabatan::active()->orderBy('nama')->get(),
+            'activityLogs' => \App\Models\ActivityLog::where('user_id', $user->id)
+                ->latest()
+                ->limit(20)
+                ->get()
+                ->map(function ($log) {
+                    return [
+                        'id' => $log->id,
+                        'action' => $log->action,
+                        'description' => $log->description,
+                        'created_at' => $log->created_at->format('Y-m-d H:i:s'),
+                        'ip_address' => $log->ip_address,
+                    ];
+                }),
         ]);
     }
 
@@ -42,6 +51,10 @@ class ProfileController extends Controller
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
+        }
+
+        if ($request->hasFile('profile')) {
+            $request->user()->profile = $request->file('profile')->store('profiles', 'public');
         }
 
         $request->user()->save();
@@ -79,17 +92,13 @@ class ProfileController extends Controller
         $detail = $user->detail;
 
         $rules = [
-            'nia_nrp' => 'required|string|max:255|unique:user_details,nia_nrp' . ($detail ? ',' . $detail->id : ''),
-            'nik' => 'required|string|max:255|unique:user_details,nik' . ($detail ? ',' . $detail->id : ''),
+            'nia_nrp' => 'required|string|max:255|unique:user_details,nia_nrp'.($detail ? ','.$detail->id : ''),
+            'nik' => 'required|string|max:255|unique:user_details,nik'.($detail ? ','.$detail->id : ''),
             'tempat_lahir' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|string|in:Laki-laki,Perempuan',
             'alamat_domisili_lengkap' => 'nullable|string',
-            'unit_kerja_id' => 'required|exists:unit_kerja,id',
-            'subunit_id' => 'nullable|exists:unit_kerja,id',
             'jabatan_id' => 'required|exists:jabatan,id',
-            'status_keanggotaan_id' => 'required|exists:status_keanggotaans,id',
-            'pangkat_id' => 'required|exists:pangkat,id',
             'tanggal_pengangkatan' => 'required|date',
             'nomor_sk' => 'required|string|max:255',
             'nomor_kta' => 'required|string|max:255',
@@ -97,7 +106,6 @@ class ProfileController extends Controller
             'city_id' => 'required|string',
             'district_id' => 'required|string',
             'village_id' => 'required|string',
-            'postal_code' => 'required|string',
             'jalan' => 'required|string',
         ];
 
@@ -111,7 +119,10 @@ class ProfileController extends Controller
 
         $request->validate($rules);
 
-        $data = $request->except(['foto_profil', 'scan_ktp', 'scan_kta', 'scan_sk', 'tanda_tangan']);
+        $data = $request->except([
+            'foto_profil', 'scan_ktp', 'scan_kta', 'scan_sk', 'tanda_tangan',
+            'unit_kerja_id', 'subunit_id', 'pangkat_id', 'status_keanggotaan_id',
+        ]);
         $data['user_id'] = $user->id;
         $data['alamat_domisili_lengkap'] = $request->jalan; // Map jalan to alamat_domisili_lengkap
 
@@ -137,5 +148,18 @@ class ProfileController extends Controller
         );
 
         return back()->with('status', 'profile-details-updated');
+    }
+
+    public function downloadActivity(Request $request)
+    {
+        $user = $request->user();
+        $logs = \App\Models\ActivityLog::where('user_id', $user->id)
+            ->latest()
+            ->limit(100) // Limit to last 100 for performance/relevance
+            ->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.activity-logs', ['logs' => $logs, 'user' => $user]);
+
+        return $pdf->download('activity-logs-'.$user->username.'.pdf');
     }
 }

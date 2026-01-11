@@ -3,22 +3,17 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Jabatan;
 use App\Models\UserDetail;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\UnitKerja;
-use App\Models\Pangkat;
-use App\Models\Jabatan;
-use App\Models\StatusKeanggotaan;
 
 class CompleteProfileController extends Controller
 {
     public function create()
     {
         return Inertia::render('Auth/CompleteProfile', [
-            'unitKerjas' => UnitKerja::active()->root()->get(),
-            'allUnits' => UnitKerja::active()->get(),
-            'statusKeanggotaans' => StatusKeanggotaan::all(),
+            'jabatans' => Jabatan::active()->orderBy('nama')->get(),
             'rejectionReason' => request()->user()->rejection_reason,
         ]);
     }
@@ -29,25 +24,20 @@ class CompleteProfileController extends Controller
         $detail = $user->detail; // Get existing detail if any
 
         $rules = [
-            'nia_nrp' => 'required|string|max:255|unique:user_details,nia_nrp' . ($detail ? ',' . $detail->id : ''),
-            'nik' => 'required|string|max:255|unique:user_details,nik' . ($detail ? ',' . $detail->id : ''),
+            'nia_nrp' => 'required|string|max:255|unique:user_details,nia_nrp'.($detail ? ','.$detail->id : ''),
+            'nik' => 'required|string|max:255|unique:user_details,nik'.($detail ? ','.$detail->id : ''),
             'tempat_lahir' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|string|in:Laki-laki,Perempuan',
             'alamat_domisili_lengkap' => 'nullable|string',
-            'unit_kerja_id' => 'required|exists:unit_kerja,id',
-            'subunit_id' => 'nullable|exists:unit_kerja,id',
             'jabatan_id' => 'required|exists:jabatan,id',
-            'status_keanggotaan_id' => 'required|exists:status_keanggotaans,id',
-            'pangkat_id' => 'required|exists:pangkat,id',
             'tanggal_pengangkatan' => 'required|date',
             'nomor_sk' => 'required|string|max:255',
-            'nomor_kta' => 'required|string|max:255',
+            'nomor_kta' => 'required|string|max:255|unique:user_details,nomor_kta'.($detail ? ','.$detail->id : ''),
             'province_id' => 'required|string',
             'city_id' => 'required|string',
             'district_id' => 'required|string',
             'village_id' => 'required|string',
-            'postal_code' => 'required|string',
             'jalan' => 'required|string',
         ];
 
@@ -61,9 +51,19 @@ class CompleteProfileController extends Controller
         $rules['scan_sk'] = "$fileRules|image|max:2048";
         $rules['tanda_tangan'] = "$fileRules|image|max:2048";
 
-        $request->validate($rules);
+        $messages = [
+            'nia_nrp.unique' => 'NIA/NRP sudah terdaftar.',
+            'nik.unique' => 'NIK sudah terdaftar.',
+            'nomor_kta.unique' => 'Nomor KTA sudah terdaftar.',
+        ];
 
-        $data = $request->except(['foto_profil', 'scan_ktp', 'scan_kta', 'scan_sk', 'tanda_tangan']);
+        $request->validate($rules, $messages);
+
+        $data = $request->except([
+            'foto_profil', 'scan_ktp', 'scan_kta', 'scan_sk', 'tanda_tangan',
+            'unit_kerja_id', 'subunit_id', 'pangkat_id', 'status_keanggotaan_id',
+        ]);
+
         $data['user_id'] = $user->id;
         // Map jalan to alamat_domisili_lengkap since frontend uses jalan input for address
         $data['alamat_domisili_lengkap'] = $request->jalan;
@@ -89,15 +89,24 @@ class CompleteProfileController extends Controller
             $data
         );
 
-        // Don't auto-verify yet, redirect to video call verification
-        // $user->update(['verifikasi' => true]);
-
-        return redirect()->route('complete-profile.video-call');
+        // Redirect to E-KYC verification page
+        return redirect()->route('verification.ekyc');
     }
 
-    public function videoCall()
+    public function ekyc()
     {
-        return Inertia::render('Auth/VerificationVideoCall');
+        return Inertia::render('Auth/VerificationEkyc');
+    }
+
+    public function pending()
+    {
+        return Inertia::render('Auth/VerificationPending');
+    }
+
+    public function approveEkyc(Request $request)
+    {
+        $request->user()->update(['ekyc_verified_at' => now()]);
+        return response()->json(['status' => 'success']);
     }
 
     public function verificationStatus(Request $request)
@@ -107,54 +116,5 @@ class CompleteProfileController extends Controller
             'verification_locked_by' => $request->user()->verification_locked_by,
             'rejection_reason' => $request->user()->rejection_reason,
         ]);
-    }
-
-    public function getJabatanByUnit(Request $request)
-    {
-        $unitId = $request->unit_id;
-        $unit = UnitKerja::find($unitId);
-        
-        if (!$unit) {
-            return response()->json([]);
-        }
-
-        $jabatans = $unit->jabatans()
-            ->wherePivot('is_active', true)
-            ->get();
-        
-        return response()->json($jabatans);
-    }
-
-    public function getStatusByJabatan(Request $request)
-    {
-        $jabatanId = $request->jabatan_id;
-        $jabatan = Jabatan::find($jabatanId);
-        
-        if (!$jabatan) {
-            return response()->json([]);
-        }
-
-        $statuses = $jabatan->statusKeanggotaans()
-            ->wherePivot('is_active', true)
-            ->get();
-        
-        return response()->json($statuses);
-    }
-
-    public function getPangkatByStatus(Request $request)
-    {
-        $statusId = $request->status_id;
-        $status = StatusKeanggotaan::find($statusId);
-        
-        if (!$status) {
-            return response()->json([]);
-        }
-
-        $pangkats = $status->pangkats()
-            ->wherePivot('is_active', true)
-            ->orderBy('tingkat')
-            ->get();
-        
-        return response()->json($pangkats);
     }
 }

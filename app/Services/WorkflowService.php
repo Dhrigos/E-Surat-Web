@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\Letter;
-use App\Models\LetterApprover;
 use App\Models\ApprovalWorkflow;
 use App\Models\Jabatan;
+use App\Models\Letter;
+use App\Models\LetterApprover;
 use App\Models\Staff;
 use App\Models\User;
 use App\Models\WorkflowDelegation;
-use App\Notifications\NewLetterNotification;
 use App\Notifications\LetterStatusNotification;
+use App\Notifications\NewLetterNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -18,31 +18,25 @@ class WorkflowService
 {
     /**
      * Start the approval workflow for a letter.
-     * @param Letter $letter
-     * @param array $customApprovers Map of step_id => user_id
+     *
+     * @param  array  $customApprovers  Map of step_id => user_id
      */
     public function startWorkflow(Letter $letter, array $customApprovers = [])
     {
         Log::info('Starting Workflow', [
             'letter_type_id' => $letter->letter_type_id,
-            'unit_id' => $letter->unit_id,
             'custom_approvers' => $customApprovers,
         ]);
 
+        // Match workflow by letter_type_id only (simplified - no unit matching)
         $workflow = ApprovalWorkflow::where('letter_type_id', $letter->letter_type_id)
-            ->where(function($q) use ($letter) {
-                $q->where('unit_id', $letter->unit_id)
-                  ->orWhereNull('unit_id');
-            })
-            ->orderBy('unit_id', 'desc')
             ->first();
 
-        if (!$workflow) {
+        if (! $workflow) {
             Log::error('No workflow found', [
                 'letter_type_id' => $letter->letter_type_id,
-                'unit_id' => $letter->unit_id,
             ]);
-            throw new \Exception("No approval workflow found for this letter type.");
+            throw new \Exception('No approval workflow found for this letter type.');
         }
 
         // Get root steps (steps without parent)
@@ -65,7 +59,7 @@ class WorkflowService
             // Parallel approval - create approvers for all steps in group
             foreach ($step->group->steps as $parallelStep) {
                 $userId = $this->resolveApproverUser($parallelStep, $letter, $customApprovers);
-                
+
                 LetterApprover::create([
                     'letter_id' => $letter->id,
                     'approver_id' => $parallelStep->approver_id,
@@ -77,7 +71,7 @@ class WorkflowService
         } else {
             // Sequential or conditional - create single approver
             $userId = $this->resolveApproverUser($step, $letter, $customApprovers);
-            
+
             LetterApprover::create([
                 'letter_id' => $letter->id,
                 'approver_id' => $step->approver_id,
@@ -90,6 +84,7 @@ class WorkflowService
 
     /**
      * Resolve who is the actual user for a step.
+     * Simplified to use Jabatan-only (no unit filtering)
      */
     private function resolveApproverUser($step, Letter $letter, array $customApprovers = [])
     {
@@ -104,23 +99,14 @@ class WorkflowService
 
         if ($step->approver_type === 'jabatan') {
             $jabatan = Jabatan::find($step->approver_id);
-            
+
             if ($jabatan) {
-                $creatorUnitId = $letter->unit_id ?? $letter->creator->unit_id ?? null;
-
-                if ($creatorUnitId) {
-                    $staff = Staff::where('jabatan_id', $jabatan->id)
-                        ->where('unit_kerja_id', $creatorUnitId)
-                        ->where('status', 'active')
-                        ->first();
-                    
-                    if ($staff) return $staff->user_id;
-                }
-
+                // Find any active staff with this jabatan
+                // Simplified: no unit filtering needed
                 $staff = Staff::where('jabatan_id', $jabatan->id)
                     ->where('status', 'active')
                     ->first();
-                    
+
                 return $staff ? $staff->user_id : null;
             }
         }
@@ -135,15 +121,15 @@ class WorkflowService
     {
         $currentApprover = $letter->approvers()
             ->where('status', 'pending')
-            ->where(function($q) use ($actor) {
+            ->where(function ($q) use ($actor) {
                 $q->where('user_id', $actor->id)
-                  ->orWhere('original_user_id', $actor->id);
+                    ->orWhere('original_user_id', $actor->id);
             })
             ->orderBy('order', 'asc')
             ->first();
 
-        if (!$currentApprover) {
-            throw new \Exception("You are not the current approver.");
+        if (! $currentApprover) {
+            throw new \Exception('You are not the current approver.');
         }
 
         DB::transaction(function () use ($letter, $currentApprover, $action, $notes, $actor) {
@@ -178,7 +164,7 @@ class WorkflowService
                 ]);
                 $letter->update(['status' => 'rejected']);
                 $letter->creator->notify(new LetterStatusNotification($letter, 'rejected', $actor->name));
-                
+
             } elseif ($action === 'return') {
                 $currentApprover->update([
                     'status' => 'returned',
@@ -195,10 +181,11 @@ class WorkflowService
      */
     private function moveToNextStep(Letter $letter, $currentStep)
     {
-        if (!$currentStep) {
+        if (! $currentStep) {
             // No more steps, mark as approved
-            $letter->update(['status' => 'approved']);
+            $letter->update(['status' => 'archived']);
             $letter->creator->notify(new LetterStatusNotification($letter, 'approved', 'System'));
+
             return;
         }
 
@@ -211,6 +198,7 @@ class WorkflowService
                 if ($childStep->evaluateCondition($letter)) {
                     $this->createApproversForStep($childStep, $letter);
                     $this->notifyNextApprovers($letter);
+
                     return;
                 }
             }
@@ -230,7 +218,7 @@ class WorkflowService
             $this->notifyNextApprovers($letter);
         } else {
             // All done
-            $letter->update(['status' => 'approved']);
+            $letter->update(['status' => 'archived']);
             $letter->creator->notify(new LetterStatusNotification($letter, 'approved', 'System'));
         }
     }
@@ -244,7 +232,7 @@ class WorkflowService
             ->where('status', 'pending')
             ->orderBy('order', 'asc')
             ->get();
-        
+
         foreach ($approvers as $approver) {
             if ($approver->user_id) {
                 $user = User::find($approver->user_id);

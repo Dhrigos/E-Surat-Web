@@ -50,11 +50,18 @@ export default function Login() {
 
                 {/* Card Header */}
                 <div className="text-center mb-8">
-                    <img
-                        src="/images/KEMENTERIAN-PERTAHANAN.png"
-                        alt="Logo Kementerian Pertahanan"
-                        className="h-28 w-28 object-contain mx-auto mb-4 drop-shadow-2xl"
-                    />
+                    <div className="flex justify-center items-center gap-4 mb-4">
+                        <img
+                            src="/images/KEMENTERIAN-PERTAHANAN.png"
+                            alt="Logo Kementerian Pertahanan"
+                            className="h-36 w-36 object-contain drop-shadow-2xl"
+                        />
+                        <img
+                            src="/images/BADAN-CADANGAN-NASIONAL.png"
+                            alt="Logo Badan Cadangan Nasional"
+                            className="h-28 w-28 object-contain drop-shadow-2xl"
+                        />
+                    </div>
                     <h2 className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight whitespace-nowrap">Badan Cadangan Nasional</h2>
                     <p className="text-gray-400 font-medium">Buat akun baru untuk mengakses sistem</p>
                 </div>

@@ -7,16 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import axios from 'axios';
 import InputError from '@/components/input-error';
-import HeadingSmall from '@/components/heading-small';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { User, MapPin, FileText, Briefcase, Camera, Loader2, UploadCloud, FileType, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Props {
-    unitKerjas: Array<{ id: number; nama: string; kode: string | null; }>;
-    allUnits: Array<{ id: number; nama: string; kode: string | null; parent_id: number | null; }>;
-    statusKeanggotaans: Array<{ id: number; nama: string }>;
     userDetail: any;
+    jabatans: any[];
 }
 
-export default function UpdateProfileDetailsForm({ unitKerjas, allUnits, statusKeanggotaans, userDetail }: Props) {
+export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props) {
     const { data, setData, post, processing, errors, recentlySuccessful } = useForm({
         nia_nrp: userDetail?.nia_nrp || '',
         nik: userDetail?.nik || '',
@@ -24,11 +24,7 @@ export default function UpdateProfileDetailsForm({ unitKerjas, allUnits, statusK
         tanggal_lahir: userDetail?.tanggal_lahir || '',
         jenis_kelamin: userDetail?.jenis_kelamin || '',
 
-        unit_kerja_id: userDetail?.unit_kerja_id?.toString() || '',
-        subunit_id: userDetail?.subunit_id?.toString() || '',
         jabatan_id: userDetail?.jabatan_id?.toString() || '',
-        status_keanggotaan_id: userDetail?.status_keanggotaan_id?.toString() || '',
-        pangkat_id: userDetail?.pangkat_id?.toString() || '',
         tanggal_pengangkatan: userDetail?.tanggal_pengangkatan || '',
         nomor_sk: userDetail?.nomor_sk || '',
         nomor_kta: userDetail?.nomor_kta || '',
@@ -39,7 +35,6 @@ export default function UpdateProfileDetailsForm({ unitKerjas, allUnits, statusK
         city_id: userDetail?.city_id || '',
         district_id: userDetail?.district_id || '',
         village_id: userDetail?.village_id || '',
-        postal_code: userDetail?.postal_code || '',
 
         foto_profil: null as File | null,
         scan_ktp: null as File | null,
@@ -48,18 +43,13 @@ export default function UpdateProfileDetailsForm({ unitKerjas, allUnits, statusK
         tanda_tangan: null as File | null,
     });
 
-    // Cascading dropdown states
-    const [availableSubunits, setAvailableSubunits] = useState<any[]>([]);
-    const [availableJabatans, setAvailableJabatans] = useState<any[]>([]);
-    const [availableStatuses, setAvailableStatuses] = useState<any[]>([]);
-    const [availablePangkats, setAvailablePangkats] = useState<any[]>([]);
+
 
     // Region Data States
     const [provinces, setProvinces] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
     const [districts, setDistricts] = useState<any[]>([]);
     const [villages, setVillages] = useState<any[]>([]);
-    const [birthplaceCities, setBirthplaceCities] = useState<any[]>([]);
 
     const MAX_FILE_SIZE_MB = 2;
     const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -79,32 +69,7 @@ export default function UpdateProfileDetailsForm({ unitKerjas, allUnits, statusK
         setData(field as any, file);
     }
 
-    // Load initial cascading data if editing
-    useEffect(() => {
-        if (data.unit_kerja_id) {
-            const subunits = allUnits.filter(u => u.parent_id === parseInt(data.unit_kerja_id));
-            setAvailableSubunits(subunits);
-            axios.get(`/api/jabatan-by-unit?unit_id=${data.unit_kerja_id}`)
-                .then(res => setAvailableJabatans(res.data))
-                .catch(() => setAvailableJabatans([]));
-        }
-    }, [data.unit_kerja_id]);
 
-    useEffect(() => {
-        if (data.jabatan_id) {
-            axios.get(`/api/status-by-jabatan?jabatan_id=${data.jabatan_id}`)
-                .then(res => setAvailableStatuses(res.data))
-                .catch(() => setAvailableStatuses([]));
-        }
-    }, [data.jabatan_id]);
-
-    useEffect(() => {
-        if (data.status_keanggotaan_id) {
-            axios.get(`/api/pangkat-by-status?status_id=${data.status_keanggotaan_id}`)
-                .then(res => setAvailablePangkats(res.data))
-                .catch(() => setAvailablePangkats([]));
-        }
-    }, [data.status_keanggotaan_id]);
 
     // Load Region Data
     useEffect(() => {
@@ -120,7 +85,6 @@ export default function UpdateProfileDetailsForm({ unitKerjas, allUnits, statusK
         axios.get(route('regions.cities', { province_code: provinceCode })).then(res => {
             const cityList = Object.entries(res.data).map(([code, name]) => ({ code, name }));
             setCities(cityList);
-            setBirthplaceCities(cityList); // Assuming birthplace uses same list
             if (initial && data.city_id) fetchDistricts(data.city_id, true);
         });
     };
@@ -149,101 +113,261 @@ export default function UpdateProfileDetailsForm({ unitKerjas, allUnits, statusK
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('profile.update-details'), {
-            onSuccess: () => toast.success('Profil berhasil diperbarui!'),
-            onError: () => toast.error('Gagal menyimpan data. Periksa input Anda.'),
+            onSuccess: () => toast.success('Profil berhasil diperbarui dengan sukses!'),
+            onError: () => toast.error('Gagal menyimpan data. Mohon periksa kembali input Anda.'),
         });
     };
 
+    const SubmitButton = () => (
+        <div className="flex justify-end border-t bg-muted/10 p-4">
+            <Button size="sm" disabled={processing} className="shadow-sm hover:shadow-primary/20 rounded-lg px-6 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-sm">
+                {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </Button>
+        </div>
+    );
+
+    const CardContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+        <Card className={cn("border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ring-1 ring-border/40", className)}>
+            {children}
+            <SubmitButton />
+        </Card>
+    );
+
+    const GradientIcon = ({ icon: Icon, colorClass }: { icon: any, colorClass: string }) => (
+        <div className={cn("p-2.5 rounded-xl shadow-sm", colorClass)}>
+            <Icon className="w-5 h-5 text-white" />
+        </div>
+    );
+
+    const FileUploadCard = ({ label, field, icon: Icon, description, accept = "image/*" }: { label: string, field: string, icon: any, description: string, accept?: string }) => (
+        <div className="space-y-3 group">
+            <Label className="text-base font-medium group-hover:text-primary transition-colors">{label}</Label>
+            <div className="relative border border-dashed border-input hover:border-primary/50 hover:bg-primary/5 rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center h-40">
+                <Input type="file" onChange={e => handleFileInput(e, field)} accept={accept} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" />
+                <div className="p-3 bg-background rounded-full shadow-sm ring-1 ring-border group-hover:scale-110 transition-transform duration-300 mb-3">
+                    <Icon className="w-5 h-5 text-primary" />
+                </div>
+                <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">Upload file</p>
+                    <p className="text-xs text-muted-foreground px-4">{description}</p>
+                </div>
+                {/* Success Indicator if needed could go here */}
+            </div>
+            <InputError message={errors[field as keyof typeof errors]} />
+        </div>
+    );
+
     return (
-        <section className="space-y-6">
-            <HeadingSmall
-                title="Detail Kepegawaian & Pribadi"
-                description="Perbarui informasi detail kepegawaian dan data pribadi Anda."
-            />
+        <form onSubmit={handleSubmit} className="space-y-6 pb-24">
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Data Diri */}
-                    <div className="space-y-2">
-                        <Label>NIA / NRP</Label>
-                        <Input value={data.nia_nrp} onChange={e => setData('nia_nrp', e.target.value)} />
-                        <InputError message={errors.nia_nrp} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>NIK</Label>
-                        <Input value={data.nik} onChange={e => setData('nik', e.target.value)} />
-                        <InputError message={errors.nik} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Tempat Lahir</Label>
-                        <Input value={data.tempat_lahir} onChange={e => setData('tempat_lahir', e.target.value)} />
-                        <InputError message={errors.tempat_lahir} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Tanggal Lahir</Label>
-                        <Input type="date" value={data.tanggal_lahir} onChange={e => setData('tanggal_lahir', e.target.value)} />
-                        <InputError message={errors.tanggal_lahir} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Jenis Kelamin</Label>
-                        <Select value={data.jenis_kelamin} onValueChange={val => setData('jenis_kelamin', val)}>
-                            <SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Laki-laki">Laki-laki</SelectItem>
-                                <SelectItem value="Perempuan">Perempuan</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.jenis_kelamin} />
-                    </div>
+            <div className="grid grid-cols-1 gap-6">
+                {/* 1. Personal Information */}
+                <CardContainer>
+                    <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                        <div className="flex items-center gap-4">
+                            <GradientIcon icon={User} colorClass="bg-gradient-to-br from-indigo-500 to-violet-600" />
+                            <div>
+                                <CardTitle className="text-base">Identitas Pribadi</CardTitle>
+                                <CardDescription>Data diri sesuai KTP</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>NIA / NRP</Label>
+                                <Input value={data.nia_nrp} onChange={e => setData('nia_nrp', e.target.value)} />
+                                <InputError message={errors.nia_nrp} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>NIK</Label>
+                                <Input value={data.nik} onChange={e => setData('nik', e.target.value)} />
+                                <InputError message={errors.nik} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Tempat Lahir</Label>
+                                <Input value={data.tempat_lahir} onChange={e => setData('tempat_lahir', e.target.value)} />
+                                <InputError message={errors.tempat_lahir} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Tanggal Lahir</Label>
+                                <Input type="date" value={data.tanggal_lahir} onChange={e => setData('tanggal_lahir', e.target.value)} />
+                                <InputError message={errors.tanggal_lahir} />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Jenis Kelamin</Label>
+                            <Select value={data.jenis_kelamin} onValueChange={val => setData('jenis_kelamin', val)}>
+                                <SelectTrigger><SelectValue placeholder="Pilih Jenis Kelamin" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                                    <SelectItem value="Perempuan">Perempuan</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.jenis_kelamin} />
+                        </div>
+                    </CardContent>
+                </CardContainer>
 
-                    {/* Kepegawaian */}
-                    <div className="space-y-2">
-                        <Label>Unit Kerja</Label>
-                        <Select value={data.unit_kerja_id} onValueChange={val => setData('unit_kerja_id', val)}>
-                            <SelectTrigger><SelectValue placeholder="Pilih Unit" /></SelectTrigger>
-                            <SelectContent>
-                                {unitKerjas.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.nama}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.unit_kerja_id} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Jabatan</Label>
-                        <Select value={data.jabatan_id} onValueChange={val => setData('jabatan_id', val)}>
-                            <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
-                            <SelectContent>
-                                {availableJabatans.map((j: any) => <SelectItem key={j.id} value={j.id.toString()}>{j.nama}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.jabatan_id} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Status Keanggotaan</Label>
-                        <Select value={data.status_keanggotaan_id} onValueChange={val => setData('status_keanggotaan_id', val)}>
-                            <SelectTrigger><SelectValue placeholder="Pilih Status" /></SelectTrigger>
-                            <SelectContent>
-                                {availableStatuses.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.status_keanggotaan_id} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Pangkat</Label>
-                        <Select value={data.pangkat_id} onValueChange={val => setData('pangkat_id', val)}>
-                            <SelectTrigger><SelectValue placeholder="Pilih Pangkat" /></SelectTrigger>
-                            <SelectContent>
-                                {availablePangkats.map((p: any) => <SelectItem key={p.id} value={p.id.toString()}>{p.nama}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.pangkat_id} />
-                    </div>
-                </div>
+                {/* 2. Employment Information */}
+                <CardContainer>
+                    <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                        <div className="flex items-center gap-4">
+                            <GradientIcon icon={Briefcase} colorClass="bg-gradient-to-br from-blue-500 to-cyan-600" />
+                            <div>
+                                <CardTitle className="text-base">Data Kepegawaian</CardTitle>
+                                <CardDescription>Unit kerja dan jabatan saat ini</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                        <div className="space-y-2">
+                            <Label>Jabatan</Label>
+                            <Select value={data.jabatan_id} onValueChange={val => setData('jabatan_id', val)}>
+                                <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
+                                <SelectContent>
+                                    {jabatans.map((j: any) => <SelectItem key={j.id} value={j.id.toString()}>{j.nama}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.jabatan_id} />
+                            <p className="text-sm text-muted-foreground">Jabatan akan menentukan struktur organisasi Anda</p>
+                        </div>
 
-                <div className="flex items-center gap-4">
-                    <Button disabled={processing}>Simpan Perubahan</Button>
-                    {recentlySuccessful && <p className="text-sm text-green-600">Tersimpan.</p>}
-                </div>
-            </form>
-        </section>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Tanggal Pengangkatan</Label>
+                                <Input type="date" value={data.tanggal_pengangkatan} onChange={e => setData('tanggal_pengangkatan', e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Nomor SK</Label>
+                                <Input value={data.nomor_sk} onChange={e => setData('nomor_sk', e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Nomor KTA</Label>
+                                <Input value={data.nomor_kta} onChange={e => setData('nomor_kta', e.target.value)} />
+                            </div>
+                        </div>
+                    </CardContent>
+                </CardContainer>
+            </div>
+
+            {/* 3. Address Information */}
+            <CardContainer>
+                <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                    <div className="flex items-center gap-4">
+                        <GradientIcon icon={MapPin} colorClass="bg-gradient-to-br from-orange-500 to-red-600" />
+                        <div>
+                            <CardTitle className="text-base">Alamat Domisili</CardTitle>
+                            <CardDescription>Alamat lengkap untuk korespondensi surat</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                            <Label>Provinsi</Label>
+                            <Select value={data.province_id} onValueChange={val => fetchCities(val)}>
+                                <SelectTrigger><SelectValue placeholder="Provinsi" /></SelectTrigger>
+                                <SelectContent>
+                                    {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Kota/Kab</Label>
+                            <Select value={data.city_id} onValueChange={val => fetchDistricts(val)}>
+                                <SelectTrigger><SelectValue placeholder="Kota/Kab" /></SelectTrigger>
+                                <SelectContent>
+                                    {cities.map(c => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Kecamatan</Label>
+                            <Select value={data.district_id} onValueChange={val => fetchVillages(val)}>
+                                <SelectTrigger><SelectValue placeholder="Kecamatan" /></SelectTrigger>
+                                <SelectContent>
+                                    {districts.map(d => <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Kelurahan</Label>
+                            <Select value={data.village_id} onValueChange={val => setData('village_id', val)}>
+                                <SelectTrigger><SelectValue placeholder="Kelurahan" /></SelectTrigger>
+                                <SelectContent>
+                                    {villages.map(v => <SelectItem key={v.code} value={v.code}>{v.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="mt-4">
+                        <div className="space-y-2">
+                            <Label>Alamat Lengkap (Jalan, RT/RW)</Label>
+                            <Input value={data.alamat_domisili_lengkap} onChange={e => setData('alamat_domisili_lengkap', e.target.value)} />
+                        </div>
+                    </div>
+                </CardContent>
+            </CardContainer>
+
+            {/* 4. Documents */}
+            <CardContainer>
+                <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                    <div className="flex items-center gap-4">
+                        <GradientIcon icon={FileText} colorClass="bg-gradient-to-br from-emerald-500 to-teal-600" />
+                        <div>
+                            <CardTitle className="text-base">Dokumen Digital</CardTitle>
+                            <CardDescription>Kelola berkas digital dan tanda tangan</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <FileUploadCard
+                            label="Foto Profil"
+                            field="foto_profil"
+                            icon={Camera}
+                            description="Foto resmi (JPG/PNG)"
+                        />
+                        <FileUploadCard
+                            label="Tanda Tangan"
+                            field="tanda_tangan"
+                            icon={UploadCloud}
+                            description="Scan transparan (PNG)"
+                        />
+                        <FileUploadCard
+                            label="Scan KTP"
+                            field="scan_ktp"
+                            icon={FileType}
+                            description="Dokumen Identitas"
+                            accept=".pdf,image/*"
+                        />
+                        <FileUploadCard
+                            label="Scan KTA"
+                            field="scan_kta"
+                            icon={FileType}
+                            description="Kartu Tanda Anggota"
+                            accept=".pdf,image/*"
+                        />
+                        <FileUploadCard
+                            label="Scan SK Terakhir"
+                            field="scan_sk"
+                            icon={FileType}
+                            description="SK Pangkat/Jabatan"
+                            accept=".pdf,image/*"
+                        />
+                    </div>
+                </CardContent>
+            </CardContainer>
+
+            {/* Sticky Action Bar */}
+
+        </form>
     );
 }

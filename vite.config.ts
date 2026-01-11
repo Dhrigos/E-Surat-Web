@@ -63,12 +63,18 @@ export default defineConfig({
             origin: '*',
             credentials: true,
         },
+        allowedHosts: ['api.bacadnas.com'],
         hmr: {
-            host: '192.168.1.6',
+            host: 'api.bacadnas.com',
+            clientPort: 443,
+            protocol: 'wss',
         },
         watch: {
             usePolling: true,
             ignored: ['**/vendor/**', '**/node_modules/**'],
         },
+    },
+    optimizeDeps: {
+        include: ['react-easy-crop', 'tslib'],
     },
 });

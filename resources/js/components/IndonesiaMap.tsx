@@ -163,6 +163,7 @@ export default function IndonesiaMap({ data, totalUsers }: Props) {
                 touchZoom={false}
                 boxZoom={false}
                 keyboard={false}
+                attributionControl={false}
             >
                 {geoData && (
                     <GeoJSON

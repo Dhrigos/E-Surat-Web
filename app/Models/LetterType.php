@@ -2,22 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class LetterType extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'code', 'description', 'template_id'];
+
+    protected $fillable = ['name', 'code', 'description'];
 
     public function approvalWorkflows()
     {
         return $this->hasMany(ApprovalWorkflow::class);
-    }
-
-    public function template()
-    {
-        return $this->belongsTo(LetterTemplate::class);
     }
 }

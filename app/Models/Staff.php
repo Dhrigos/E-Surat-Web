@@ -19,10 +19,7 @@ class Staff extends Model
         'phone',
         'nip',
         'nia',
-        'pangkat_id',
         'jabatan_id',
-        'unit_kerja_id',
-        'status_keanggotaan_id',
         'tanggal_masuk',
         'role',
         'status',
@@ -49,38 +46,12 @@ class Staff extends Model
     }
 
     /**
-     * Get the pangkat of this staff.
-     */
-    public function pangkat()
-    {
-        return $this->belongsTo(Pangkat::class);
-    }
-
-    /**
      * Get the jabatan of this staff.
      */
     public function jabatan()
     {
         return $this->belongsTo(Jabatan::class);
     }
-
-    /**
-     * Get the unit kerja of this staff.
-     */
-    public function unitKerja()
-    {
-        return $this->belongsTo(UnitKerja::class);
-    }
-
-    /**
-     * Get the status keanggotaan of this staff.
-     */
-    public function statusKeanggotaan()
-    {
-        return $this->belongsTo(StatusKeanggotaan::class);
-    }
-
-
 
     /**
      * Scope a query to only include active staff.

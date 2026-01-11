@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,10 +14,10 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolePermissionSeeder::class,
-            MasterDataSeeder::class,
-            LetterSettingSeeder::class,
+            // MasterDataSeeder::class,
+            // LetterSettingSeeder::class,
             UserSeeder::class,
-            LetterTransactionSeeder::class,
+            // LetterTransactionSeeder::class,
             \Laravolt\Indonesia\Seeds\DatabaseSeeder::class,
         ]);
     }

@@ -27,6 +27,23 @@ export default function ForgotPassword() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const formatPhoneNumberForApi = (phone: string) => {
+        // Remove all non-digit characters
+        let clean = phone.replace(/\D/g, '');
+
+        // If starts with 62, convert to 0
+        if (clean.startsWith('62')) {
+            return '0' + clean.slice(2);
+        }
+
+        // If doesn't start with 0, add it (for numbers like 8123456789)
+        if (!clean.startsWith('0')) {
+            return '0' + clean;
+        }
+
+        return clean;
+    };
+
     const handleSubmitForm = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -47,13 +64,12 @@ export default function ForgotPassword() {
             // Call backend to send OTP (expects { email, phone_number })
             await axios.post(route('otp.send'), {
                 email: formData.name,
-                phone_number: formData.phone,
+                phone_number: formatPhoneNumberForApi(formData.phone),
             });
 
             toast.success('Kode OTP telah dikirim ke email! Silakan periksa kotak masuk Anda atau spam email.');
             setStep(2);
         } catch (error) {
-            console.error('Error sending OTP:', error);
             toast.error('Gagal mengirim kode OTP. Silakan coba lagi.');
 
 
@@ -86,7 +102,7 @@ export default function ForgotPassword() {
             // Call backend to verify OTP and reset password
             await axios.post(route('otp.verify-reset'), {
                 email: formData.name,
-                phone_number: formData.phone,
+                phone_number: formatPhoneNumberForApi(formData.phone),
                 otp,
                 password: passwords.password,
                 password_confirmation: passwords.password_confirmation,
@@ -95,7 +111,6 @@ export default function ForgotPassword() {
             toast.success('Password berhasil diubah! Silakan login dengan password baru');
             window.location.href = route('login');
         } catch (error) {
-            console.error('Error verifying OTP / resetting password:', error);
             const message = (error as any)?.response?.data?.message ?? 'Gagal mengubah password. Silakan coba lagi.';
             toast.error(message);
         } finally {
@@ -111,21 +126,16 @@ export default function ForgotPassword() {
             <GuestLayout title="Verifikasi OTP" hideHeader={true}>
                 <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">
                     <CardHeader className="text-center">
-                        <div className="flex items-center justify-between mb-6 px-2">
-                            <div className="flex items-center gap-3 animate-in slide-in-from-left duration-700">
-                                <div className="h-14 w-14 md:h-16 md:w-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl">
-                                    <Shield className="h-8 w-8 md:h-10 md:w-10 text-white transition-transform duration-300" />
-                                </div>
-                            </div>
-
-                            <div className="flex-shrink-0 animate-in slide-in-from-right duration-700">
-                                <img src={logoImage} alt="Logo Kementerian Pertahanan" className="h-14 w-14 md:h-16 md:w-16 object-contain transition-all duration-300 hover:scale-110" />
+                        <div className="flex items-center justify-center mb-6 px-2">
+                            <div className="flex-shrink-0 flex gap-4 items-center">
+                                <img src={logoImage} alt="Logo Kementerian Pertahanan" className="h-36 w-36 object-contain drop-shadow-2xl" />
+                                <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Badan Cadangan Nasional" className="h-28 w-28 object-contain drop-shadow-2xl" />
                             </div>
                         </div>
 
-                        <CardTitle className="text-2xl md:text-3xl text-red-600 animate-in fade-in duration-700 delay-200">Verifikasi OTP</CardTitle>
+                        <CardTitle className="text-2xl md:text-3xl text-red-600">Verifikasi OTP</CardTitle>
                         <CardDescription className="text-gray-400">
-                            Masukkan kode OTP yang dikirim ke <span className="text-white font-bold">{formData.phone}</span>
+                            Masukkan kode OTP yang dikirim ke email <span className="text-white font-bold">{formData.name}</span>
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -137,7 +147,7 @@ export default function ForgotPassword() {
                                             <InputOTPSlot
                                                 key={index}
                                                 index={index}
-                                                className="h-12 w-12 border-2 border-white/20 bg-black/50 text-white text-lg font-bold focus:border-red-600 focus:ring-red-600/20 rounded-md transition-all"
+                                                className="h-12 w-12 border-2 border-white/20 bg-black/50 text-white text-lg font-bold focus:border-red-600 focus:ring-red-600/20 rounded-md"
                                             />
                                         ))}
                                     </InputOTPGroup>
@@ -203,24 +213,19 @@ export default function ForgotPassword() {
     }
 
     return (
-        <GuestLayout title="Reset Password" hideHeader={true}>
+        <GuestLayout title="Atur Ulang Kata Sandi" hideHeader={true}>
             <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">
                 <CardHeader className="text-center">
-                    <div className="flex items-center justify-between mb-6 px-2">
-                        <div className="flex items-center gap-3 animate-in slide-in-from-left duration-700">
-                            <div className="h-14 w-14 md:h-16 md:w-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl">
-                                <Shield className="h-8 w-8 md:h-10 md:w-10 text-white transition-transform duration-300" />
-                            </div>
-                        </div>
-
-                        <div className="flex-shrink-0 animate-in slide-in-from-right duration-700">
-                            <img src={logoImage} alt="Logo Kementerian Pertahanan" className="h-14 w-14 md:h-16 md:w-16 object-contain transition-all duration-300 hover:scale-110" />
+                    <div className="flex items-center justify-center mb-6 px-2">
+                        <div className="flex-shrink-0 flex gap-4 items-center">
+                            <img src={logoImage} alt="Logo Kementerian Pertahanan" className="h-36 w-36 object-contain drop-shadow-2xl" />
+                            <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Badan Cadangan Nasional" className="h-28 w-28 object-contain drop-shadow-2xl" />
                         </div>
                     </div>
 
-                    <CardTitle className="text-2xl md:text-3xl text-red-600 animate-in fade-in duration-700 delay-200">Badan Cadangan Nasional</CardTitle>
-                    <CardDescription className="text-gray-400">
-                        Reset Password
+                    <CardTitle className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight whitespace-nowrap">Badan Cadangan Nasional</CardTitle>
+                    <CardDescription className="text-gray-400 font-bold text-base">
+                        Atur Ulang Kata Sandi
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -246,9 +251,35 @@ export default function ForgotPassword() {
                                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <Input
                                     id="phone"
-                                    placeholder="Nomor telepon terdaftar"
+                                    placeholder="(+62) 8xx - xxxx - xxxx"
                                     value={formData.phone}
-                                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                                    onChange={(e) => {
+                                        // Remove all non-digit characters
+                                        let value = e.target.value.replace(/\D/g, '');
+
+                                        // Remove country code if user types it
+                                        if (value.startsWith('62')) {
+                                            value = value.slice(2);
+                                        }
+
+                                        // Remove leading 0 if present
+                                        if (value.startsWith('0')) {
+                                            value = value.slice(1);
+                                        }
+
+                                        // Format the number as (+62) 8xx - xxxx - xxxx
+                                        let formatted = '';
+                                        if (value.length > 0) {
+                                            formatted = `(+62) ${value.slice(0, 3)}`;
+                                            if (value.length >= 4) {
+                                                formatted += ` - ${value.slice(3, 7)}`;
+                                            }
+                                            if (value.length >= 8) {
+                                                formatted += ` - ${value.slice(7, 11)}`;
+                                            }
+                                        }
+                                        handleInputChange('phone', formatted);
+                                    }}
                                     className="pl-10 bg-black/50 border-white/10 text-white placeholder:text-gray-500 focus:border-red-600 h-11"
                                     required
                                 />

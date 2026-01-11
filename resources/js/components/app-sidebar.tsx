@@ -6,7 +6,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Activity, CheckSquare, FileText, Home, List, Mail, MapPin, Users, Share2, Star, Archive, MoreHorizontal } from 'lucide-react';
+import { Activity, FileText, Home, List, Mail, Users, Share2, Star, Archive, MoreHorizontal } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -56,11 +56,7 @@ export function AppSidebar() {
             icon: Users,
             items: [
                 { title: 'Jabatan', href: '/jabatan', icon: FileText },
-                { title: 'Pangkat', href: '/pangkat', icon: CheckSquare },
-                { title: 'Unit Kerja', href: '/unit-kerja', icon: MapPin },
-                { title: 'Status Keanggotaan', href: '/status-keanggotaan', icon: CheckSquare },
                 { title: 'Workflow Approval', href: '/master-data', icon: List },
-                { title: 'Template Surat', href: '/letter-templates', icon: FileText },
             ]
         });
     }

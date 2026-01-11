@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight, ChevronDown, Building2, Users, Settings } from 'lucide-react';
 import axios from 'axios';
 
-interface UnitKerja {
+interface JabatanNode {
     id: number;
     nama: string;
-    kode: string;
-    children: UnitKerja[];
+    kategori: string;
+    children: JabatanNode[];
 }
 
-const TreeNode = ({ node, level = 0 }: { node: UnitKerja; level?: number }) => {
+const TreeNode = ({ node, level = 0 }: { node: JabatanNode; level?: number }) => {
     const [isOpen, setIsOpen] = useState(true);
     const hasChildren = node.children && node.children.length > 0;
 
@@ -34,8 +34,8 @@ const TreeNode = ({ node, level = 0 }: { node: UnitKerja; level?: number }) => {
                         <h4 className={`font-semibold truncate ${level === 0 ? 'text-lg text-primary' : 'text-sm'}`}>
                             {node.nama}
                         </h4>
-                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono">
-                            {node.kode}
+                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono capitalize">
+                            {node.kategori}
                         </Badge>
                     </div>
                 </div>
@@ -67,7 +67,7 @@ const TreeNode = ({ node, level = 0 }: { node: UnitKerja; level?: number }) => {
 };
 
 export default function OrganizationIndex() {
-    const [treeData, setTreeData] = useState<UnitKerja[]>([]);
+    const [treeData, setTreeData] = useState<JabatanNode[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -90,15 +90,10 @@ export default function OrganizationIndex() {
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight text-foreground">Struktur Organisasi</h2>
-                        <p className="text-muted-foreground mt-1">Visualisasi hierarki unit kerja Badan Cadangan Nasional.</p>
+                        <p className="text-muted-foreground mt-1">Visualisasi hierarki jabatan Badan Cadangan Nasional.</p>
                     </div>
                     <div className="flex gap-2">
-                        <Link href="/unit-kerja">
-                            <Button variant="outline" className="gap-2">
-                                <Settings className="h-4 w-4" />
-                                Manage Units
-                            </Button>
-                        </Link>
+                        {/* Unit Kerja Removed */}
                         <Link href="/jabatan">
                             <Button variant="outline" className="gap-2">
                                 <Settings className="h-4 w-4" />

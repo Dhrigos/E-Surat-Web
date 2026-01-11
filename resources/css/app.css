@@ -281,6 +281,10 @@
     --sidebar-ring: oklch(0.439 0 0);
 }
 
+@utility bg-brand-gradient {
+    background-image: linear-gradient(to bottom, var(--color-red-900), var(--color-black) 20%, var(--color-black));
+}
+
 @layer base {
     * {
         @apply border-border;
@@ -319,5 +323,21 @@
     .dark ::-webkit-scrollbar-thumb:hover {
         background: #4b5563;
         /* gray-600 */
+    }
+
+    /* Hide scrollbar on mobile but allow scrolling */
+    @media (max-width: 768px) {
+        ::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            background: transparent;
+        }
+
+        * {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
     }
 }

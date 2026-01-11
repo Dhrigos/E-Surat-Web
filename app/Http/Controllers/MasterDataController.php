@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
-use App\Models\LetterType;
 use App\Models\ApprovalWorkflow;
+use App\Models\LetterType;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class MasterDataController extends Controller
@@ -13,7 +12,7 @@ class MasterDataController extends Controller
     public function index()
     {
         return Inertia::render('MasterData/Index', [
-            'letterTypes' => LetterType::with(['approvalWorkflows.steps', 'template'])->get(),
+            'letterTypes' => LetterType::with(['approvalWorkflows.steps'])->get(),
         ]);
     }
 
@@ -22,10 +21,7 @@ class MasterDataController extends Controller
         return response()->json(LetterType::select('id', 'name', 'code', 'description')->get());
     }
 
-    public function getUnitKerjas()
-    {
-        return response()->json(\App\Models\UnitKerja::select('id', 'nama', 'kode')->get());
-    }
+
 
     public function getJabatan()
     {
@@ -35,56 +31,35 @@ class MasterDataController extends Controller
     public function getUsersByJabatan(Request $request)
     {
         $jabatanId = $request->query('jabatan_id');
-        
-        if (!$jabatanId) {
+
+        if (! $jabatanId) {
             return response()->json([]);
         }
 
-        $users = \App\Models\User::whereHas('staff', function($q) use ($jabatanId) {
+        $users = \App\Models\User::whereHas('staff', function ($q) use ($jabatanId) {
             $q->where('jabatan_id', $jabatanId)
-              ->where('status', 'active');
+                ->where('status', 'active');
         })->select('id', 'name', 'username')->get();
 
         return response()->json($users);
     }
 
-    public function getLetterTemplates()
-    {
-        return response()->json(\App\Models\LetterTemplate::select('id', 'name')->get());
-    }
-
     public function getOrganizationTree()
     {
-        $units = \App\Models\UnitKerja::with('children')->whereNull('parent_id')->get();
-        return response()->json($units);
+        $nodes = \App\Models\Jabatan::with('children')->whereNull('parent_id')->get();
+
+        return response()->json($nodes);
     }
 
     public function getWorkflow(Request $request)
     {
         $letterTypeId = $request->query('letter_type_id');
-        $unitId = $request->query('unit_id');
-        
-        $query = ApprovalWorkflow::where('letter_type_id', $letterTypeId);
 
-        if ($unitId) {
-            $query->where('unit_id', $unitId);
-        } else {
-            $query->whereNull('unit_id');
-        }
+        $workflow = ApprovalWorkflow::where('letter_type_id', $letterTypeId)
+            ->with(['steps.approverUser.staff.jabatan', 'steps.approverJabatan'])
+            ->first();
 
-        $workflow = $query->with(['steps.approverUser.staff.jabatan', 'steps.approverJabatan'])->first();
-
-        if (!$workflow) {
-            // Fallback to default if unit specific not found
-            if ($unitId) {
-                 $workflow = ApprovalWorkflow::where('letter_type_id', $letterTypeId)
-                    ->whereNull('unit_id')
-                    ->with(['steps.approverUser.staff.jabatan', 'steps.approverJabatan'])
-                    ->first();
-            }
-        }
-
-        if (!$workflow) {
+        if (! $workflow) {
             return response()->json(['steps' => []]);
         }
 
@@ -95,14 +70,6 @@ class MasterDataController extends Controller
                         ->where('status', 'active')
                         ->with('user');
 
-                    if ($unitId) {
-                        $staffInUnit = (clone $staffQuery)->where('unit_kerja_id', $unitId)->first();
-                        if ($staffInUnit) {
-                            $step->current_holder = $staffInUnit->user;
-                            continue;
-                        }
-                    }
-                    
                     $staffGlobal = $staffQuery->first();
                     if ($staffGlobal) {
                         $step->current_holder = $staffGlobal->user;
@@ -113,6 +80,7 @@ class MasterDataController extends Controller
 
         return response()->json($workflow);
     }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -122,7 +90,6 @@ class MasterDataController extends Controller
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:letter_types,code',
             'description' => 'nullable|string',
-            'template_id' => 'nullable|exists:letter_templates,id',
             'workflow_steps' => 'nullable|array',
             'workflow_steps.*.order' => 'required|integer',
             'workflow_steps.*.approver_type' => 'nullable|in:user,jabatan',
@@ -138,20 +105,13 @@ class MasterDataController extends Controller
             'name' => $validated['name'],
             'code' => $validated['code'],
             'description' => $validated['description'],
-            'template_id' => $validated['template_id'] ?? null,
         ]);
 
-        // Create Workflow
-        if (!empty($validated['workflow_steps'])) {
-            $workflowName = 'Default Workflow for ' . $letterType->name;
-            if (!empty($validated['unit_id'])) {
-                $unit = \App\Models\UnitKerja::find($validated['unit_id']);
-                $workflowName = 'Workflow ' . $letterType->name . ' - ' . $unit->nama;
-            }
+        if (! empty($validated['workflow_steps'])) {
+            $workflowName = 'Default Workflow for '.$letterType->name;
 
             $workflow = ApprovalWorkflow::create([
                 'letter_type_id' => $letterType->id,
-                'unit_id' => $validated['unit_id'] ?? null,
                 'name' => $workflowName,
             ]);
 
@@ -178,9 +138,8 @@ class MasterDataController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:letter_types,code,' . $letterType->id,
+            'code' => 'required|string|max:50|unique:letter_types,code,'.$letterType->id,
             'description' => 'nullable|string',
-            'template_id' => 'nullable|exists:letter_templates,id',
             'workflow_steps' => 'nullable|array',
             'workflow_steps.*.order' => 'required|integer',
             'workflow_steps.*.approver_type' => 'nullable|in:user,jabatan',
@@ -196,26 +155,18 @@ class MasterDataController extends Controller
             'name' => $validated['name'],
             'code' => $validated['code'],
             'description' => $validated['description'],
-            'template_id' => $validated['template_id'] ?? null,
         ]);
 
         // Update Workflow
         // Find workflow for this unit (or null)
-        $unitId = $validated['unit_id'] ?? null;
         $workflow = $letterType->approvalWorkflows()
-            ->where('unit_id', $unitId)
             ->first();
-        
-        if (!$workflow) {
-            $workflowName = 'Default Workflow for ' . $letterType->name;
-            if ($unitId) {
-                $unit = \App\Models\UnitKerja::find($unitId);
-                $workflowName = 'Workflow ' . $letterType->name . ' - ' . $unit->nama;
-            }
+
+        if (! $workflow) {
+            $workflowName = 'Default Workflow for '.$letterType->name;
 
             $workflow = ApprovalWorkflow::create([
                 'letter_type_id' => $letterType->id,
-                'unit_id' => $unitId,
                 'name' => $workflowName,
             ]);
         }
@@ -223,7 +174,7 @@ class MasterDataController extends Controller
         // Sync steps: Delete all and recreate
         $workflow->steps()->delete();
 
-        if (!empty($validated['workflow_steps'])) {
+        if (! empty($validated['workflow_steps'])) {
             foreach ($validated['workflow_steps'] as $step) {
                 $workflow->steps()->create([
                     'order' => $step['order'],

@@ -17,9 +17,9 @@ import {
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { BreadcrumbItem, SharedData } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
-import { Bell, ChevronDown, LogOut, Menu, UserCog, Trash2 } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, UserCog, Trash2, Mail } from 'lucide-react';
 import { useState } from 'react';
-import { ThemeToggle } from '@/components/theme-toggle';
+
 
 interface AppHeaderProps {
     breadcrumbs?: BreadcrumbItem[];
@@ -79,15 +79,40 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
             </div>
 
             <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
-                <ThemeToggle />
+
+
+                {/* Messages - Mobile */}
+                <div className="md:hidden">
+                    <Link href={route('messages.index')}>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
+                        >
+                            <Mail className="h-5 w-5 md:h-6 md:w-6" />
+                        </Button>
+                    </Link>
+                </div>
+                {/* Messages - Desktop */}
+                <div className="hidden md:block">
+                    <Link href={route('messages.index')}>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
+                        >
+                            <Mail className="h-5 w-5 md:h-6 md:w-6" />
+                        </Button>
+                    </Link>
+                </div>
 
                 {/* Notifications */}
                 <div className="md:hidden">
                     <Link href={route('notifications.index')}>
                         <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
-                            className="relative text-foreground hover:bg-accent hover:text-accent-foreground"
+                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
                         >
                             <Bell className="h-5 w-5 md:h-6 md:w-6" />
                             {unreadCount > 0 && (
@@ -101,9 +126,9 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                 <Popover>
                     <PopoverTrigger asChild className="hidden md:flex">
                         <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
-                            className="relative text-foreground hover:bg-accent hover:text-accent-foreground"
+                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
                         >
                             <Bell className="h-5 w-5 md:h-6 md:w-6" />
                             {unreadCount > 0 && (

@@ -13,32 +13,47 @@ class Jabatan extends Model
 
     protected $fillable = [
         'nama',
+        'kategori',
+        'level',
+        'parent_id',
         'keterangan',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'level' => 'integer',
     ];
 
-    /**
-     * Get the unit kerja that have this jabatan.
-     */
-    public function unitKerjas()
+    public function parent()
     {
-        return $this->belongsToMany(UnitKerja::class, 'jabatan_unit_kerja')
-            ->withTimestamps()
-            ->withPivot('is_active');
+        return $this->belongsTo(Jabatan::class, 'parent_id');
     }
 
-    /**
-     * Get the status keanggotaan for this jabatan.
-     */
-    public function statusKeanggotaans()
+    public function children()
     {
-        return $this->belongsToMany(StatusKeanggotaan::class, 'jabatan_status_keanggotaan')
-            ->withTimestamps()
-            ->withPivot('is_active');
+        return $this->hasMany(Jabatan::class, 'parent_id');
+    }
+
+    const KATEGORI_STRUKTURAL = 'struktural';
+
+    const KATEGORI_FUNGSIONAL = 'fungsional';
+
+    const KATEGORI_ANGGOTA = 'anggota';
+
+    public function scopeStruktural($query)
+    {
+        return $query->where('kategori', self::KATEGORI_STRUKTURAL);
+    }
+
+    public function scopeFungsional($query)
+    {
+        return $query->where('kategori', self::KATEGORI_FUNGSIONAL);
+    }
+
+    public function scopeAnggota($query)
+    {
+        return $query->where('kategori', self::KATEGORI_ANGGOTA);
     }
 
     /**

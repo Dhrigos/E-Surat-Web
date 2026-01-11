@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ApprovalWorkflow extends Model
 {
-    protected $fillable = ['name', 'letter_type_id', 'unit_id', 'description'];
+    protected $fillable = ['name', 'letter_type_id', 'description'];
 
     public function letterType()
     {
@@ -21,11 +21,6 @@ class ApprovalWorkflow extends Model
     public function groups()
     {
         return $this->hasMany(WorkflowStepGroup::class, 'workflow_id')->orderBy('group_order');
-    }
-
-    public function unit()
-    {
-        return $this->belongsTo(UnitKerja::class, 'unit_id');
     }
 
     /**

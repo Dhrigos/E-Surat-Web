@@ -16,8 +16,7 @@ return new class extends Migration
             $table->char('city_id', 4)->nullable()->after('province_id');
             $table->char('district_id', 7)->nullable()->after('city_id');
             $table->char('village_id', 10)->nullable()->after('district_id');
-            $table->string('postal_code')->nullable()->after('village_id');
-            $table->string('jalan')->nullable()->after('postal_code');
+            $table->string('jalan')->nullable()->after('village_id');
         });
     }
 
@@ -27,7 +26,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('user_details', function (Blueprint $table) {
-            $table->dropColumn(['province_id', 'city_id', 'district_id', 'village_id', 'postal_code', 'jalan']);
+            $table->dropColumn(['province_id', 'city_id', 'district_id', 'village_id', 'jalan']);
         });
     }
 };

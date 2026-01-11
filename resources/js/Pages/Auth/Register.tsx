@@ -41,10 +41,19 @@ export default function Register() {
     };
 
     const formatPhoneNumberForApi = (phone: string) => {
+        // Remove all non-digit characters
         let clean = phone.replace(/\D/g, '');
+
+        // If starts with 62, convert to 0
         if (clean.startsWith('62')) {
             return '0' + clean.slice(2);
         }
+
+        // If doesn't start with 0, add it (for numbers like 8123456789)
+        if (!clean.startsWith('0')) {
+            return '0' + clean;
+        }
+
         return clean;
     };
 
@@ -90,10 +99,9 @@ export default function Register() {
                 phone_number: formatPhoneNumberForApi(data.phone_number)
             });
 
-            toast.success('Kode OTP telah dikirim ke Email dan Nomor Telepon Anda');
+            toast.success('Kode OTP telah dikirim ke Email Anda. Silakan periksa kotak masuk atau folder spam.');
             setStep(3);
         } catch (error) {
-            console.error('Error sending OTP:', error);
             toast.error('Gagal mengirim kode OTP. Silakan coba lagi.');
         } finally {
             setLoading(false);
@@ -134,7 +142,6 @@ export default function Register() {
             });
             toast.success('Kode OTP baru telah dikirim');
         } catch (error) {
-            console.error('Error resending OTP:', error);
             toast.error('Gagal mengirim ulang OTP');
         } finally {
             setLoading(false);
@@ -161,7 +168,7 @@ export default function Register() {
                     <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
                 </div>
 
-                <Card className="relative z-10 w-full max-w-md animate-in fade-in duration-500 bg-[#1a1a1a]/95 backdrop-blur-xl border-2 border-white/10 text-white shadow-2xl p-6">
+                <Card className="relative z-10 w-full max-w-md bg-[#1a1a1a]/95 backdrop-blur-xl border-2 border-white/10 text-white shadow-2xl p-6">
                     <CardHeader className="text-center p-0 mb-6">
                         <div className="flex justify-center mb-6">
                             <div className="h-20 w-20 bg-red-600 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.5)]">
@@ -247,15 +254,22 @@ export default function Register() {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
             </div>
 
-            <Card className="relative z-10 w-full max-w-lg animate-in fade-in duration-500 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">
+            <Card className="relative z-10 w-full max-w-lg bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">
                 <CardHeader className="text-center">
-                    <img
-                        src={logoImage}
-                        alt="Logo Kementerian Pertahanan"
-                        className="h-28 w-28 object-contain mx-auto mb-4 drop-shadow-2xl transition-all duration-300 hover:scale-110"
-                    />
+                    <div className="flex justify-center items-center gap-4 mb-4">
+                        <img
+                            src={logoImage}
+                            alt="Logo Kementerian Pertahanan"
+                            className="h-36 w-36 object-contain drop-shadow-2xl"
+                        />
+                        <img
+                            src="/images/BADAN-CADANGAN-NASIONAL.png"
+                            alt="Logo Badan Cadangan Nasional"
+                            className="h-28 w-28 object-contain drop-shadow-2xl"
+                        />
+                    </div>
 
-                    <CardTitle className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight animate-in fade-in duration-700 delay-200 whitespace-nowrap">Badan Cadangan Nasional</CardTitle>
+                    <CardTitle className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight whitespace-nowrap">Badan Cadangan Nasional</CardTitle>
                     <CardDescription className="text-gray-400 text-base font-medium">
                         Buat akun baru untuk mengakses sistem
                     </CardDescription>
@@ -264,7 +278,7 @@ export default function Register() {
                         {[1, 2].map((s) => (
                             <div
                                 key={s}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all ${step === s ? 'bg-red-600 text-white ring-4 ring-red-600/30 shadow-[0_0_15px_rgba(220,38,38,0.5)]' : step > s ? 'bg-red-600 text-white' : 'bg-white/10 text-gray-400'}`}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${step === s ? 'bg-red-600 text-white ring-4 ring-red-600/30 shadow-[0_0_15px_rgba(220,38,38,0.5)]' : step > s ? 'bg-red-600 text-white' : 'bg-white/10 text-gray-400'}`}
                             >
                                 {step > s ? <Check className="w-6 h-6" /> : s}
                             </div>
@@ -275,7 +289,7 @@ export default function Register() {
                 <CardContent>
                     <form onSubmit={handleRegisterSubmit} className="space-y-4">
                         {step === 1 && (
-                            <div className="space-y-4 animate-in slide-in-from-bottom duration-500">
+                            <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="name" className={labelClasses}>Nama Lengkap</Label>
                                     <div className="relative">
@@ -332,21 +346,32 @@ export default function Register() {
                                         <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                         <Input
                                             id="phone_number"
-                                            placeholder="(+62) 8xxx - xxxx - xxx"
+                                            placeholder="(+62) 8xx - xxxx - xxxx"
                                             value={data.phone_number}
                                             onChange={(e) => {
+                                                // Remove all non-digit characters
                                                 let value = e.target.value.replace(/\D/g, '');
-                                                if (value.startsWith('62')) value = value.slice(2);
-                                                if (value.startsWith('0')) value = value.slice(1);
 
+                                                // Remove country code if user types it
+                                                if (value.startsWith('62')) {
+                                                    value = value.slice(2);
+                                                }
+
+                                                // Remove leading 0 if present (we'll add it back in formatting)
+                                                if (value.startsWith('0')) {
+                                                    value = value.slice(1);
+                                                }
+
+                                                // Format the number as (+62) 8xx - xxxx - xxxx
                                                 let formatted = '';
                                                 if (value.length > 0) {
-                                                    formatted = `(+62) ${value.slice(0, 4)}`;
-                                                    if (value.length >= 5) {
-                                                        formatted += ` - ${value.slice(4, 8)}`;
+                                                    // Always start with (+62) and the first digit (should be 8)
+                                                    formatted = `(+62) ${value.slice(0, 3)}`;
+                                                    if (value.length >= 4) {
+                                                        formatted += ` - ${value.slice(3, 7)}`;
                                                     }
-                                                    if (value.length >= 9) {
-                                                        formatted += ` - ${value.slice(8, 13)}`;
+                                                    if (value.length >= 8) {
+                                                        formatted += ` - ${value.slice(7, 11)}`;
                                                     }
                                                 }
                                                 setData('phone_number', formatted);
@@ -370,7 +395,7 @@ export default function Register() {
                         )}
 
                         {step === 2 && (
-                            <div className="space-y-4 animate-in slide-in-from-bottom duration-500">
+                            <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="password" className={labelClasses}>Kata Sandi</Label>
                                     <div className="relative">

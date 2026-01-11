@@ -33,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
-            AuthenticateSession::class,
+            // AuthenticateSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

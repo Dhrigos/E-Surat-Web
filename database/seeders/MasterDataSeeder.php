@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Jabatan;
 use App\Models\Pangkat;
-use App\Models\UnitKerja;
+
 
 class MasterDataSeeder extends Seeder
 {
@@ -48,77 +48,7 @@ class MasterDataSeeder extends Seeder
             \App\Models\StatusKeanggotaan::firstOrCreate(['nama' => $s['nama']], $s);
         }
 
-        $this->command->info('Seeding Unit Kerja...');
-        // 4. Unit Kerja with hierarchy
-        $sekretariat = UnitKerja::firstOrCreate(
-            ['nama' => 'Sekretariat'],
-            ['kode' => 'SEKR', 'is_active' => true]
-        );
-        
-        $bidangKeuangan = UnitKerja::firstOrCreate(
-            ['nama' => 'Bidang Keuangan'],
-            ['kode' => 'KEUANGAN', 'is_active' => true]
-        );
-        
-        $bidangUmum = UnitKerja::firstOrCreate(
-            ['nama' => 'Bidang Umum'],
-            ['kode' => 'UMUM', 'is_active' => true]
-        );
 
-        // Create subunits
-        $subBagKeuangan = UnitKerja::firstOrCreate(
-            ['nama' => 'Sub Bagian Keuangan', 'parent_id' => $sekretariat->id],
-            ['kode' => 'SUBBAG-KEU', 'is_active' => true]
-        );
-
-        $subBagKepegawaian = UnitKerja::firstOrCreate(
-            ['nama' => 'Sub Bagian Kepegawaian', 'parent_id' => $sekretariat->id],
-            ['kode' => 'SUBBAG-KEP', 'is_active' => true]
-        );
-
-        $this->command->info('Seeding Pivot: Jabatan <-> Unit Kerja...');
-        // 5. Pivot: Jabatan <-> Unit Kerja
-        $kepalaDinas = Jabatan::where('nama', 'Kepala Dinas')->first();
-        $sekretarisDinas = Jabatan::where('nama', 'Sekretaris Dinas')->first();
-        $kepalaBidang = Jabatan::where('nama', 'Kepala Bidang')->first();
-        $kepalaSubBag = Jabatan::where('nama', 'Kepala Sub Bagian')->first();
-        $stafPelaksana = Jabatan::where('nama', 'Staf Pelaksana')->first();
-
-        // Attach jabatan to units (many-to-many)
-        if ($sekretariat && $sekretarisDinas) {
-            $sekretariat->jabatans()->syncWithoutDetaching([
-                $sekretarisDinas->id => ['is_active' => true],
-                $stafPelaksana->id => ['is_active' => true],
-            ]);
-        }
-
-        if ($bidangKeuangan && $kepalaBidang) {
-            $bidangKeuangan->jabatans()->syncWithoutDetaching([
-                $kepalaBidang->id => ['is_active' => true],
-                $stafPelaksana->id => ['is_active' => true],
-            ]);
-        }
-
-        if ($bidangUmum && $kepalaBidang) {
-            $bidangUmum->jabatans()->syncWithoutDetaching([
-                $kepalaBidang->id => ['is_active' => true],
-                $stafPelaksana->id => ['is_active' => true],
-            ]);
-        }
-
-        if ($subBagKeuangan && $kepalaSubBag) {
-            $subBagKeuangan->jabatans()->syncWithoutDetaching([
-                $kepalaSubBag->id => ['is_active' => true],
-                $stafPelaksana->id => ['is_active' => true],
-            ]);
-        }
-
-        if ($subBagKepegawaian && $kepalaSubBag) {
-            $subBagKepegawaian->jabatans()->syncWithoutDetaching([
-                $kepalaSubBag->id => ['is_active' => true],
-                $stafPelaksana->id => ['is_active' => true],
-            ]);
-        }
 
         $this->command->info('Seeding Pivot: Jabatan <-> Status Keanggotaan...');
         // 6. Pivot: Jabatan <-> Status Keanggotaan

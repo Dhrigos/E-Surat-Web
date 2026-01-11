@@ -18,21 +18,18 @@ class EnsureUserIsVerified
         if ($request->user() && 
             ! $request->user()->verifikasi &&
             ! $request->routeIs('complete-profile.*') &&
+            ! $request->routeIs('verification.*') &&
             ! $request->routeIs('logout')) {
             
-            // If user has filled their details but not verified, send to video call
+            // If user has filled their details but not verified
             if ($request->user()->detail) {
-                // Check if there are other sessions for this user
-                $otherSessions = \Illuminate\Support\Facades\DB::table('sessions')
-                    ->where('user_id', $request->user()->id)
-                    ->where('id', '!=', $request->session()->getId())
-                    ->count();
-
-                if ($otherSessions > 0) {
-                    session()->flash('warning', 'Login terdeteksi di perangkat lain.');
+                // Check if E-KYC is passed
+                if ($request->user()->ekyc_verified_at) {
+                    return redirect()->route('verification.pending');
                 }
-
-                return redirect()->route('complete-profile.video-call');
+                
+                // If not passed E-KYC, go to E-KYC page
+                return redirect()->route('verification.ekyc');
             }
             
             // Otherwise send to fill profile

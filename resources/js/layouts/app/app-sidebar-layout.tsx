@@ -11,7 +11,8 @@ import { toast } from 'sonner';
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
-}: PropsWithChildren<{ breadcrumbs?: BreadcrumbItem[] }>) {
+    ...props
+}: PropsWithChildren<{ breadcrumbs?: BreadcrumbItem[] } & React.HTMLAttributes<HTMLDivElement>>) {
     const { auth } = usePage<SharedData>().props;
     const user = auth.user;
 
@@ -41,7 +42,7 @@ export default function AppSidebarLayout({
         <AppShell variant="sidebar">
             <AppHeader />
             <AppSidebar />
-            <AppContent variant="sidebar" className="overflow-x-hidden mt-16 md:mt-20 h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] pb-16 md:pb-0 overflow-y-auto">
+            <AppContent variant="sidebar" {...props} className={`overflow-x-hidden mt-16 md:mt-20 h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] pb-16 md:pb-0 overflow-y-auto ${props.className || ''}`}>
                 <div className="px-4 py-4 md:px-6 md:py-6">
                     <Breadcrumbs breadcrumbs={breadcrumbs} />
                 </div>

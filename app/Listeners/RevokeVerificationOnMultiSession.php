@@ -3,8 +3,6 @@
 namespace App\Listeners;
 
 use Illuminate\Auth\Events\Login;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
@@ -23,6 +21,8 @@ class RevokeVerificationOnMultiSession
      */
     public function handle(Login $event): void
     {
+        // Logic disabled as per user request to allow multiple device logins.
+        /*
         $user = $event->user;
         $currentSessionId = Session::getId();
 
@@ -45,5 +45,6 @@ class RevokeVerificationOnMultiSession
                 ->where('id', '!=', $currentSessionId)
                 ->delete();
         }
+        */
     }
 }

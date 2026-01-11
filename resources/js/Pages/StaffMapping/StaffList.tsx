@@ -24,13 +24,11 @@ import {
     Search,
     Edit,
     Trash2,
-    UserPlus,
     Phone,
     IdCard,
     Building,
     Mail,
-    Eye,
-    Key
+    Eye
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { usePermission } from '@/hooks/usePermission';
@@ -43,10 +41,7 @@ interface Staff {
     nip: string;
     nik: string;
     nia: string | null;
-    pangkat: { id: number; nama: string };
     jabatan: { id: number; nama: string };
-    unit_kerja: { id: number; nama: string };
-    status_keanggotaan: { id: number; nama: string };
     tanggal_masuk: string;
     role: string;
     status: string;
@@ -55,18 +50,13 @@ interface Staff {
 interface Props {
     staff: Staff[];
     jabatan: any[];
-    pangkat: any[];
-    unitKerja: any[];
-    statusKeanggotaan: any[];
     filters?: {
         search?: string;
-        unit_kerja_id?: string;
     };
 }
 
-export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja = [], statusKeanggotaan = [], filters }: Props) {
+export default function StaffList({ staff, jabatan = [], filters }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
-    const [selectedUnit, setSelectedUnit] = useState(filters?.unit_kerja_id || 'all');
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showDetailDialog, setShowDetailDialog] = useState(false);
     const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
@@ -91,7 +81,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
 
 
 
-    const [showCreateDialog, setShowCreateDialog] = useState(false);
+
 
     const editForm = useForm({
         name: '',
@@ -99,48 +89,25 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
         phone: '',
         nip: '',
         nia: '',
-        pangkat_id: '',
         jabatan_id: '',
-        unit_kerja_id: '',
         role: 'staff',
     });
 
-    const createForm = useForm({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        nip: '',
-        nia: '',
-        pangkat_id: '',
-        jabatan_id: '',
-        unit_kerja_id: '',
-        role: 'staff',
-    });
 
-    const handleCreate = (e: React.FormEvent) => {
-        e.preventDefault();
-        createForm.post(route('staff.store'), {
-            onSuccess: () => {
-                setShowCreateDialog(false);
-                createForm.reset();
-            },
-        });
-    };
+
 
     const filteredStaff = useMemo(() => {
         return staff.filter(s => {
             const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.nip.includes(searchTerm);
-            const matchesUnit = selectedUnit === 'all' || s.unit_kerja.id.toString() === selectedUnit;
-            return matchesSearch && matchesUnit;
+            return matchesSearch;
         });
-    }, [staff, searchTerm, selectedUnit]);
+    }, [staff, searchTerm]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/staff-mapping', { search: searchTerm, unit_kerja_id: selectedUnit }, { preserveState: true });
+        router.get('/staff-mapping', { search: searchTerm }, { preserveState: true });
     };
 
 
@@ -153,9 +120,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
             phone: s.phone || '',
             nip: s.nip,
             nia: s.nia || '',
-            pangkat_id: s.pangkat.id.toString(),
             jabatan_id: s.jabatan.id.toString(),
-            unit_kerja_id: s.unit_kerja.id.toString(),
             role: s.role,
         });
         setShowEditDialog(true);
@@ -234,15 +199,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
             : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     };
 
-    const uniqueUnits = useMemo(() => {
-        const unitsMap = new Map();
-        staff.forEach(s => {
-            if (s.unit_kerja) {
-                unitsMap.set(s.unit_kerja.id, s.unit_kerja);
-            }
-        });
-        return Array.from(unitsMap.values());
-    }, [staff]);
+
 
     return (
         <div className="space-y-6">
@@ -252,12 +209,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
                     <p className="text-muted-foreground mt-1">Kelola tim dan staff di bawah Anda</p>
                 </div>
 
-                {hasPermission('edit staff') && (
-                    <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-                        <UserPlus className="h-4 w-4" />
-                        Tambah Staff
-                    </Button>
-                )}
+
             </div>
 
             {/* Statistics */}
@@ -306,17 +258,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-muted-foreground">Unit Kerja</p>
-                                <p className="text-2xl font-bold text-purple-600">{uniqueUnits.length}</p>
-                            </div>
-                            <Building className="h-8 w-8 text-purple-600" />
-                        </div>
-                    </CardContent>
-                </Card>
+
             </div>
 
             {/* Search and Filter */}
@@ -335,17 +277,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
                             </div>
                         </div>
 
-                        <Select value={selectedUnit} onValueChange={setSelectedUnit}>
-                            <SelectTrigger className="w-48">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Unit</SelectItem>
-                                {uniqueUnits.filter(u => u.id).map(unit => (
-                                    <SelectItem key={unit.id} value={unit.id.toString()}>{unit.nama}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+
 
                         <Button type="submit">Cari</Button>
                     </form>
@@ -377,7 +309,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
                             <div className="space-y-2">
                                 <h3 className="font-semibold">{s.name}</h3>
                                 <p className="text-sm text-muted-foreground">{s.jabatan.nama}</p>
-                                <p className="text-sm text-muted-foreground">{s.unit_kerja.nama}</p>
+
 
                                 <div className="space-y-1 text-xs text-muted-foreground">
                                     <div className="flex items-center gap-1">
@@ -394,14 +326,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
                                             <span>NIA/NRP: {s.nia}</span>
                                         </div>
                                     )}
-                                    <div className="flex items-center gap-1">
-                                        <Users className="h-3 w-3" />
-                                        <span>{s.pangkat.nama}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Building className="h-3 w-3" />
-                                        <span>{s.status_keanggotaan.nama}</span>
-                                    </div>
+
                                     <div className="flex items-center gap-1">
                                         <Mail className="h-3 w-3" />
                                         <span>{s.email}</span>
@@ -465,183 +390,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
                 ))}
             </div>
 
-            {/* Create Staff Dialog */}
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Tambah Staff Baru</DialogTitle>
-                        <DialogDescription>Masukkan informasi staff baru</DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleCreate} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="create-name">Nama Lengkap *</Label>
-                            <div className="relative">
-                                <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="create-name"
-                                    placeholder="Nama lengkap staff"
-                                    value={createForm.data.name}
-                                    onChange={(e) => createForm.setData('name', e.target.value)}
-                                    className="pl-10"
-                                />
-                            </div>
-                            {createForm.errors.name && <p className="text-sm text-destructive">{createForm.errors.name}</p>}
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="create-email">Email *</Label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="create-email"
-                                        type="email"
-                                        placeholder="email@kemhan.go.id"
-                                        value={createForm.data.email}
-                                        onChange={(e) => createForm.setData('email', e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                                {createForm.errors.email && <p className="text-sm text-destructive">{createForm.errors.email}</p>}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="create-password">Password *</Label>
-                                <div className="relative">
-                                    <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="create-password"
-                                        type="password"
-                                        placeholder="Password default"
-                                        value={createForm.data.password}
-                                        onChange={(e) => createForm.setData('password', e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                                {createForm.errors.password && <p className="text-sm text-destructive">{createForm.errors.password}</p>}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="create-phone">No. Telepon</Label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="create-phone"
-                                        placeholder="+6281234567890"
-                                        value={createForm.data.phone}
-                                        onChange={(e) => createForm.setData('phone', e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="create-nip">NIP *</Label>
-                                <div className="relative">
-                                    <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="create-nip"
-                                        placeholder="Nomor Induk Pegawai"
-                                        value={createForm.data.nip}
-                                        onChange={(e) => createForm.setData('nip', e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                                {createForm.errors.nip && <p className="text-sm text-destructive">{createForm.errors.nip}</p>}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="create-nia">NIA/NRP</Label>
-                                <div className="relative">
-                                    <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="create-nia"
-                                        placeholder="Nomor Induk Anggota/NRP"
-                                        value={createForm.data.nia}
-                                        onChange={(e) => createForm.setData('nia', e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="create-pangkat_id">Pangkat/Golongan *</Label>
-                                <Select value={createForm.data.pangkat_id} onValueChange={(value) => createForm.setData('pangkat_id', value)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih pangkat" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {pangkat.map((p: any) => (
-                                            <SelectItem key={p.id} value={p.id.toString()}>{p.nama}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {createForm.errors.pangkat_id && <p className="text-sm text-destructive">{createForm.errors.pangkat_id}</p>}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="create-jabatan_id">Jabatan *</Label>
-                                <Select value={createForm.data.jabatan_id} onValueChange={(value) => createForm.setData('jabatan_id', value)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih jabatan" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {jabatan.map((j: any) => (
-                                            <SelectItem key={j.id} value={j.id.toString()}>{j.nama}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {createForm.errors.jabatan_id && <p className="text-sm text-destructive">{createForm.errors.jabatan_id}</p>}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="create-unit_kerja_id">Kesatuan/Unit Asal *</Label>
-                                <Select value={createForm.data.unit_kerja_id} onValueChange={(value) => createForm.setData('unit_kerja_id', value)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih unit kerja" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {unitKerja.map((u: any) => (
-                                            <SelectItem key={u.id} value={u.id.toString()}>{u.nama}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {createForm.errors.unit_kerja_id && <p className="text-sm text-destructive">{createForm.errors.unit_kerja_id}</p>}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="create-role">Role</Label>
-                            <Select value={createForm.data.role} onValueChange={(value) => createForm.setData('role', value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="staff">Staff</SelectItem>
-                                    <SelectItem value="supervisor">Supervisor</SelectItem>
-                                    <SelectItem value="manager">Manager</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="flex justify-end gap-2 pt-4">
-                            <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                                Batal
-                            </Button>
-                            <Button type="submit" disabled={createForm.processing}>
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                {createForm.processing ? 'Menyimpan...' : 'Tambah Staff'}
-                            </Button>
-                        </div>
-                    </form>
-                </DialogContent>
-            </Dialog>
 
             {/* Edit Staff Dialog */}
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
@@ -730,22 +479,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-pangkat_id">Pangkat/Golongan *</Label>
-                                    <Select value={editForm.data.pangkat_id} onValueChange={(value) => editForm.setData('pangkat_id', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Pilih pangkat" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {pangkat.map((p: any) => (
-                                                <SelectItem key={p.id} value={p.id.toString()}>{p.nama}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {editForm.errors.pangkat_id && <p className="text-sm text-destructive">{editForm.errors.pangkat_id}</p>}
-                                </div>
-                            </div>
+
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -763,20 +497,7 @@ export default function StaffList({ staff, jabatan = [], pangkat = [], unitKerja
                                     {editForm.errors.jabatan_id && <p className="text-sm text-destructive">{editForm.errors.jabatan_id}</p>}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-unit_kerja_id">Kesatuan/Unit Asal *</Label>
-                                    <Select value={editForm.data.unit_kerja_id} onValueChange={(value) => editForm.setData('unit_kerja_id', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Pilih unit kerja" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {unitKerja.map((u: any) => (
-                                                <SelectItem key={u.id} value={u.id.toString()}>{u.nama}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {editForm.errors.unit_kerja_id && <p className="text-sm text-destructive">{editForm.errors.unit_kerja_id}</p>}
-                                </div>
+
                             </div>
 
                             <div className="space-y-2">
