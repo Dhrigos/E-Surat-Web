@@ -23,7 +23,9 @@ import {
     FileText,
     ChevronRight,
     ArrowLeft,
-    Home
+    Home,
+    Building2,
+    Briefcase
 } from 'lucide-react';
 import {
     Select,
@@ -305,9 +307,9 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                                 <CardContent className="p-4 flex flex-col items-center text-center gap-3">
                                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                                         {(item.children_count || 0) > 0 ? (
-                                            <Folder className="h-6 w-6 fill-current" />
+                                            <Building2 className="h-6 w-6 fill-current" />
                                         ) : (
-                                            <FileText className="h-6 w-6" />
+                                            <Briefcase className="h-6 w-6" />
                                         )}
                                     </div>
 

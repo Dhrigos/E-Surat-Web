@@ -29,4 +29,9 @@ class RegionController extends Controller
     {
         return response()->json(Village::where('district_code', $request->district_code)->pluck('name', 'code'));
     }
+
+    public function makos(Request $request)
+    {
+        return response()->json(\App\Models\Mako::where('city_code', $request->city_code)->select('id', 'name')->get());
+    }
 }

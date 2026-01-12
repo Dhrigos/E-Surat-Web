@@ -61,30 +61,52 @@ export default function ForgotPassword() {
         setLoading(true);
 
         try {
-            // Call backend to send OTP (expects { email, phone_number })
-            await axios.post(route('otp.send'), {
-                email: formData.name,
+            // Call backend to send OTP Reset (expects { keyword, phone_number })
+            await axios.post(route('otp.send-reset'), {
+                keyword: formData.name, // Send as keyword (username/email)
                 phone_number: formatPhoneNumberForApi(formData.phone),
             });
 
-            toast.success('Kode OTP telah dikirim ke email! Silakan periksa kotak masuk Anda atau spam email.');
+            toast.success('Kode OTP telah dikirim ke email terdaftar! Silakan periksa kotak masuk atau spam.');
             setStep(2);
         } catch (error) {
-            toast.error('Gagal mengirim kode OTP. Silakan coba lagi.');
-
-
+            const message = (error as any)?.response?.data?.message ?? 'Gagal mengirim kode OTP. Silakan coba lagi.';
+            toast.error(message);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleVerifyOTP = async (e: React.FormEvent) => {
+    // Step 2: Check OTP Validity Only
+    const handleCheckOTP = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Validate OTP and passwords
         if (otp.length !== 6) {
             toast.error('Kode OTP harus 6 digit');
             return;
         }
+
+        setLoading(true);
+
+        try {
+            // Verify OTP without resetting password yet
+            await axios.post(route('otp.check'), {
+                keyword: formData.name,
+                otp
+            });
+
+            toast.success('Kode OTP valid! Silakan atur password baru.');
+            setStep(3); // Move to password input step
+        } catch (error) {
+            const message = (error as any)?.response?.data?.message ?? 'Kode OTP tidak valid.';
+            toast.error(message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Step 3: Reset Password
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
 
         if (!passwords.password || passwords.password.length < 6) {
             toast.error('Password baru minimal 6 karakter');
@@ -99,19 +121,19 @@ export default function ForgotPassword() {
         setLoading(true);
 
         try {
-            // Call backend to verify OTP and reset password
+            // Call backend to really reset password and wipe E-KYC
             await axios.post(route('otp.verify-reset'), {
-                email: formData.name,
+                keyword: formData.name,
                 phone_number: formatPhoneNumberForApi(formData.phone),
-                otp,
+                otp, // OTP needed for final verification
                 password: passwords.password,
                 password_confirmation: passwords.password_confirmation,
             });
 
-            toast.success('Password berhasil diubah! Silakan login dengan password baru');
+            toast.success('Password berhasil diubah! Silakan login dan verifikasi ulang identitas.');
             window.location.href = route('login');
         } catch (error) {
-            const message = (error as any)?.response?.data?.message ?? 'Gagal mengubah password. Silakan coba lagi.';
+            const message = (error as any)?.response?.data?.message ?? 'Gagal mengubah password.';
             toast.error(message);
         } finally {
             setLoading(false);
@@ -121,6 +143,9 @@ export default function ForgotPassword() {
     // Assets
     const logoImage = "/images/KEMENTERIAN-PERTAHANAN.png";
 
+    // RENDER STEPS
+
+    // STEP 2: INPUT OTP
     if (step === 2) {
         return (
             <GuestLayout title="Verifikasi OTP" hideHeader={true}>
@@ -139,7 +164,7 @@ export default function ForgotPassword() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={handleVerifyOTP} className="space-y-6">
+                        <form onSubmit={handleCheckOTP} className="space-y-6">
                             <div className="flex justify-center">
                                 <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                                     <InputOTPGroup className="gap-2">
@@ -153,8 +178,56 @@ export default function ForgotPassword() {
                                     </InputOTPGroup>
                                 </InputOTP>
                             </div>
-                            {/* Password fields shown alongside OTP to complete reset */}
-                            <div className="space-y-2 mt-4">
+
+                            <Button
+                                type="submit"
+                                className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg transition-all mt-4"
+                                disabled={loading || otp.length !== 6}
+                            >
+                                {loading ? (
+                                    <span className="flex items-center gap-2">
+                                        <LoaderCircle className="h-5 w-5 animate-spin" />
+                                        Verifikasi...
+                                    </span>
+                                ) : 'Verifikasi OTP'}
+                            </Button>
+                        </form>
+
+                        <div className="mt-6 text-center">
+                            <button
+                                onClick={() => setStep(1)}
+                                className="text-sm text-gray-400 hover:text-white transition-colors font-medium"
+                            >
+                                Kembali
+                            </button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </GuestLayout>
+        );
+    }
+
+    // STEP 3: NEW PASSWORD
+    if (step === 3) {
+        return (
+            <GuestLayout title="Password Baru" hideHeader={true}>
+                <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">
+                    <CardHeader className="text-center">
+                        <div className="flex items-center justify-center mb-6 px-2">
+                            <div className="flex-shrink-0 flex gap-4 items-center">
+                                <img src={logoImage} alt="Logo Kementerian Pertahanan" className="h-36 w-36 object-contain drop-shadow-2xl" />
+                                <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Badan Cadangan Nasional" className="h-28 w-28 object-contain drop-shadow-2xl" />
+                            </div>
+                        </div>
+
+                        <CardTitle className="text-2xl md:text-3xl text-red-600">Password Baru</CardTitle>
+                        <CardDescription className="text-gray-400">
+                            Silakan atur password baru Anda
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleResetPassword} className="space-y-6">
+                            <div className="space-y-2">
                                 <Label htmlFor="password">Password Baru</Label>
                                 <div className="relative">
                                     <Input
@@ -187,31 +260,23 @@ export default function ForgotPassword() {
                             <Button
                                 type="submit"
                                 className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg transition-all mt-4"
-                                disabled={loading || otp.length !== 6 || passwords.password.length < 6 || passwords.password !== passwords.password_confirmation}
+                                disabled={loading || passwords.password.length < 6 || passwords.password !== passwords.password_confirmation}
                             >
                                 {loading ? (
                                     <span className="flex items-center gap-2">
                                         <LoaderCircle className="h-5 w-5 animate-spin" />
-                                        Verifikasi...
+                                        Simpan Password...
                                     </span>
-                                ) : 'Ubah Password'}
+                                ) : 'Simpan Password Baru'}
                             </Button>
                         </form>
-
-                        <div className="mt-6 text-center">
-                            <button
-                                onClick={() => setStep(1)}
-                                className="text-sm text-gray-400 hover:text-white transition-colors font-medium"
-                            >
-                                Kembali ke form reset password
-                            </button>
-                        </div>
                     </CardContent>
                 </Card>
             </GuestLayout>
         );
     }
 
+    // Step 1: Default Form
     return (
         <GuestLayout title="Atur Ulang Kata Sandi" hideHeader={true}>
             <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">

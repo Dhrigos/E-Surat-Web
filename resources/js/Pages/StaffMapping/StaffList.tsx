@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+import { router, usePage, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -20,18 +20,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
     Users,
-    Plus,
     Search,
     Edit,
     Trash2,
     Phone,
     IdCard,
-    Building,
     Mail,
-    Eye
+    Eye,
+    Shield
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import { usePermission } from '@/hooks/usePermission';
 
 interface Staff {
     id: number;
@@ -44,7 +42,7 @@ interface Staff {
     jabatan: { id: number; nama: string };
     tanggal_masuk: string;
     role: string;
-    status: string;
+    status: string; // active (verified) or inactive
 }
 
 interface Props {
@@ -56,11 +54,21 @@ interface Props {
 }
 
 export default function StaffList({ staff, jabatan = [], filters }: Props) {
+    const { auth } = usePage().props as any;
+    const isSuperAdmin = auth.user.roles.some((r: any) => r.name === 'super-admin');
+    const isAdmin = auth.user.roles.some((r: any) => r.name === 'admin');
+
+    // Access capabilities based on user request:
+    // Super Admin: Access all
+    // Admin: Access all except Approval Tracking (sidebar logic), here they can manage staff.
+    const canManageStaff = isSuperAdmin || isAdmin;
+
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
-    const [showEditDialog, setShowEditDialog] = useState(false);
+    const [showRoleDialog, setShowRoleDialog] = useState(false);
     const [showDetailDialog, setShowDetailDialog] = useState(false);
-    const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+
     const [viewingStaff, setViewingStaff] = useState<Staff | null>(null);
+    const [roleUpdatingStaff, setRoleUpdatingStaff] = useState<Staff | null>(null);
 
     // Confirmation Dialog State
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -77,24 +85,9 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
         variant: 'default'
     });
 
-    const { hasPermission } = usePermission();
-
-
-
-
-
-    const editForm = useForm({
-        name: '',
-        email: '',
-        phone: '',
-        nip: '',
-        nia: '',
-        jabatan_id: '',
-        role: 'staff',
+    const roleForm = useForm({
+        role: '',
     });
-
-
-
 
     const filteredStaff = useMemo(() => {
         return staff.filter(s => {
@@ -110,36 +103,24 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
         router.get('/staff-mapping', { search: searchTerm }, { preserveState: true });
     };
 
+    const handleGiveRole = (s: Staff) => {
+        setRoleUpdatingStaff(s);
+        roleForm.setData({ role: s.role });
+        setShowRoleDialog(true);
+    }
 
-
-    const handleEdit = (s: Staff) => {
-        setEditingStaff(s);
-        editForm.setData({
-            name: s.name,
-            email: s.email,
-            phone: s.phone || '',
-            nip: s.nip,
-            nia: s.nia || '',
-            jabatan_id: s.jabatan.id.toString(),
-            role: s.role,
-        });
-        setShowEditDialog(true);
-    };
-
-    const handleUpdate = (e: React.FormEvent) => {
+    const handleUpdateRole = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editingStaff) return;
+        if (!roleUpdatingStaff) return;
 
-        editForm.put(`/staff/${editingStaff.id}`, {
+        roleForm.put(route('staff.update-role', roleUpdatingStaff.id), {
             onSuccess: () => {
-                setShowEditDialog(false);
-                setEditingStaff(null);
-                editForm.reset();
-            },
+                setShowRoleDialog(false);
+                setRoleUpdatingStaff(null);
+                roleForm.reset();
+            }
         });
-    };
-
-
+    }
 
     const handleDetail = (s: Staff) => {
         setViewingStaff(s);
@@ -154,11 +135,11 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
 
         setConfirmDialog({
             isOpen: true,
-            title: isActivating ? 'Aktifkan User' : 'Nonaktifkan User',
-            description: `Apakah Anda yakin ingin ${isActivating ? 'mengaktifkan' : 'menonaktifkan'} user ini?`,
+            title: isActivating ? 'Verifikasi User' : 'Nonaktifkan Verifikasi',
+            description: `Apakah Anda yakin ingin ${isActivating ? 'memverifikasi' : 'membatalkan verifikasi'} user ini?`,
             variant: isActivating ? 'default' : 'destructive',
             action: () => {
-                router.put(`/staff/${id}/toggle-status`, {}, {
+                router.put(route('staff.toggle-status', id), {}, {
                     preserveScroll: true,
                     onSuccess: () => {
                         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -175,7 +156,7 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
             description: 'Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan.',
             variant: 'destructive',
             action: () => {
-                router.delete(`/staff/${id}`, {
+                router.delete(route('staff.destroy', id), {
                     onSuccess: () => {
                         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
                     }
@@ -186,9 +167,9 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
 
     const getRoleColor = (role: string) => {
         switch (role) {
-            case 'manager': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
-            case 'supervisor': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-            case 'staff': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+            case 'admin': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+            case 'super-admin': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+            case 'user': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
             default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
         }
     };
@@ -199,8 +180,6 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
             : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     };
 
-
-
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -208,12 +187,10 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                     <h2 className="text-2xl font-bold">Staff List</h2>
                     <p className="text-muted-foreground mt-1">Kelola tim dan staff di bawah Anda</p>
                 </div>
-
-
             </div>
 
             {/* Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
@@ -230,7 +207,7 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Staff Aktif</p>
+                                <p className="text-sm font-medium text-muted-foreground">Verified Users</p>
                                 <p className="text-2xl font-bold text-green-600">
                                     {staff.filter(s => s.status === 'active').length}
                                 </p>
@@ -246,19 +223,17 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-muted-foreground">Supervisor</p>
-                                <p className="text-2xl font-bold text-blue-600">
-                                    {staff.filter(s => s.role === 'supervisor').length}
+                                <p className="text-sm font-medium text-muted-foreground">Admins</p>
+                                <p className="text-2xl font-bold text-purple-600">
+                                    {staff.filter(s => s.role === 'admin').length}
                                 </p>
                             </div>
-                            <div className="h-8 w-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                                <div className="h-4 w-4 bg-blue-600 rounded-full"></div>
+                            <div className="h-8 w-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                                <div className="h-4 w-4 bg-purple-600 rounded-full"></div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-
-
             </div>
 
             {/* Search and Filter */}
@@ -276,9 +251,6 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                                 />
                             </div>
                         </div>
-
-
-
                         <Button type="submit">Cari</Button>
                     </form>
                 </CardContent>
@@ -292,7 +264,7 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                             <div className="flex items-center justify-between mb-4">
                                 <Avatar className="h-12 w-12">
                                     <AvatarFallback className="bg-primary text-primary-foreground">
-                                        {s.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                        {s.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                     </AvatarFallback>
                                 </Avatar>
 
@@ -301,7 +273,7 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                                         {s.role}
                                     </Badge>
                                     <Badge variant="outline" className={getStatusColor(s.status)}>
-                                        {s.status}
+                                        {s.status === 'active' ? 'Verified' : 'Unverified'}
                                     </Badge>
                                 </div>
                             </div>
@@ -309,7 +281,6 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                             <div className="space-y-2">
                                 <h3 className="font-semibold">{s.name}</h3>
                                 <p className="text-sm text-muted-foreground">{s.jabatan.nama}</p>
-
 
                                 <div className="space-y-1 text-xs text-muted-foreground">
                                     <div className="flex items-center gap-1">
@@ -340,190 +311,146 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                                 </div>
                             </div>
 
-                            <div className="flex gap-2 mt-4">
+                            <div className="flex flex-col gap-2 mt-4">
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="flex-1"
+                                    className="w-full"
                                     onClick={() => handleDetail(s)}
                                 >
                                     <Eye className="h-4 w-4 mr-2" />
                                     Detail
                                 </Button>
-                                {hasPermission('edit staff') && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1"
-                                        onClick={() => handleEdit(s)}
-                                    >
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                )}
-                                {hasPermission('edit staff') && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className={cn(
-                                            "flex-1",
-                                            s.status === 'active' ? "text-destructive hover:text-destructive" : "text-green-600 hover:text-green-600"
-                                        )}
-                                        onClick={() => handleStatusToggle(s.id)}
-                                    >
-                                        {s.status === 'active' ? 'Nonaktifkan' : 'Aktifkan'}
-                                    </Button>
-                                )}
 
-                                {hasPermission('delete staff') && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDelete(s.id)}
-                                        className="text-destructive hover:text-destructive"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                )}
+                                <div className="flex gap-2">
+                                    {/* Give Role: Super Admin only */}
+                                    {isSuperAdmin && (
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            className="flex-1"
+                                            onClick={() => handleGiveRole(s)}
+                                        >
+                                            <Shield className="h-4 w-4 mr-2" />
+                                            Role
+                                        </Button>
+                                    )}
+
+                                    {/* Verify/Unverify:
+                                      - Super Admin can Always access (Verify & Unverify)
+                                      - Admin can only access if status is active (Unverify only)
+                                    */}
+                                    {(isSuperAdmin || (isAdmin && s.status === 'active')) && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className={cn(
+                                                "flex-1",
+                                                s.status === 'active' ? "text-destructive hover:text-destructive border-destructive/50" : "text-green-600 hover:text-green-600 border-green-600/50"
+                                            )}
+                                            onClick={() => handleStatusToggle(s.id)}
+                                        >
+                                            {s.status === 'active' ? 'Unverify' : 'Verify'}
+                                        </Button>
+                                    )}
+
+                                    {/* Delete: Super Admin only */}
+                                    {isSuperAdmin && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleDelete(s.id)}
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/50 aspect-square w-9 p-0 shrink-0"
+                                            title="Hapus Permanent"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
                 ))}
             </div>
 
-
-
-            {/* Edit Staff Dialog */}
-            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Give Role Dialog */}
+            <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
+                <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Edit Staff</DialogTitle>
-                        <DialogDescription>Perbarui informasi staff</DialogDescription>
+                        <DialogTitle>Ubah Role User</DialogTitle>
+                        <DialogDescription>
+                            Pilih role baru untuk user <b>{roleUpdatingStaff?.name}</b>.
+                        </DialogDescription>
                     </DialogHeader>
-                    {editingStaff && (
-                        <form onSubmit={handleUpdate} className="space-y-4 py-4">
+                    {roleUpdatingStaff && (
+                        <form onSubmit={handleUpdateRole} className="space-y-4 py-4">
                             <div className="space-y-2">
-                                <Label htmlFor="edit-name">Nama Lengkap *</Label>
-                                <div className="relative">
-                                    <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="edit-name"
-                                        placeholder="Nama lengkap staff"
-                                        value={editForm.data.name}
-                                        onChange={(e) => editForm.setData('name', e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                                {editForm.errors.name && <p className="text-sm text-destructive">{editForm.errors.name}</p>}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-email">Email *</Label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="edit-email"
-                                            type="email"
-                                            placeholder="email@kemhan.go.id"
-                                            value={editForm.data.email}
-                                            onChange={(e) => editForm.setData('email', e.target.value)}
-                                            className="pl-10"
-                                        />
-                                    </div>
-                                    {editForm.errors.email && <p className="text-sm text-destructive">{editForm.errors.email}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-phone">No. Telepon</Label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="edit-phone"
-                                            placeholder="+6281234567890"
-                                            value={editForm.data.phone}
-                                            onChange={(e) => editForm.setData('phone', e.target.value)}
-                                            className="pl-10"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-nip">NIP *</Label>
-                                    <div className="relative">
-                                        <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="edit-nip"
-                                            placeholder="Nomor Induk Pegawai"
-                                            value={editForm.data.nip}
-                                            onChange={(e) => editForm.setData('nip', e.target.value)}
-                                            className="pl-10"
-                                        />
-                                    </div>
-                                    {editForm.errors.nip && <p className="text-sm text-destructive">{editForm.errors.nip}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-nia">NRP</Label>
-                                    <div className="relative">
-                                        <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="edit-nia"
-                                            placeholder="Nomor Induk Anggota/NRP"
-                                            value={editForm.data.nia}
-                                            onChange={(e) => editForm.setData('nia', e.target.value)}
-                                            className="pl-10"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-jabatan_id">Jabatan *</Label>
-                                    <Select value={editForm.data.jabatan_id} onValueChange={(value) => editForm.setData('jabatan_id', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Pilih jabatan" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {jabatan.map((j: any) => (
-                                                <SelectItem key={j.id} value={j.id.toString()}>{j.nama}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {editForm.errors.jabatan_id && <p className="text-sm text-destructive">{editForm.errors.jabatan_id}</p>}
-                                </div>
-
-
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-role">Role</Label>
-                                <Select value={editForm.data.role} onValueChange={(value) => editForm.setData('role', value)}>
+                                <Label htmlFor="update-role">Role</Label>
+                                <Select value={roleForm.data.role} onValueChange={(value) => roleForm.setData('role', value)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Pilih role" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="staff">Staff</SelectItem>
-                                        <SelectItem value="supervisor">Supervisor</SelectItem>
-                                        <SelectItem value="manager">Manager</SelectItem>
+                                        <SelectItem value="user">User (Staff Biasa)</SelectItem>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                        {isSuperAdmin && <SelectItem value="super-admin">Super Admin</SelectItem>}
                                     </SelectContent>
                                 </Select>
                             </div>
-
                             <div className="flex justify-end gap-2 pt-4">
-                                <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
-                                    Batal
-                                </Button>
-                                <Button type="submit" disabled={editForm.processing}>
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    {editForm.processing ? 'Menyimpan...' : 'Perbarui Staff'}
-                                </Button>
+                                <Button type="button" variant="outline" onClick={() => setShowRoleDialog(false)}>Batal</Button>
+                                <Button type="submit" disabled={roleForm.processing}>Update Role</Button>
                             </div>
                         </form>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Detail Dialog */}
+            <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Detail Staff</DialogTitle>
+                    </DialogHeader>
+                    {viewingStaff && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-16 w-16">
+                                    <AvatarFallback className="text-xl">
+                                        {viewingStaff.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h3 className="font-bold text-lg">{viewingStaff.name}</h3>
+                                    <p className="text-muted-foreground">{viewingStaff.email}</p>
+                                    <Badge className={getRoleColor(viewingStaff.role) + " mt-2"}>{viewingStaff.role}</Badge>
+                                </div>
+                            </div>
+                            <div className="space-y-2 text-sm border-t pt-4">
+                                <div className="grid grid-cols-3">
+                                    <span className="text-muted-foreground">Jabatan</span>
+                                    <span className="col-span-2 font-medium">{viewingStaff.jabatan.nama}</span>
+                                </div>
+                                <div className="grid grid-cols-3">
+                                    <span className="text-muted-foreground">NIP</span>
+                                    <span className="col-span-2 font-medium">{viewingStaff.nip}</span>
+                                </div>
+                                <div className="grid grid-cols-3">
+                                    <span className="text-muted-foreground">NIK</span>
+                                    <span className="col-span-2 font-medium">{viewingStaff.nik}</span>
+                                </div>
+                                <div className="grid grid-cols-3">
+                                    <span className="text-muted-foreground">Bergabung</span>
+                                    <span className="col-span-2 font-medium">{viewingStaff.tanggal_masuk}</span>
+                                </div>
+                                <div className="grid grid-cols-3">
+                                    <span className="text-muted-foreground">Status</span>
+                                    <span className="col-span-2 font-medium">
+                                        {viewingStaff.status === 'active' ? 'Terverifikasi' : 'Belum Terverifikasi'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </DialogContent>
             </Dialog>

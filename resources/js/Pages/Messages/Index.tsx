@@ -82,6 +82,20 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
         }
     }, [initialConversationId, conversations]);
 
+    // Hide bottom navigation when chat is active on mobile
+    useEffect(() => {
+        const isMobile = window.innerWidth < 768; // md breakpoint
+        if (isMobile && selectedConversation) {
+            document.body.classList.add('hide-bottom-nav');
+        } else {
+            document.body.classList.remove('hide-bottom-nav');
+        }
+
+        return () => {
+            document.body.classList.remove('hide-bottom-nav');
+        };
+    }, [selectedConversation]);
+
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
@@ -225,10 +239,10 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
     };
 
     return (
-        <AppLayout>
+        <AppLayout className="!pb-0 !overflow-hidden">
             <Head title="Messages" />
 
-            <div className="flex h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] overflow-hidden rounded-lg border bg-background">
+            <div className="flex h-[100vh] md:h-[calc(100vh-5rem)] overflow-hidden md:rounded-lg border bg-background">
                 {/* Sidebar */}
                 <div className={`w-full md:w-80 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 h-16 flex items-center justify-between shrink-0">
@@ -320,7 +334,7 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                     <>
                                         <div className="flex items-center gap-3">
                                             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSelectedConversation(null)}>
-                                                <Search className="h-5 w-5 rotate-90" />
+                                                <ArrowLeft className="h-5 w-5" />
                                             </Button>
                                             <Avatar className="cursor-pointer" onClick={() => setInfoOpen(true)}>
                                                 <AvatarImage src={getConversationAvatar(selectedConversation) || undefined} />
@@ -328,14 +342,13 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                                     {getConversationName(selectedConversation).substring(0, 2).toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <div className="cursor-pointer" onClick={() => setInfoOpen(true)}>
-                                                <h3 className="font-semibold">{getConversationName(selectedConversation)}</h3>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {selectedConversation.is_group
-                                                        ? `${selectedConversation.participants.length} members`
-                                                        : selectedConversation.participants.find(p => p.id !== auth.user.id)?.email
-                                                    }
-                                                </p>
+                                            <div className="cursor-pointer flex-1 min-w-0" onClick={() => setInfoOpen(true)}>
+                                                <h3 className="font-semibold truncate">{getConversationName(selectedConversation)}</h3>
+                                                {selectedConversation.is_group && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {selectedConversation.participants.length} members
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -464,7 +477,7 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                             </div>
 
                             {/* Input - Docked at bottom, full width, no margin gaps */}
-                            <div className="p-4 border-t bg-background flex flex-col gap-2 shrink-0">
+                            <div className="p-4 pb-6 md:pb-4 border-t bg-background flex flex-col gap-2 shrink-0">
                                 {selectedFile && (
                                     <div className="flex items-center gap-2 px-2 py-1 bg-accent/50 rounded-lg w-fit">
                                         <span className="text-xs truncate max-w-[200px]">{selectedFile.name}</span>

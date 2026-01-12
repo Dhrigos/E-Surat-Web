@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, X, Users, Shield, Key, Eye, UserCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { usePermission } from '@/hooks/usePermission';
 
 interface UserDetail {
     nia_nrp: string;
@@ -59,7 +58,9 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
     const [isReviewOpen, setIsReviewOpen] = useState(false);
     const [isRejectOpen, setIsRejectOpen] = useState(false);
     const [isApproveOpen, setIsApproveOpen] = useState(false);
-    const { hasPermission } = usePermission();
+    const { auth } = usePage().props as any;
+    const isSuperAdmin = auth.user.roles.some((r: any) => r.name === 'super-admin');
+
     const { post, processing } = useForm({});
     const { data: rejectionData, setData: setRejectionData, post: postRejection, processing: rejectionProcessing, reset: resetRejection } = useForm({
         reason: '',
@@ -122,9 +123,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
 
     const tabs = [
         { id: 'staff-list', label: 'Staff List', icon: Users, show: true, href: route('staff-mapping') },
-        { id: 'verification-queue', label: 'Verification Queue', icon: Shield, show: hasPermission('manager') || hasPermission('view staff'), href: route('verification-queue.index') },
-        { id: 'roles', label: 'Role Management', icon: Shield, show: hasPermission('manage roles'), href: route('staff-mapping') },
-        { id: 'permissions', label: 'Permission Management', icon: Key, show: hasPermission('manage permissions'), href: route('staff-mapping') },
+        { id: 'verification-queue', label: 'Verification Queue', icon: Shield, show: true, href: route('verification-queue.index') },
     ].filter(tab => tab.show);
 
     const getFileUrl = (path?: string) => {
@@ -139,9 +138,9 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl font-bold">Verifikasi E-KYC</h1>
+                    <h1 className="text-3xl font-bold">Verifikasi</h1>
                     <p className="text-muted-foreground mt-2">
-                        Validasi identitas user berdasarkan data E-KYC (KTP & Selfie)
+                        Validasi identitas user
                     </p>
                 </div>
 
@@ -174,7 +173,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                         <CardHeader>
                             <CardTitle>Daftar User Menunggu Verifikasi</CardTitle>
                             <CardDescription>
-                                Review hasil E-KYC (Selfie vs KTP) dan validasi data user.
+                                Review hasil validasi data user.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -371,8 +370,8 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                         <span className="col-span-2 font-medium">{selectedUser?.detail?.tanggal_pengangkatan || '-'}</span>
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">Nomor SK</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.nomor_sk || '-'}</span>
+                                        <span className="text-muted-foreground">Nomor KTA</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.nomor_kta || selectedUser?.detail?.nomor_sk || '-'}</span>
                                     </div>
                                 </div>
                             </div>

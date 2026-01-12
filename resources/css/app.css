@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@import 'leaflet/dist/leaflet.css';
+
 @import "tw-animate-css";
 
 @source '../views';
@@ -338,6 +340,19 @@
             /* IE and Edge */
             scrollbar-width: none;
             /* Firefox */
+        }
+    }
+
+    /* Hide bottom navigation when chatting on mobile */
+    @media (max-width: 768px) {
+        body.hide-bottom-nav .fixed.bottom-0 {
+            display: none !important;
+        }
+
+        body.hide-bottom-nav [data-slot="app-content"] {
+            height: 100vh !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
         }
     }
 }

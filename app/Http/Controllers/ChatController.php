@@ -15,10 +15,19 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
+        $initialConversationId = request()->query('conversation_id');
+
         // Fetch conversations ordered by latest message
         $conversations = Conversation::whereHas('participants', function ($q) use ($user) {
             $q->where('user_id', $user->id);
         })
+            ->where(function ($query) use ($initialConversationId) {
+                $query->whereHas('messages');
+                
+                if ($initialConversationId) {
+                    $query->orWhere('id', $initialConversationId);
+                }
+            })
             ->with(['lastMessage.sender', 'participants'])
             ->get()
             ->sortByDesc(function ($conversation) {
@@ -223,7 +232,7 @@ class ChatController extends Controller
 
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
-            'avatar' => 'nullable|image|max:2048',
+            'avatar' => 'nullable|image|max:15360',
         ]);
 
         $updateData = [];

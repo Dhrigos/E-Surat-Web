@@ -34,28 +34,30 @@ class VerificationQueueController extends Controller
     {
         $user->update([
             'verifikasi' => true,
+            'verification_duration' => $user->verification_locked_at ? $user->verification_locked_at->diffInSeconds(now()) : null,
             'verification_locked_at' => null,
             'verification_locked_by' => null,
             'rejection_reason' => null, // Clear any previous rejection
+            'verified_at' => now(),
+            'verified_by' => auth()->id(),
         ]);
 
-        // Automatically create Staff record
+        // Automatically create or update Staff record
         $detail = $user->detail;
         if ($detail) {
-            \App\Models\Staff::firstOrCreate(
-                ['user_id' => $user->id],
+            \App\Models\Staff::updateOrCreate(
                 [
+                    'email' => $user->email, // Use email as unique identifier
+                ],
+                [
+                    'user_id' => $user->id,
                     'manager_id' => auth()->id() ?? 1, // Default to auth user or Super Admin (ID 1)
                     'name' => $user->name,
-                    'email' => $user->email,
                     'phone' => $user->phone_number ?? '0000000000',
                     'nip' => $detail->nik,
                     'nia' => $detail->nia_nrp,
-                    'pangkat_id' => $detail->pangkat_id,
                     'jabatan_id' => $detail->jabatan_id,
-                    'unit_kerja_id' => $detail->unit_kerja_id,
-                    'status_keanggotaan_id' => $detail->status_keanggotaan_id,
-                    'tanggal_masuk' => now(),
+                    'tanggal_masuk' => $detail->tanggal_pengangkatan ?? now(),
                     'role' => 'staff',
                     'status' => 'active',
                 ]
@@ -105,9 +107,12 @@ class VerificationQueueController extends Controller
         ]);
 
         $user->update([
+            'verification_duration' => $user->verification_locked_at ? $user->verification_locked_at->diffInSeconds(now()) : null,
             'verification_locked_at' => null,
             'verification_locked_by' => null,
             'rejection_reason' => $request->reason,
+            'verified_at' => now(), // Track when rejection happened
+            'verified_by' => auth()->id(), // Track who rejected
         ]);
 
         // Send Rejected Email

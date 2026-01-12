@@ -39,10 +39,24 @@ class WorkflowService
             throw new \Exception('No approval workflow found for this letter type.');
         }
 
-        // Get root steps (steps without parent)
-        $rootSteps = $workflow->steps()->whereNull('parent_step_id')->orderBy('order')->get();
+        // Get initial steps (lowest order)
+        $minOrder = $workflow->steps()->whereNull('parent_step_id')->min('order');
+        $initialSteps = $workflow->steps()
+            ->whereNull('parent_step_id')
+            ->where('order', $minOrder)
+            ->get();
 
-        foreach ($rootSteps as $step) {
+        $processedGroups = [];
+
+        foreach ($initialSteps as $step) {
+            // Prevent duplicate creation for parallel group members
+            if ($step->group_id) {
+                if (in_array($step->group_id, $processedGroups)) {
+                    continue;
+                }
+                $processedGroups[] = $step->group_id;
+            }
+
             $this->createApproversForStep($step, $letter, $customApprovers);
         }
 
@@ -93,9 +107,7 @@ class WorkflowService
             return $customApprovers[$step->id];
         }
 
-        if ($step->approver_type === 'user') {
-            return $step->approver_id;
-        }
+        // Removed legacy 'user' type check as per requirement to use System Jabatan only.
 
         if ($step->approver_type === 'jabatan') {
             $jabatan = Jabatan::find($step->approver_id);
@@ -161,6 +173,7 @@ class WorkflowService
                 $currentApprover->update([
                     'status' => 'rejected',
                     'remarks' => $notes,
+                    'approved_at' => now(),
                 ]);
                 $letter->update(['status' => 'rejected']);
                 $letter->creator->notify(new LetterStatusNotification($letter, 'rejected', $actor->name));
@@ -169,6 +182,7 @@ class WorkflowService
                 $currentApprover->update([
                     'status' => 'returned',
                     'remarks' => $notes,
+                    'approved_at' => now(),
                 ]);
                 $letter->update(['status' => 'revision']);
                 $letter->creator->notify(new LetterStatusNotification($letter, 'returned', $actor->name));

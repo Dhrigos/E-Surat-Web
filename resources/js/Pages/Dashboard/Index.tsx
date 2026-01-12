@@ -68,10 +68,10 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
             <div className="flex flex-col gap-4 md:gap-6 p-4 md:p-6">
                 {/* Welcome Banner */}
                 {/* Welcome Banner */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-transparent border-transparent rounded-2xl p-4 md:p-6 text-foreground shadow-sm relative overflow-hidden">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4 bg-transparent border-transparent rounded-xl md:rounded-2xl p-3 md:p-6 text-foreground shadow-sm relative overflow-hidden">
                     <div className="relative z-10 space-y-1">
-                        <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Selamat Datang, {auth.user.name}! 👋</h2>
-                        <p className="text-gray-500 dark:text-zinc-400">
+                        <h2 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Selamat Datang, {auth.user.name}! 👋</h2>
+                        <p className="text-sm md:text-base text-gray-500 dark:text-zinc-400">
                             Berikut adalah ringkasan aktivitas surat Anda hari ini, {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
                         </p>
                     </div>
@@ -86,18 +86,18 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
 
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
                     {/* Sent Letters Stats */}
-                    <Card className="relative overflow-hidden border shadow-sm group bg-card dark:bg-black dark:border-2 dark:border-[#450a0a] hover:border-red-600 transition-colors duration-300">
+                    <Card className="relative overflow-hidden border shadow-sm group bg-card transition-colors duration-300">
                         <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Total Surat Keluar</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center transition-colors">
-                                <Send className="h-4 w-4 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform" />
+                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center transition-colors">
+                                <Send className="h-4 w-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
                             </div>
                         </CardHeader>
                         <CardContent className="relative z-10">
                             <div className="text-2xl font-bold mb-1 text-foreground">{stats.sent}</div>
                             <div className="flex items-center justify-between">
                                 <p className="text-xs text-muted-foreground">Surat yang Anda buat</p>
-                                <span className="flex items-center text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
+                                <span className="flex items-center text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                                     Aktif
                                 </span>
                             </div>
@@ -105,18 +105,18 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                     </Card>
 
                     {/* Inbox Stats */}
-                    <Card className="relative overflow-hidden border shadow-sm group bg-card dark:bg-black dark:border-2 dark:border-[#450a0a] hover:border-red-600 transition-colors duration-300">
+                    <Card className="relative overflow-hidden border shadow-sm group bg-card transition-colors duration-300">
                         <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Surat Masuk</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center transition-colors">
-                                <Mail className="h-4 w-4 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform" />
+                            <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center transition-colors">
+                                <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                             </div>
                         </CardHeader>
                         <CardContent className="relative z-10">
                             <div className="text-2xl font-bold mb-1 text-foreground">{stats.inbox}</div>
                             <div className="flex items-center justify-between">
                                 <p className="text-xs text-muted-foreground">Ditujukan kepada Anda</p>
-                                <span className="flex items-center text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
+                                <span className="flex items-center text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">
                                     Terbaru
                                 </span>
                             </div>
@@ -124,18 +124,18 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                     </Card>
 
                     {/* Pending Approval Stats */}
-                    <Card className="relative overflow-hidden border shadow-sm group bg-card dark:bg-black dark:border-2 dark:border-[#450a0a] hover:border-red-600 transition-colors duration-300">
+                    <Card className="relative overflow-hidden border shadow-sm group bg-card transition-colors duration-300">
                         <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Menunggu Approval</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center transition-colors">
-                                <Clock className="h-4 w-4 text-red-600 dark:text-red-400 group-hover:animate-pulse" />
+                            <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center transition-colors">
+                                <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400 group-hover:animate-pulse" />
                             </div>
                         </CardHeader>
                         <CardContent className="relative z-10">
                             <div className="text-2xl font-bold mb-1 text-foreground">{stats.pending}</div>
                             <div className="flex items-center justify-between">
                                 <p className="text-xs text-muted-foreground">Perlu persetujuan</p>
-                                <span className="flex items-center text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
+                                <span className="flex items-center text-[10px] font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">
                                     Penting
                                 </span>
                             </div>
@@ -174,9 +174,9 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                     </Card>
                 )}
 
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-7">
+                <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
                     {/* Chart */}
-                    <Card className="col-span-1 lg:col-span-4 shadow-sm">
+                    <Card className="col-span-1 lg:col-span-4 shadow-sm order-2 lg:order-1">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Activity className="h-5 w-5 text-primary" />
@@ -187,7 +187,7 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pl-0">
-                            <div className="h-[300px] w-full mt-4">
+                            <div className="h-[250px] md:h-[300px] w-full mt-4">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <defs>
@@ -237,7 +237,7 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                     </Card>
 
                     {/* Recent Activity */}
-                    <Card className="col-span-1 lg:col-span-3 shadow-sm">
+                    <Card className="col-span-1 lg:col-span-3 shadow-sm order-1 lg:order-2">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Clock className="h-5 w-5 text-orange-500" />

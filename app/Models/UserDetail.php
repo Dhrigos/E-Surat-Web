@@ -21,7 +21,9 @@ class UserDetail extends Model
         'jenis_kelamin',
         'alamat_domisili_lengkap',
         'foto_profil',
+        'pangkat_id',
         'jabatan_id',
+        'jabatan_role_id',
         'scan_ktp',
         'scan_kta',
         'scan_sk',
@@ -36,6 +38,9 @@ class UserDetail extends Model
         'jalan',
         'scan_selfie',
         'ekyc_score',
+        'office_province_id',
+        'office_city_id',
+        'mako_id',
     ];
 
     public function user(): BelongsTo
@@ -46,5 +51,15 @@ class UserDetail extends Model
     public function jabatan(): BelongsTo
     {
         return $this->belongsTo(Jabatan::class);
+    }
+
+    public function jabatanRole(): BelongsTo
+    {
+        return $this->belongsTo(JabatanRole::class);
+    }
+
+    public function pangkat(): BelongsTo
+    {
+        return $this->belongsTo(Pangkat::class);
     }
 }

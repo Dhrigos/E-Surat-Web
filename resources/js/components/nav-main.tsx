@@ -67,7 +67,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                         <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
                                 asChild
-                                isActive={page.url.startsWith(resolveUrl(item.href)) || (item.title === 'Surat' && page.url.startsWith('/buat-surat'))}
+                                isActive={page.url.startsWith(resolveUrl(item.href)) || (item.title === 'Surat' && page.url.startsWith('/buat-surat')) || (item.title === 'Mapping Staff' && page.url.startsWith('/verification-queue'))}
                                 tooltip={{ children: item.title }}
                                 className="h-10 px-4 w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 ease-in-out data-[active=true]:bg-red-600 data-[active=true]:text-white data-[active=true]:hover:bg-red-700 data-[active=true]:hover:text-white [&[data-active=true]>svg]:text-white hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 overflow-hidden"
                             >

@@ -26,6 +26,13 @@ export default function Register() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    // Validation State - Moved to top level to avoid hook violation
+    const [validationErrors, setValidationErrors] = useState({
+        username: '',
+        email: '',
+        phone_number: ''
+    });
+
     // Real assets from public/images
     const logoImage = "/images/KEMENTERIAN-PERTAHANAN.png";
     const tniPhoto = "/images/BEGROUND.png";
@@ -240,6 +247,31 @@ export default function Register() {
         );
     }
 
+
+
+    const checkAvailability = async (field: 'username' | 'email' | 'phone_number', value: string) => {
+        if (!value) return;
+
+        // Clear previous error first
+        setValidationErrors(prev => ({ ...prev, [field]: '' }));
+
+        try {
+            const response = await axios.post(route('api.validate.register'), {
+                field,
+                value
+            });
+
+            if (!response.data.available) {
+                setValidationErrors(prev => ({
+                    ...prev,
+                    [field]: response.data.message
+                }));
+            }
+        } catch (error) {
+            console.error('Validation check failed', error);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-black relative overflow-hidden font-sans flex items-center justify-center p-4">
             <Head title="Register" />
@@ -316,10 +348,12 @@ export default function Register() {
                                             placeholder="johndoe"
                                             value={data.username}
                                             onChange={(e) => setData('username', e.target.value)}
-                                            className={inputClasses}
+                                            onBlur={(e) => checkAvailability('username', e.target.value)}
+                                            className={`${inputClasses} ${validationErrors.username ? 'border-red-500 focus:border-red-500' : ''}`}
                                             required
                                         />
                                     </div>
+                                    {validationErrors.username && <p className="text-red-500 text-sm mt-1">{validationErrors.username}</p>}
                                     {errors.username && <p className="text-red-500 text-sm">{errors.username}</p>}
                                 </div>
 
@@ -333,10 +367,12 @@ export default function Register() {
                                             placeholder="nama@bacanas.go.id"
                                             value={data.email}
                                             onChange={(e) => setData('email', e.target.value)}
-                                            className={inputClasses}
+                                            onBlur={(e) => checkAvailability('email', e.target.value)}
+                                            className={`${inputClasses} ${validationErrors.email ? 'border-red-500 focus:border-red-500' : ''}`}
                                             required
                                         />
                                     </div>
+                                    {validationErrors.email && <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>}
                                     {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
                                 </div>
 
@@ -376,10 +412,15 @@ export default function Register() {
                                                 }
                                                 setData('phone_number', formatted);
                                             }}
-                                            className={inputClasses}
+                                            onBlur={(e) => {
+                                                const cleanPhone = formatPhoneNumberForApi(data.phone_number);
+                                                if (cleanPhone) checkAvailability('phone_number', cleanPhone);
+                                            }}
+                                            className={`${inputClasses} ${validationErrors.phone_number ? 'border-red-500 focus:border-red-500' : ''}`}
                                             required
                                         />
                                     </div>
+                                    {validationErrors.phone_number && <p className="text-red-500 text-sm mt-1">{validationErrors.phone_number}</p>}
                                     {errors.phone_number && <p className="text-red-500 text-sm">{errors.phone_number}</p>}
                                 </div>
 
@@ -387,6 +428,7 @@ export default function Register() {
                                     type="button"
                                     onClick={handleNextStep}
                                     className="w-full bg-red-600 hover:bg-red-700 text-white font-bold mt-4"
+                                    disabled={!!validationErrors.username || !!validationErrors.email || !!validationErrors.phone_number}
                                 >
                                     Lanjut
                                     <ArrowRight className="ml-2 h-4 w-4" />

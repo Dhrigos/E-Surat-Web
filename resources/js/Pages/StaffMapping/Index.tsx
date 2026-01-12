@@ -1,32 +1,26 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Users, ArrowRightLeft, Shield, Key } from 'lucide-react';
 import StaffList from './StaffList';
-import RoleList from './RoleList';
-import PermissionList from './PermissionList';
-import { usePermission } from '@/hooks/usePermission';
 
 interface Props {
     staff: any[];
     jabatan: any[];
-    roles?: any[];
-    permissions?: any[];
     filters?: {
         search?: string;
     };
 }
 
-export default function Index({ staff, jabatan, roles, permissions, filters }: Props) {
-    const [activeTab, setActiveTab] = useState<'staff-list' | 'mutations' | 'roles' | 'permissions'>('staff-list');
-    const { hasPermission } = usePermission();
+export default function Index({ staff, jabatan, filters }: Props) {
+    const [activeTab, setActiveTab] = useState<'staff-list' | 'roles'>('staff-list');
+    const { auth } = usePage().props as any;
+    const isSuperAdmin = auth.user.roles.some((r: any) => r.name === 'super-admin');
 
     const tabs = [
         { id: 'staff-list' as const, label: 'Staff List', icon: Users, show: true, href: route('staff-mapping') },
-        { id: 'verification-queue' as const, label: 'Verification Queue', icon: Shield, show: hasPermission('manager') || hasPermission('view staff'), href: route('verification-queue.index') },
-        { id: 'roles' as const, label: 'Role Management', icon: Shield, show: hasPermission('manage roles'), href: undefined },
-        { id: 'permissions' as const, label: 'Permission Management', icon: Key, show: hasPermission('manage permissions'), href: undefined },
+        { id: 'verification-queue' as const, label: 'Verification Queue', icon: Shield, show: true, href: route('verification-queue.index') },
     ].filter(tab => tab.show);
 
     return (
@@ -80,12 +74,6 @@ export default function Index({ staff, jabatan, roles, permissions, filters }: P
                             jabatan={jabatan}
                             filters={filters}
                         />
-                    )}
-                    {activeTab === 'roles' && (
-                        <RoleList roles={roles || []} allPermissions={permissions || []} />
-                    )}
-                    {activeTab === 'permissions' && (
-                        <PermissionList permissions={permissions || []} />
                     )}
                 </div>
             </div>

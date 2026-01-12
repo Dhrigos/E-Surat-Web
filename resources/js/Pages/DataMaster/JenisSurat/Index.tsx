@@ -18,6 +18,7 @@ import {
     Pencil,
     Trash2,
     FileText,
+    Workflow,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -26,6 +27,7 @@ interface LetterType {
     name: string;
     code: string;
     description: string | null;
+    approval_workflows?: { steps?: any[] }[];
 }
 
 interface Props {
@@ -41,11 +43,23 @@ interface Props {
     };
 }
 
+// ... other imports
+import WorkflowEditor from './WorkflowEditor';
+
 export default function Index({ jenisSurat, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<LetterType | null>(null);
+
+    // Workflow Editor State
+    const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
+    const [selectedLetterType, setSelectedLetterType] = useState<LetterType | null>(null);
+
+    const handleOpenWorkflow = (item: LetterType) => {
+        setSelectedLetterType(item);
+        setIsWorkflowOpen(true);
+    };
 
     const createForm = useForm({
         name: '',
@@ -110,6 +124,7 @@ export default function Index({ jenisSurat, filters }: Props) {
             <Head title="Data Jenis Surat" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
+                {/* ... (Header and Filters unchanged) ... */}
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                         <div>
@@ -165,7 +180,8 @@ export default function Index({ jenisSurat, filters }: Props) {
                         jenisSurat.data.map((item) => (
                             <Card
                                 key={item.id}
-                                className="group relative hover:border-primary/50 transition-colors"
+                                className="group relative hover:border-primary/50 transition-colors cursor-pointer"
+                                onDoubleClick={() => handleOpenWorkflow(item)}
                             >
                                 <CardContent className="p-4 flex flex-col gap-3">
                                     <div className="flex items-center gap-3">
@@ -188,13 +204,21 @@ export default function Index({ jenisSurat, filters }: Props) {
                                         </p>
                                     )}
 
+                                    {item.approval_workflows?.[0]?.steps?.length ? (
+                                        <div className="absolute top-2 left-2 flex gap-1 z-10">
+                                            <div className="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-1 rounded-md shadow-sm border border-green-200 dark:border-green-800" title="Workflow Aktif">
+                                                <Workflow className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                    ) : null}
+
                                     {/* Actions Overlay */}
-                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 p-1 rounded-md backdrop-blur-sm shadow-sm">
+                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 p-1 rounded-md backdrop-blur-sm shadow-sm z-10">
                                         <Button
                                             variant="ghost"
                                             size="icon"
                                             className="h-6 w-6"
-                                            onClick={() => handleEdit(item)}
+                                            onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                                         >
                                             <Pencil className="h-3 w-3" />
                                         </Button>
@@ -202,7 +226,7 @@ export default function Index({ jenisSurat, filters }: Props) {
                                             variant="ghost"
                                             size="icon"
                                             className="h-6 w-6 text-destructive hover:text-destructive"
-                                            onClick={() => handleDelete(item.id)}
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                                         >
                                             <Trash2 className="h-3 w-3" />
                                         </Button>
@@ -234,6 +258,13 @@ export default function Index({ jenisSurat, filters }: Props) {
                     </div>
                 )}
             </div>
+
+            {/* Workflow Editor Modal */}
+            <WorkflowEditor
+                isOpen={isWorkflowOpen}
+                onClose={() => setIsWorkflowOpen(false)}
+                letterType={selectedLetterType}
+            />
 
             {/* Create Modal */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

@@ -13,7 +13,12 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasRoles, LogsActivity, Notifiable;
+    use HasFactory, LogsActivity, Notifiable, HasRoles;
+
+    /**
+     * Define the roles relationship manually to avoid using Spatie's HasRoles trait.
+     */
+
 
     /**
      * The attributes that are mass assignable.
@@ -30,6 +35,7 @@ class User extends Authenticatable
         'verifikasi',
         'verification_locked_at',
         'verification_locked_by',
+        'verification_duration',
         'rejection_reason',
         'nip_nik',
         'nia_nrp',
@@ -52,6 +58,26 @@ class User extends Authenticatable
         return $this->belongsTo(User::class, 'verification_locked_by');
     }
 
+    public function verifier(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function locations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Location::class);
+    }
+
+    public function locationSessions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LocationSession::class);
+    }
+
+    public function currentLocation(): ?\Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Location::class)->latestOfMany('captured_at');
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -72,6 +98,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'ekyc_verified_at' => 'datetime',
+            'verification_locked_at' => 'datetime',
+            'verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

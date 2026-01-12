@@ -15,21 +15,27 @@ class EnsureUserIsVerified
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() &&
-            ! $request->user()->verifikasi &&
-            ! $request->routeIs('complete-profile.*') &&
-            ! $request->routeIs('verification.*') &&
-            ! $request->routeIs('logout')) {
+        // Skip middleware for verification-related routes
+        if ($request->routeIs('verification.*') ||
+            $request->routeIs('complete-profile.*') ||
+            $request->routeIs('logout')) {
+            return $next($request);
+        }
+
+        // Only check verification for authenticated users
+        if ($request->user() && ! $request->user()->verifikasi) {
+            // Refresh user from database with relationships to get latest data (avoid cache issues)
+            $user = $request->user()->fresh(['detail']);
 
             // 1. Check E-KYC first (Priority 1)
             // If E-KYC is not verified, redirect to E-KYC page
-            if (! $request->user()->ekyc_verified_at) {
+            if (! $user->ekyc_verified_at) {
                 return redirect()->route('verification.ekyc');
             }
 
             // 2. Check Profile Details (Priority 2)
             // If E-KYC is verified but profile is incomplete, redirect to profile completion
-            if (! $request->user()->detail || ! $request->user()->detail->nik) {
+            if (! $user->detail || ! $user->detail->nik) {
                 return redirect()->route('complete-profile.create');
             }
 

@@ -283,7 +283,7 @@ class LetterController extends Controller
     {
         $users = User::select('id', 'name', 'username')->get();
         // Fetch Letter Types for dropdown
-        $letterTypes = \App\Models\LetterType::select('id', 'name')->get();
+        $letterTypes = \App\Models\LetterType::select('id', 'name', 'code')->get();
 
         $referenceLetter = null;
         if ($request->has('reply_to')) {
@@ -312,7 +312,7 @@ class LetterController extends Controller
             'priority' => 'required|in:low,normal,high,urgent',
             'category' => 'required|string',
             'mail_type' => 'required|string',
-            'letter_type_id' => 'nullable|exists:letter_types,id', // New validation
+            'letter_type_id' => 'required|exists:letter_types,id', // Mandatory validation
             // 'approvers' => 'required|array', // Removed manual approvers
             'content' => 'nullable|string',
             'recipients' => 'required|array',
@@ -523,7 +523,12 @@ class LetterController extends Controller
             $template = $letter->letterType->template->content;
 
             // Prepare Data for Placeholders
-            $nomorSurat = 'SRT/'.date('Y').'/'.str_pad($letter->id, 4, '0', STR_PAD_LEFT); // Example format
+            // Format: SK/kode surat/tanggal/nomor surat urutan
+            $kodeSurat = $letter->letterType ? $letter->letterType->code : 'UM';
+            $tanggalFormat = $letter->created_at->format('dmY');
+            $nomorUrut = str_pad($letter->id, 4, '0', STR_PAD_LEFT);
+            
+            $nomorSurat = "SK/{$kodeSurat}/{$tanggalFormat}/{$nomorUrut}";
             $perihal = $letter->subject;
             $tanggal = $letter->created_at->translatedFormat('d F Y');
 

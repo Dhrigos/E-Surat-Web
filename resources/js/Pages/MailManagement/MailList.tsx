@@ -249,12 +249,12 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
         <AppLayout>
             <Head title="List Surat" />
 
-            <div className="p-4 md:p-8 space-y-8">
+            <div className="p-3 md:p-8 space-y-6 md:space-y-8">
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
-                        <h2 className="text-3xl font-bold tracking-tight text-foreground">Surat</h2>
-                        <p className="text-muted-foreground text-sm">Kelola semua surat masuk dan keluar anda di sini.</p>
+                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Surat</h2>
+                        <p className="text-muted-foreground text-xs md:text-sm">Kelola semua surat masuk dan keluar anda di sini.</p>
                     </div>
                     <div className="hidden md:block">
                         <Link href="/buat-surat">
@@ -299,28 +299,28 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
                 <Tabs defaultValue="inbox" className="space-y-6" onValueChange={(val) => {
                     setActiveTab(val);
                 }}>
-                    <TabsList className="w-full bg-zinc-100 dark:bg-gradient-to-r dark:from-zinc-900/80 dark:to-zinc-800/80 backdrop-blur-xl p-1 h-auto border border-zinc-200 dark:border-zinc-700/50 grid grid-cols-4 rounded-2xl gap-1 shadow-sm dark:shadow-xl">
+                    <TabsList className="w-full bg-transparent p-0 h-auto border-b border-zinc-200 dark:border-zinc-800 flex justify-start gap-8 rounded-none shadow-none">
                         <TabsTrigger
                             value="inbox"
-                            className="rounded-xl px-0 py-3 text-xs sm:text-sm font-medium text-muted-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all hover:text-foreground truncate"
+                            className="rounded-none px-0 py-3 text-sm font-medium text-muted-foreground bg-transparent ring-0 outline-none border-0 border-b-2 border-transparent data-[state=active]:border-red-600 data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all hover:text-foreground hover:bg-transparent"
                         >
                             Inbox {inboxMails.total > 0 ? `(${inboxMails.total})` : ''}
                         </TabsTrigger>
                         <TabsTrigger
                             value="approvals"
-                            className="rounded-xl px-0 py-3 text-xs sm:text-sm font-medium text-muted-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all hover:text-foreground truncate"
+                            className="rounded-none px-0 py-3 text-sm font-medium text-muted-foreground bg-transparent ring-0 outline-none border-0 border-b-2 border-transparent data-[state=active]:border-red-600 data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all hover:text-foreground hover:bg-transparent"
                         >
                             Approval {(incomingApprovals?.total > 0) ? `(${incomingApprovals.total})` : ''}
                         </TabsTrigger>
                         <TabsTrigger
                             value="sent"
-                            className="rounded-xl px-0 py-3 text-xs sm:text-sm font-medium text-muted-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all hover:text-foreground truncate"
+                            className="rounded-none px-0 py-3 text-sm font-medium text-muted-foreground bg-transparent ring-0 outline-none border-0 border-b-2 border-transparent data-[state=active]:border-red-600 data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all hover:text-foreground hover:bg-transparent"
                         >
                             Sent {sentMails.total > 0 ? `(${sentMails.total})` : ''}
                         </TabsTrigger>
                         <TabsTrigger
                             value="approved"
-                            className="rounded-xl px-0 py-3 text-xs sm:text-sm font-medium text-muted-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all hover:text-foreground truncate"
+                            className="rounded-none px-0 py-3 text-sm font-medium text-muted-foreground bg-transparent ring-0 outline-none border-0 border-b-2 border-transparent data-[state=active]:border-red-600 data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all hover:text-foreground hover:bg-transparent"
                         >
                             Approved {alreadyApprovedMails?.total > 0 ? `(${alreadyApprovedMails.total})` : ''}
                         </TabsTrigger>

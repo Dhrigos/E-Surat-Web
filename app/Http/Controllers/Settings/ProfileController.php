@@ -99,6 +99,7 @@ class ProfileController extends Controller
             'jenis_kelamin' => 'required|string|in:Laki-laki,Perempuan',
             'alamat_domisili_lengkap' => 'nullable|string',
             'jabatan_id' => 'required|exists:jabatan,id',
+            'jabatan_role' => 'nullable|string|max:255',
             'tanggal_pengangkatan' => 'required|date',
             'nomor_sk' => 'required|string|max:255',
             'nomor_kta' => 'required|string|max:255',
@@ -111,11 +112,11 @@ class ProfileController extends Controller
 
         // Files are optional on update
         $fileRules = 'nullable';
-        $rules['foto_profil'] = "$fileRules|image|max:2048";
-        $rules['scan_ktp'] = "$fileRules|image|max:2048";
-        $rules['scan_kta'] = "$fileRules|image|max:2048";
-        $rules['scan_sk'] = "$fileRules|image|max:2048";
-        $rules['tanda_tangan'] = "$fileRules|image|max:2048";
+        $rules['foto_profil'] = "$fileRules|image|max:15360";
+        $rules['scan_ktp'] = "$fileRules|image|max:15360";
+        $rules['scan_kta'] = "$fileRules|image|max:15360";
+        $rules['scan_sk'] = "$fileRules|image|max:15360";
+        $rules['tanda_tangan'] = "$fileRules|image|max:15360";
 
         $request->validate($rules);
 

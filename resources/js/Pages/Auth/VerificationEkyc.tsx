@@ -18,20 +18,8 @@ export default function VerificationEkyc() {
 
     const handleKtpCapture = async (img: string) => {
         setKtpImg(img);
-        const tId = toast.loading('Memproses KTP...');
-        try {
-            // Optional: We can still run OCR here to verify against DB if desired
-            // For now just ensuring it's a valid capture
-            const ocr = await processKTP(img);
-            if (!ocr.nik) {
-                toast.warning('NIK tidak terdeteksi dengan jelas. Pastikan foto KTP terang.');
-            }
-            toast.dismiss(tId);
-            setStep('selfie');
-        } catch (e) {
-            toast.dismiss(tId);
-            toast.error('Gagal memproses KTP');
-        }
+        // Skip OCR validation - just accept the captured image
+        setStep('selfie');
     };
 
     const handleSelfieCapture = async (img: string) => {
@@ -66,15 +54,7 @@ export default function VerificationEkyc() {
             if (response.data.status === 'success') {
                 setStep('success');
                 toast.success('Foto berhasil diunggah!');
-
-                // Redirect to Profile Completion or Pending based on response
-                setTimeout(() => {
-                    if (response.data.redirect) {
-                        window.location.href = response.data.redirect;
-                    } else {
-                        window.location.href = route('complete-profile.create');
-                    }
-                }, 2000);
+                // Remove auto-redirect, let user click Next button
             }
         } catch (e: any) {
             toast.dismiss(tId);
@@ -180,7 +160,13 @@ export default function VerificationEkyc() {
                                 <CheckCircle className="w-12 h-12" />
                             </div>
                             <h3 className="text-2xl font-bold text-white">Verifikasi Berhasil!</h3>
-                            <p className="text-gray-400">Akun Anda telah diaktifkan. Mengalihkan ke Dashboard...</p>
+                            <p className="text-gray-400">Lanjutkan lengkapi data Anda</p>
+                            <Button
+                                onClick={() => window.location.href = route('complete-profile.create')}
+                                className="w-full max-w-xs bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg rounded-xl gap-2"
+                            >
+                                Lanjutkan <ArrowRight className="w-5 h-5" />
+                            </Button>
                         </div>
                     )}
 

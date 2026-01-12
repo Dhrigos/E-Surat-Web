@@ -35,12 +35,17 @@ class CreateNewUser implements CreatesNewUsers
                 if (!isset($input['email'])) {
                     return;
                 }
-                $cachedOtp = \Illuminate\Support\Facades\Cache::get('otp_' . $input['email']);
+                $cachedOtp = \Illuminate\Support\Facades\Cache::get('otp_reg_' . $input['email']);
                 if (!$cachedOtp || $cachedOtp != $value) {
                     $fail('Kode OTP tidak valid atau sudah kadaluarsa.');
                 }
             }],
         ])->validate();
+
+        // Clear OTP after successful validation
+        if (isset($input['email'])) {
+            \Illuminate\Support\Facades\Cache::forget('otp_reg_' . $input['email']);
+        }
 
         return User::create([
             'name' => $input['name'],

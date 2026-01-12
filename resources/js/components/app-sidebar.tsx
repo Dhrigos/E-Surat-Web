@@ -6,7 +6,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Activity, FileText, Home, List, Mail, Users, Share2, Star, Archive, MoreHorizontal } from 'lucide-react';
+import { Activity, FileText, Home, List, Mail, Users, Share2, Star, Archive, MoreHorizontal, MapPin } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -45,6 +45,11 @@ export function AppSidebar() {
             href: '/dispositions',
             icon: Share2,
         },
+        {
+            title: 'Lokasi GPS',
+            href: '/location',
+            icon: MapPin,
+        },
     ];
 
     const isSuperAdmin = user?.roles?.some((role: any) => role.name === 'super-admin');
@@ -57,13 +62,13 @@ export function AppSidebar() {
             items: [
                 { title: 'Jabatan', href: '/jabatan', icon: FileText },
                 { title: 'Jenis Surat', href: '/jenis-surat', icon: FileText },
-                { title: 'Workflow Approval', href: '/master-data', icon: List },
+                { title: 'Golongan & Pangkat', href: '/master-data', icon: FileText },
             ]
         });
     }
 
 
-    const hasManagerRole = user.roles?.some((role: any) => ['manager', 'super-admin'].includes(role.name));
+    const hasManagerRole = user.roles?.some((role: any) => ['admin', 'super-admin'].includes(role.name));
 
     if (hasManagerRole) {
         mainNavItems.push({
@@ -74,6 +79,15 @@ export function AppSidebar() {
         mainNavItems.push({
             title: 'Audit Log',
             href: '/audit-logs',
+            icon: Activity,
+        });
+    }
+
+    // Approval Tracking - Super Admin Only
+    if (isSuperAdmin) {
+        mainNavItems.push({
+            title: 'Approval Tracking',
+            href: '/approval-tracking',
             icon: Activity,
         });
     }

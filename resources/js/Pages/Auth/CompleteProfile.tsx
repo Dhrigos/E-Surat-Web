@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useForm, Head, Link, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { DateSelect } from '@/components/ui/date-select';
@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogOverlay } from '@/components/ui/dialog';
-import { Calendar, FileText, Briefcase, User, Building2, CreditCard, BadgeCheck, MapPin, Upload, ArrowRight, ArrowLeft, AlertCircle, Trash2, PenTool, Loader2 } from 'lucide-react';
+import { JabatanSelectionModal } from '@/components/JabatanSelectionModal';
+import { Edit2, Calendar, FileText, Briefcase, User, Building2, CreditCard, BadgeCheck, MapPin, Upload, ArrowRight, ArrowLeft, AlertCircle, Trash2, PenTool, Loader2, RefreshCw } from 'lucide-react';
 import { compressImage } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -19,14 +20,27 @@ import axios from 'axios';
 import SignatureCanvas from 'react-signature-canvas';
 import { CascadingJabatanSelector } from '@/components/CascadingJabatanSelector';
 
-// E-KYC imports removed
+interface Golongan {
+    id: number;
+    nama: string;
+    keterangan?: string;
+}
+
+interface Pangkat {
+    id: number;
+    nama: string;
+    golongan_id: number | null;
+}
 
 interface Props {
+    auth: any;
     jabatans: Array<{ id: number; nama: string; nama_lengkap?: string }>;
+    jabatanRoles: Array<{ id: number; nama: string }>;
+    golongans: Golongan[];
+    pangkats: Pangkat[];
     rejectionReason?: string;
 }
 
-// Inline FastInput to avoid import issues
 function FastInput({ value: initialValue, onChange, onBlur, onValueChange, className, ...props }: React.ComponentProps<typeof Input> & { onValueChange?: (value: string) => void }) {
     const [value, setValue] = useState(initialValue || "");
 
@@ -55,40 +69,60 @@ function FastInput({ value: initialValue, onChange, onBlur, onValueChange, class
     );
 }
 
-export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
+export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], golongans = [], pangkats = [], rejectionReason }: Props) {
     // Main Form Step (starts after E-KYC)
     const [step, setStep] = useState(1);
+    console.log('Golongans Prop:', golongans);
+
+    // Initial values logic
+    const initialPangkatId = auth.user?.detail?.pangkat_id;
+    const initialGolonganId = useMemo(() => {
+        if (!initialPangkatId) return undefined;
+        // Search in pangkats prop
+        const p = pangkats.find(p => p.id === initialPangkatId);
+        return p ? p.golongan_id : undefined;
+    }, [initialPangkatId, pangkats]);
+
+
 
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
-        // Step 1: Data Diri
-        nia_nrp: '',
-        nik: '',
+        nia_nrp: auth.user?.detail?.nia_nrp || '',
+        nik: auth.user?.detail?.nik || '',
+        tempat_lahir: auth.user?.detail?.tempat_lahir || '',
+        birthplace_province_id: auth.user?.detail?.birthplace_province_id || '',
+        tanggal_lahir: auth.user?.detail?.tanggal_lahir ? new Date(auth.user.detail.tanggal_lahir) : undefined,
+        jenis_kelamin: auth.user?.detail?.jenis_kelamin || '',
+        alamat_domisili_lengkap: auth.user?.detail?.alamat_domisili_lengkap || '',
+        jabatan_id: auth.user?.detail?.jabatan_id || '',
+        jabatan_role_id: auth.user?.detail?.jabatan_role_id || '',
 
-        tempat_lahir: '',
-        birthplace_province_id: '',
-        tanggal_lahir: '',
-        jenis_kelamin: '',
+        golongan_id: initialGolonganId,
+        pangkat_id: initialPangkatId,
+
+        tanggal_pengangkatan: auth.user?.detail?.tanggal_pengangkatan ? new Date(auth.user.detail.tanggal_pengangkatan) : undefined,
+        nomor_sk: auth.user?.detail?.nomor_sk || '',
+        nomor_kta: auth.user?.detail?.nomor_kta || '',
+        province_id: auth.user?.detail?.province_id || '',
+        city_id: auth.user?.detail?.city_id || '',
+        district_id: auth.user?.detail?.district_id || '',
+        village_id: auth.user?.detail?.village_id || '',
+        jalan: auth.user?.detail?.jalan || '',
         foto_profil: null as File | null,
-
-        // Step 2: Data Kepegawaian (now using IDs)
-        jabatan_id: '',
-        tanggal_pengangkatan: '',
-        nomor_sk: '',
-
-
-        // Step 3: Alamat & Dokumen
-        alamat_domisili_lengkap: '',
-        jalan: '',
-        province_id: '',
-        city_id: '',
-        district_id: '',
-        village_id: '',
-
         scan_ktp: null as File | null,
         scan_kta: null as File | null,
         scan_sk: null as File | null,
         tanda_tangan: null as File | null,
+
+        // Office Address
+        office_province_id: auth.user?.detail?.office_province_id || '',
+        office_city_id: auth.user?.detail?.office_city_id || '',
+        mako_id: auth.user?.detail?.mako_id || '',
     });
+
+    const filteredPangkats = useMemo(() => {
+        if (!data.golongan_id) return [];
+        return pangkats.filter(p => p.golongan_id === Number(data.golongan_id));
+    }, [data.golongan_id, pangkats]);
 
 
 
@@ -98,6 +132,10 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
     const [districts, setDistricts] = useState<any[]>([]);
     const [villages, setVillages] = useState<any[]>([]);
     const [birthplaceCities, setBirthplaceCities] = useState<any[]>([]);
+
+    // Office address region states
+    const [officeCities, setOfficeCities] = useState<any[]>([]);
+    const [makos, setMakos] = useState<any[]>([]);
 
     // Preview states
     const [previews, setPreviews] = useState<Record<string, string>>({});
@@ -124,9 +162,30 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
     const [isValidatingKta, setIsValidatingKta] = useState(false);
 
 
-    // Cropper states
     const [cropperImage, setCropperImage] = useState<string | null>(null);
     const [showCropper, setShowCropper] = useState(false);
+
+    // Jabatan Modal State
+    const [isJabatanModalOpen, setIsJabatanModalOpen] = useState(false);
+
+    // Derived Display Logic for the Input Trigger
+    const selectedJabatanObj = useMemo(() =>
+        jabatans.find((j: any) => j.id.toString() === data.jabatan_id),
+        [jabatans, data.jabatan_id]);
+
+    const jabatanDisplayText = useMemo(() => {
+        const roleObj = jabatanRoles.find(r => r.id.toString() === data.jabatan_role_id);
+        const roleName = roleObj ? roleObj.nama : '';
+        return selectedJabatanObj
+            ? `${selectedJabatanObj.nama}${roleName ? ' - ' + roleName : ''}`
+            : 'Pilih Jabatan...';
+    }, [selectedJabatanObj, data.jabatan_role_id, jabatanRoles]);
+
+    // Handler to prevent re-creation on every render (Optimized for Modal)
+    const handleConfirmJabatan = useCallback((unitId: string, roleId: string) => {
+        setData((prev: any) => ({ ...prev, jabatan_id: unitId, jabatan_role_id: roleId }));
+        clearErrors('jabatan_id');
+    }, [setData, clearErrors]);
 
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -149,20 +208,20 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
     const onCropComplete = async (croppedBlob: Blob) => {
         const file = new File([croppedBlob], "profile_cropped.jpg", { type: "image/jpeg" });
 
-        // Compress the cropped image as well
-        const compressedFile = await compressImage(file);
+        // No compression for speed
+        const finalFile = file;
 
-        setData('foto_profil', compressedFile);
+        setData('foto_profil', finalFile);
 
         // Update preview manually since handleFileInput is bypassed
         const reader = new FileReader();
         reader.onloadend = () => {
             setPreviews(prev => ({ ...prev, foto_profil: reader.result as string }));
         };
-        reader.readAsDataURL(compressedFile);
+        reader.readAsDataURL(finalFile);
     };
     // Client-side file size guard to avoid server 413 errors
-    const MAX_FILE_SIZE_MB = 2; // keep aligned with backend validation (2 MB)
+    const MAX_FILE_SIZE_MB = 10; // Increased limit because we removed compression (Backend supports 15MB)
     const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 
     async function handleFileInput(e: React.ChangeEvent<HTMLInputElement>, field: string) {
@@ -186,17 +245,19 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
         }
 
         // Compress image if it's an image
-        let finalFile = file;
-        if (file.type.startsWith('image/')) {
-            finalFile = await compressImage(file);
-        }
+        // Compression removed for performance
+        const finalFile = file;
 
         setData(field as any, finalFile);
         clearErrors(field as any);
 
-        // Create preview URL
         const objectUrl = URL.createObjectURL(finalFile);
-        setPreviews(prev => ({ ...prev, [field]: objectUrl }));
+        // Check if PDF for preview logic
+        if (finalFile.type === 'application/pdf') {
+            setPreviews(prev => ({ ...prev, [field]: 'PDF_FILE' })); // Marker for PDF
+        } else {
+            setPreviews(prev => ({ ...prev, [field]: objectUrl }));
+        }
     }
 
     // Handle signature save
@@ -251,7 +312,9 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
         axios.get(route('regions.provinces')).then(res => setProvinces(Object.entries(res.data).map(([code, name]) => ({ code, name }))));
 
         if ((user as any).detail?.scan_ktp) {
-            setPreviews(prev => ({ ...prev, scan_ktp: `/storage/${(user as any).detail.scan_ktp}` }));
+            const path = (user as any).detail.scan_ktp;
+            const isPdf = path.toLowerCase().endsWith('.pdf');
+            setPreviews(prev => ({ ...prev, scan_ktp: isPdf ? 'PDF_EXISTING' : `/storage/${path}` }));
         }
     }, []);
 
@@ -283,6 +346,43 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
         axios.get(route('regions.villages', { district_code: districtCode })).then(res => setVillages(Object.entries(res.data).map(([code, name]) => ({ code, name }))));
     };
 
+    // Office address fetch functions
+    const fetchOfficeCities = async (provinceCode: string) => {
+        setData('office_province_id', provinceCode);
+        setData('office_city_id', '');
+        setData('mako_id', '');
+        setMakos([]); // Reset makos
+
+        if (provinceCode) {
+            try {
+                const response = await axios.get(route('regions.cities'), { params: { province_code: provinceCode } });
+                // console.log('Office Cities:', response.data);
+                setOfficeCities(Object.entries(response.data).map(([code, name]) => ({ code, name })));
+            } catch (error) {
+                console.error('Error fetching office cities:', error);
+                toast.error('Gagal memuat data kota kantor');
+            }
+        } else {
+            setOfficeCities([]);
+        }
+    };
+
+    const fetchMakos = async (cityCode: string) => {
+        setData('office_city_id', cityCode);
+        setData('mako_id', '');
+
+        if (cityCode) {
+            try {
+                const response = await axios.get(route('regions.makos'), { params: { city_code: cityCode } });
+                setMakos(response.data);
+            } catch (error) {
+                console.error('Error fetching makos:', error);
+                toast.error('Gagal memuat data mako');
+            }
+        } else {
+            setMakos([]);
+        }
+    };
     // E-KYC logic removed (moved to VerificationEkyc page)
 
 
@@ -318,8 +418,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Profil berhasil dilengkapi!');
-                // Force redirect to E-KYC page to ensure user doesn't get stuck
-                window.location.href = route('verification.ekyc');
+                // Backend will redirect to pending verification
             },
             onError: (errors) => {
                 console.error('Submission errors:', errors);
@@ -346,7 +445,8 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                     }
 
                     // Step 3
-                    const step3Fields = ['jabatan_id', 'tanggal_pengangkatan', 'nomor_sk', 'tanda_tangan'];
+                    // Step 3
+                    const step3Fields = ['jabatan_id', 'jabatan_role_id', 'tanggal_pengangkatan', 'nomor_kta', 'tanda_tangan'];
                     const hasStep3Error = step3Fields.some(f => errorFields.includes(f));
                     if (hasStep3Error) {
                         toast.warning('Terdapat error pada Data Kepegawaian (Step 3)');
@@ -412,6 +512,31 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
     };
 
     // Validate KTA uniqueness
+    const validateKta = async (kta: string) => {
+        if (!kta) {
+            setKtaExists(false);
+            return true;
+        }
+
+        setIsValidatingKta(true);
+        try {
+            const response = await axios.post(route('api.validate.nomor-kta'), { nomor_kta: kta });
+            const exists = response.data.exists;
+            setKtaExists(exists);
+            if (exists) {
+                setError('nomor_kta', response.data.message);
+                toast.error(response.data.message);
+            } else {
+                clearErrors('nomor_kta');
+            }
+            return !exists;
+        } catch (error) {
+            console.error('Error validating KTA:', error);
+            return true;
+        } finally {
+            setIsValidatingKta(false);
+        }
+    };
 
 
     const nextStep = async () => {
@@ -447,7 +572,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                 return;
             }
         } else if (step === 3) {
-            const requiredFields = ['jabatan_id', 'tanggal_pengangkatan', 'nomor_sk'];
+            const requiredFields = ['jabatan_id', 'jabatan_role_id', 'tanggal_pengangkatan', 'nomor_kta', 'mako_id'];
             requiredFields.forEach(field => {
                 if (!data[field as keyof typeof data]) {
                     setError(field as any, 'Wajib diisi');
@@ -541,7 +666,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                         onCut={(e) => e.preventDefault()}
                                         minLength={14}
                                         className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nia_nrp || niaNrpExists ? 'border-red-500' : ''}`}
-                                        placeholder="Nomor Induk Anggota"
+                                        placeholder="Nomor Registrasi Pokok"
                                     />
                                     {errors.nia_nrp && <p className="text-red-500 text-sm">{errors.nia_nrp}</p>}
                                 </div>
@@ -580,7 +705,16 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-white font-medium">Tanggal Lahir</Label>
-                                    <DateSelect value={data.tanggal_lahir} onChange={(val) => { setData('tanggal_lahir', val); clearErrors('tanggal_lahir'); }} error={!!errors.tanggal_lahir} startYear={1950} endYear={new Date().getFullYear()} />
+                                    <DateSelect
+                                        value={data.tanggal_lahir ? format(data.tanggal_lahir, 'yyyy-MM-dd') : ''}
+                                        onChange={(val) => {
+                                            setData('tanggal_lahir', val ? new Date(val) : undefined);
+                                            clearErrors('tanggal_lahir');
+                                        }}
+                                        error={!!errors.tanggal_lahir}
+                                        startYear={1950}
+                                        endYear={new Date().getFullYear()}
+                                    />
                                     {errors.tanggal_lahir && <p className="text-red-500 text-sm">{errors.tanggal_lahir}</p>}
                                 </div>
                                 <div className="space-y-2">
@@ -627,28 +761,108 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                 <div className="space-y-6 col-span-1 md:col-span-2">
                                     <div className="flex justify-between items-center">
                                         <Label className="text-white font-medium">Jabatan *</Label>
-                                        {data.jabatan_id && (
-                                            <span className="text-xs text-green-400 font-bold animate-in fade-in">
-                                                Jabatan Terpilih : {jabatans.find(j => j.id === Number(data.jabatan_id))?.nama_lengkap || jabatans.find(j => j.id === Number(data.jabatan_id))?.nama}
-                                            </span>
-                                        )}
+                                        {/* Removed redundant status text since the button shows it */}
                                     </div>
-                                    <CascadingJabatanSelector
+
+                                    <div
+                                        onClick={() => setIsJabatanModalOpen(true)}
+                                        className={`flex items-center justify-between w-full rounded-md border text-sm px-3 py-2 cursor-pointer transition-colors bg-[#2a2a2a] border-white/10 hover:border-red-500/50 hover:bg-[#333] ${errors.jabatan_id ? "border-red-500" : ""}`}
+                                    >
+                                        <div className={`flex flex-col ${!data.jabatan_id ? "text-muted-foreground" : "text-white"}`}>
+                                            <span className="font-medium">{jabatanDisplayText}</span>
+                                            {selectedJabatanObj && (
+                                                <span className="text-xs text-muted-foreground mt-0.5">
+                                                    {(selectedJabatanObj as any).kategori}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <Edit2 className="w-4 h-4 text-gray-500" />
+                                    </div>
+
+
+                                    <JabatanSelectionModal
+                                        open={isJabatanModalOpen}
+                                        onOpenChange={setIsJabatanModalOpen}
                                         jabatans={jabatans}
-                                        value={data.jabatan_id}
-                                        onChange={(val) => { setData('jabatan_id', val); clearErrors('jabatan_id'); }}
-                                        error={errors.jabatan_id}
+                                        jabatanRoles={jabatanRoles}
+                                        initialUnitId={data.jabatan_id}
+                                        initialRole={data.jabatan_role_id}
+                                        onConfirm={handleConfirmJabatan}
                                     />
+                                    {errors.jabatan_id && <p className="text-red-500 text-sm mt-1">{errors.jabatan_id}</p>}
                                 </div>
+
+                                {/* Golongan & Pangkat Selection */}
+                                <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-white font-medium">Golongan *</Label>
+                                        <Select
+                                            value={data.golongan_id?.toString()}
+                                            onValueChange={(val) => {
+                                                const gid = parseInt(val);
+                                                setData(prev => ({ ...prev, golongan_id: gid, pangkat_id: undefined }));
+                                            }}
+                                        >
+                                            <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-white">
+                                                <SelectValue placeholder="Pilih Golongan" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {golongans.map(g => (
+                                                    <SelectItem key={g.id} value={g.id.toString()}>
+                                                        {g.nama} {g.keterangan ? `(${g.keterangan})` : ''}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-white font-medium">Pangkat *</Label>
+                                        <Select
+                                            value={data.pangkat_id?.toString()}
+                                            onValueChange={(val) => setData('pangkat_id', parseInt(val))}
+                                            disabled={!data.golongan_id}
+                                        >
+                                            <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.pangkat_id ? 'border-red-500' : ''}`}>
+                                                <SelectValue placeholder={data.golongan_id ? "Pilih Pangkat" : "Pilih Golongan Dahulu"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {filteredPangkats.map(p => (
+                                                    <SelectItem key={p.id} value={p.id.toString()}>
+                                                        {p.nama}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {errors.pangkat_id && <p className="text-red-500 text-sm">{errors.pangkat_id}</p>}
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2 col-span-1 md:col-span-2">
                                     <Label className="text-white font-medium">Tanggal Pengangkatan</Label>
-                                    <DateSelect value={data.tanggal_pengangkatan} onChange={(val) => { setData('tanggal_pengangkatan', val); clearErrors('tanggal_pengangkatan'); }} error={!!errors.tanggal_pengangkatan} startYear={1980} endYear={new Date().getFullYear()} />
+                                    <DateSelect
+                                        value={data.tanggal_pengangkatan ? format(data.tanggal_pengangkatan, 'yyyy-MM-dd') : ''}
+                                        onChange={(val) => {
+                                            setData('tanggal_pengangkatan', val ? new Date(val) : undefined);
+                                            clearErrors('tanggal_pengangkatan');
+                                        }}
+                                        error={!!errors.tanggal_pengangkatan}
+                                        startYear={1980}
+                                        endYear={new Date().getFullYear()}
+                                    />
                                     {errors.tanggal_pengangkatan && <p className="text-red-500 text-sm">{errors.tanggal_pengangkatan}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Nomor SK</Label>
-                                    <Input value={data.nomor_sk} onChange={e => { setData('nomor_sk', e.target.value); clearErrors('nomor_sk'); }} className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nomor_sk ? 'border-red-500' : ''}`} placeholder="Nomor SK Pengangkatan" />
-                                    {errors.nomor_sk && <p className="text-red-500 text-sm">{errors.nomor_sk}</p>}
+                                    <Label className="text-white font-medium">Nomor KTA</Label>
+                                    <FastInput
+                                        value={data.nomor_kta}
+                                        onBlur={e => {
+                                            setData('nomor_kta', e.target.value);
+                                            validateKta(e.target.value);
+                                        }}
+                                        className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nomor_kta || ktaExists ? 'border-red-500' : ''}`}
+                                        placeholder="Nomor Kartu Tanda Anggota"
+                                    />
+                                    {errors.nomor_kta && <p className="text-red-500 text-sm">{errors.nomor_kta}</p>}
                                 </div>
 
 
@@ -671,6 +885,45 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                     </div>
                                     {errors.tanda_tangan && <p className="text-red-500 text-sm">{errors.tanda_tangan}</p>}
                                 </div>
+
+                                {/* Office Address Section */}
+                                <div className="col-span-1 md:col-span-2 space-y-2 pt-4 border-t border-white/10">
+                                    <Label className="text-white font-medium text-base">Alamat Kantor</Label>
+                                    <p className="text-xs text-gray-400">Provinsi, Kota, Kecamatan, dan Desa/Kelurahan tempat kantor Anda berada</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-white font-medium">Provinsi Kantor</Label>
+                                    <Select value={data.office_province_id} onValueChange={fetchOfficeCities}>
+                                        <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.office_province_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
+                                        <SelectContent className="max-w-[280px]">
+                                            {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.office_province_id && <p className="text-red-500 text-sm">{errors.office_province_id}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-white font-medium">Kota/Kabupaten Kantor</Label>
+                                    <Select value={data.office_city_id} onValueChange={fetchMakos} disabled={!data.office_province_id}>
+                                        <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.office_city_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Kota/Kabupaten" /></SelectTrigger>
+                                        <SelectContent>
+                                            {officeCities.map(c => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.office_city_id && <p className="text-red-500 text-sm">{errors.office_city_id}</p>}
+                                </div>
+
+                                <div className="space-y-2 col-span-1 md:col-span-2">
+                                    <Label className="text-white font-medium">Mako</Label>
+                                    <Select value={String(data.mako_id)} onValueChange={val => { setData('mako_id', val); clearErrors('mako_id'); }} disabled={!data.office_city_id}>
+                                        <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.mako_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Mako" /></SelectTrigger>
+                                        <SelectContent>
+                                            {makos.map(m => <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.mako_id && <p className="text-red-500 text-sm">{errors.mako_id}</p>}
+                                </div>
                             </div>
                         )}
 
@@ -681,7 +934,7 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2 md:col-span-2">
-                                        <Label className="text-white font-medium">Jalan / Alamat Lengkap</Label>
+                                        <Label className="text-white font-medium">Jalan / Alamat Saat Ini</Label>
                                         <Textarea
                                             value={data.jalan}
                                             onChange={e => { setData('jalan', e.target.value); clearErrors('jalan'); }}
@@ -736,34 +989,58 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Scan KTP</Label>
                                         {previews.scan_ktp && (
-                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group">
-                                                <img src={previews.scan_ktp} alt="Preview KTP" className="w-full h-full object-contain" />
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <a href={previews.scan_ktp} target="_blank" rel="noreferrer" className="text-white text-xs bg-black/50 px-2 py-1 rounded">Lihat Full</a>
-                                                </div>
+                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
+                                                {previews.scan_ktp === 'PDF_FILE' || previews.scan_ktp === 'PDF_EXISTING' ? (
+                                                    <div className="flex flex-col items-center text-gray-400">
+                                                        <FileText className="w-12 h-12 mb-2" />
+                                                        <span className="text-xs">Dokumen PDF Terlampir</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <img src={previews.scan_ktp} alt="Preview KTP" className="w-full h-full object-contain" />
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <a href={previews.scan_ktp} target="_blank" rel="noreferrer" className="text-white text-xs bg-black/50 px-2 py-1 rounded">Lihat Full</a>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
-                                        <Input type="file" accept="image/*" onChange={e => handleFileInput(e, 'scan_ktp')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_ktp ? 'border-red-500' : ''}`} />
+                                        {/* Input file removed as per request to rely on E-KYC data */}
+                                        {/* <Input type="file" accept="image/*,application/pdf" onChange={e => handleFileInput(e, 'scan_ktp')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_ktp ? 'border-red-500' : ''}`} /> */}
                                         {errors.scan_ktp && <p className="text-red-500 text-sm">{errors.scan_ktp}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Scan KTA</Label>
                                         {previews.scan_kta && (
-                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group">
-                                                <img src={previews.scan_kta} alt="Preview KTA" className="w-full h-full object-contain" />
+                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
+                                                {previews.scan_kta === 'PDF_FILE' ? (
+                                                    <div className="flex flex-col items-center text-gray-400">
+                                                        <FileText className="w-12 h-12 mb-2" />
+                                                        <span className="text-xs">Dokumen PDF Dipilih</span>
+                                                    </div>
+                                                ) : (
+                                                    <img src={previews.scan_kta} alt="Preview KTA" className="w-full h-full object-contain" />
+                                                )}
                                             </div>
                                         )}
-                                        <Input type="file" accept="image/*" onChange={e => handleFileInput(e, 'scan_kta')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_kta ? 'border-red-500' : ''}`} />
+                                        <Input type="file" accept="image/*,application/pdf" onChange={e => handleFileInput(e, 'scan_kta')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_kta ? 'border-red-500' : ''}`} />
                                         {errors.scan_kta && <p className="text-red-500 text-sm">{errors.scan_kta}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Scan SK</Label>
                                         {previews.scan_sk && (
-                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group">
-                                                <img src={previews.scan_sk} alt="Preview SK" className="w-full h-full object-contain" />
+                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
+                                                {previews.scan_sk === 'PDF_FILE' ? (
+                                                    <div className="flex flex-col items-center text-gray-400">
+                                                        <FileText className="w-12 h-12 mb-2" />
+                                                        <span className="text-xs">Dokumen PDF Dipilih</span>
+                                                    </div>
+                                                ) : (
+                                                    <img src={previews.scan_sk} alt="Preview SK" className="w-full h-full object-contain" />
+                                                )}
                                             </div>
                                         )}
-                                        <Input type="file" accept="image/*" onChange={e => handleFileInput(e, 'scan_sk')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_sk ? 'border-red-500' : ''}`} />
+                                        <Input type="file" accept="image/*,application/pdf" onChange={e => handleFileInput(e, 'scan_sk')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_sk ? 'border-red-500' : ''}`} />
                                         {errors.scan_sk && <p className="text-red-500 text-sm">{errors.scan_sk}</p>}
                                     </div>
                                 </div>
@@ -839,23 +1116,23 @@ export default function CompleteProfile({ jabatans, rejectionReason }: Props) {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-col md:flex-row gap-3">
-                            <div className="flex-1 space-y-1">
-                                <Input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={onFileChange}
-                                    className="bg-[#2a2a2a] border-white/10 text-white file:bg-[#333] file:text-white hover:file:bg-[#444]"
-                                />
-                                <p className="text-xs text-muted-foreground">Upload foto formal (Max 2MB)</p>
-                            </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button
+                                type="button"
+                                onClick={handleClearSignature}
+                                variant="outline"
+                                className="bg-white/5 text-white hover:bg-white/20 border-white/20 h-12"
+                            >
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Reset
+                            </Button>
                             <Button
                                 type="button"
                                 onClick={handleSaveSignature}
-                                className="bg-red-600 hover:bg-red-700 text-white h-10"
+                                className="bg-red-600 hover:bg-red-700 text-white h-12"
                             >
                                 <BadgeCheck className="w-4 h-4 mr-2" />
-                                Simpan Tanda Tangan
+                                Simpan
                             </Button>
                         </div>
                     </div>

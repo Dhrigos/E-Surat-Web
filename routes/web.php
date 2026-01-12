@@ -1,23 +1,32 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+Route::get('/download-app', function () {
+    return Inertia::render('DownloadApp');
+})->name('download-app');
 
 Route::get('/home', function () {
     return redirect()->route('dashboard');
 })->name('home');
 
 Route::post('/send-otp', [\App\Http\Controllers\OtpController::class, 'send'])->name('otp.send');
+Route::post('/send-otp-reset', [\App\Http\Controllers\OtpController::class, 'sendResetOtp'])->name('otp.send-reset');
+Route::post('/check-otp', [\App\Http\Controllers\OtpController::class, 'checkOtp'])->name('otp.check'); // New step 2 verification
 Route::post('/verify-otp-reset', [\App\Http\Controllers\OtpController::class, 'verifyAndReset'])->name('otp.verify-reset');
 Route::post('/register', [\App\Http\Controllers\Auth\RegisterController::class, 'store'])->name('register.store');
+Route::post('/api/validate/register', [\App\Http\Controllers\Api\ValidationController::class, 'checkRegisterInput'])->name('api.validate.register');
 
 Route::get('/regions/provinces', [\App\Http\Controllers\RegionController::class, 'provinces'])->name('regions.provinces');
 Route::get('/regions/cities', [\App\Http\Controllers\RegionController::class, 'cities'])->name('regions.cities');
 Route::get('/regions/districts', [\App\Http\Controllers\RegionController::class, 'districts'])->name('regions.districts');
 Route::get('/regions/villages', [\App\Http\Controllers\RegionController::class, 'villages'])->name('regions.villages');
+Route::get('/regions/makos', [\App\Http\Controllers\RegionController::class, 'makos'])->name('regions.makos');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/complete-profile', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'create'])->name('complete-profile.create');
@@ -30,8 +39,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/complete-profile/verification-status', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'verificationStatus'])->name('complete-profile.verification-status');
 
-    // API Routes for Letter Creation / Workflow
-    Route::get('/api/workflow', [\App\Http\Controllers\MasterDataController::class, 'getWorkflow'])->name('api.workflow');
+    // API Routes for Letter Creation
     Route::get('/api/users-by-jabatan', [\App\Http\Controllers\MasterDataController::class, 'getUsersByJabatan'])->name('api.users-by-jabatan');
 
     Route::get('/api/jabatan', [\App\Http\Controllers\MasterDataController::class, 'getJabatan'])->name('api.jabatan');
@@ -48,21 +56,38 @@ Route::middleware(['auth'])->group(function () {
         Route::middleware(['role:super-admin'])->group(function () {
             Route::resource('jabatan', \App\Http\Controllers\JabatanController::class);
             Route::resource('jenis-surat', \App\Http\Controllers\JenisSuratController::class)->except(['create', 'show', 'edit']);
+            Route::get('jenis-surat/{id}/workflow', [\App\Http\Controllers\JenisSuratController::class, 'getWorkflow'])->name('jenis-surat.workflow.get');
+            Route::post('jenis-surat/{id}/workflow', [\App\Http\Controllers\JenisSuratController::class, 'updateWorkflow'])->name('jenis-surat.workflow.update');
 
-            // Master Data Approval Routes
-            Route::get('master-data', [\App\Http\Controllers\MasterDataController::class, 'index'])->name('master-data.index');
-            Route::post('master-data', [\App\Http\Controllers\MasterDataController::class, 'store'])->name('master-data.store');
-            Route::put('master-data/{letterType}', [\App\Http\Controllers\MasterDataController::class, 'update'])->name('master-data.update');
-            Route::delete('master-data/{letterType}', [\App\Http\Controllers\MasterDataController::class, 'destroy'])->name('master-data.destroy');
+            // Master Data Routes
+            Route::prefix('master-data')->name('master-data.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\MasterDataController::class, 'index'])->name('index');
+
+                // Golongan
+                Route::post('/golongan', [\App\Http\Controllers\MasterDataController::class, 'storeGolongan'])->name('golongan.store');
+                Route::put('/golongan/{id}', [\App\Http\Controllers\MasterDataController::class, 'updateGolongan'])->name('golongan.update');
+                Route::delete('/golongan/{id}', [\App\Http\Controllers\MasterDataController::class, 'destroyGolongan'])->name('golongan.destroy');
+
+                // Pangkat
+                Route::post('/pangkat', [\App\Http\Controllers\MasterDataController::class, 'storePangkat'])->name('pangkat.store');
+                Route::put('/pangkat/{id}', [\App\Http\Controllers\MasterDataController::class, 'updatePangkat'])->name('pangkat.update');
+                Route::delete('/pangkat/{id}', [\App\Http\Controllers\MasterDataController::class, 'destroyPangkat'])->name('pangkat.destroy');
+                
+                // Legacy Workflow Update (Placeholder)
+                Route::put('/{id}', function () {
+                     return back()->with('error', 'Please update workflow via Jenis Surat menu.');
+                })->name('update');
+            });
+
         });
 
         // Staff Mapping Routes
-        Route::middleware(['role:manager|cs|super-admin'])->group(function () {
+        Route::middleware(['role:admin|super-admin'])->group(function () {
             Route::get('staff-mapping', [\App\Http\Controllers\StaffController::class, 'index'])->name('staff-mapping');
             Route::resource('staff', \App\Http\Controllers\StaffController::class)->except(['create', 'edit', 'show']);
             Route::put('staff/{staff}/toggle-status', [\App\Http\Controllers\StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
+            Route::put('staff/{staff}/role', [\App\Http\Controllers\StaffController::class, 'updateRole'])->name('staff.update-role');
             Route::resource('roles', \App\Http\Controllers\RoleController::class)->except(['create', 'edit', 'show']);
-            Route::resource('permissions', \App\Http\Controllers\PermissionController::class)->except(['create', 'edit', 'show']);
 
             // Verification Queue
             Route::get('verification-queue', [\App\Http\Controllers\VerificationQueueController::class, 'index'])->name('verification-queue.index');
@@ -70,6 +95,9 @@ Route::middleware(['auth'])->group(function () {
             Route::post('verification-queue/{user}/lock', [\App\Http\Controllers\VerificationQueueController::class, 'lock'])->name('verification-queue.lock');
             Route::post('verification-queue/{user}/unlock', [\App\Http\Controllers\VerificationQueueController::class, 'unlock'])->name('verification-queue.unlock');
             Route::post('verification-queue/{user}/reject', [\App\Http\Controllers\VerificationQueueController::class, 'reject'])->name('verification-queue.reject');
+
+            // Approval Tracking (Super Admin Only)
+            Route::get('approval-tracking', [\App\Http\Controllers\ApprovalTrackingController::class, 'index'])->name('approval-tracking.index');
         });
 
         // Mail Management Routes
@@ -112,6 +140,17 @@ Route::middleware(['auth'])->group(function () {
         // Audit Log
         Route::get('/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/profile/activity/download', [\App\Http\Controllers\Settings\ProfileController::class, 'downloadActivity'])->name('profile.download-activity');
+
+        // Location Tracking Routes
+        Route::prefix('location')->name('location.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\LocationController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\LocationController::class, 'store'])->name('store');
+            Route::get('/current', [\App\Http\Controllers\LocationController::class, 'current'])->name('current');
+            Route::get('/history', [\App\Http\Controllers\LocationController::class, 'history'])->name('history');
+            Route::post('/session/start', [\App\Http\Controllers\LocationController::class, 'startSession'])->name('session.start');
+            Route::post('/session/{sessionId}/end', [\App\Http\Controllers\LocationController::class, 'endSession'])->name('session.end');
+            Route::get('/session/active', [\App\Http\Controllers\LocationController::class, 'activeSession'])->name('session.active');
+        });
     });
 });
 

@@ -12,6 +12,9 @@ import { User, MapPin, FileText, Briefcase, Camera, Loader2, UploadCloud, FileTy
 import { cn } from '@/lib/utils';
 import SignatureCanvas from 'react-signature-canvas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CascadingJabatanSelector } from '@/components/CascadingJabatanSelector';
+import { JabatanSelectionModal } from '@/components/JabatanSelectionModal';
+import { Edit2 } from 'lucide-react';
 
 interface Props {
     userDetail: any;
@@ -27,6 +30,7 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
         jenis_kelamin: userDetail?.jenis_kelamin || '',
 
         jabatan_id: userDetail?.jabatan_id?.toString() || '',
+        jabatan_role: userDetail?.jabatan_role || '',
         tanggal_pengangkatan: userDetail?.tanggal_pengangkatan || '',
         nomor_sk: userDetail?.nomor_sk || '',
         nomor_kta: userDetail?.nomor_kta || '',
@@ -52,6 +56,15 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
     const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
     const [signatureFilename, setSignatureFilename] = useState<string>('');
     const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+
+    // Jabatan Modal State
+    const [isJabatanModalOpen, setIsJabatanModalOpen] = useState(false);
+
+    // Derived Display Logic for the Input Trigger
+    const selectedJabatanObj = jabatans.find((j: any) => j.id.toString() === data.jabatan_id);
+    const jabatanDisplayText = selectedJabatanObj
+        ? `${selectedJabatanObj.nama}${data.jabatan_role ? ' - ' + data.jabatan_role : ''}`
+        : 'Pilih Jabatan...';
 
     // Region Data States
     const [provinces, setProvinces] = useState<any[]>([]);
@@ -170,10 +183,10 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
         </div>
     );
 
-    const CardContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    const CardContainer = ({ children, className, hideSubmit = false }: { children: React.ReactNode; className?: string; hideSubmit?: boolean }) => (
         <Card className={cn("border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ring-1 ring-border/40", className)}>
             {children}
-            <SubmitButton />
+            {!hideSubmit && <SubmitButton />}
         </Card>
     );
 
@@ -246,7 +259,7 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
 
             <div className="grid grid-cols-1 gap-6">
                 {/* 1. Personal Information */}
-                <CardContainer>
+                <CardContainer hideSubmit={true}>
                     <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
                         <div className="flex items-center gap-4">
                             <GradientIcon icon={User} colorClass="bg-gradient-to-br from-indigo-500 to-violet-600" />
@@ -260,31 +273,31 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>NRP</Label>
-                                <Input value={data.nia_nrp} onChange={e => setData('nia_nrp', e.target.value)} />
+                                <Input value={data.nia_nrp} readOnly className="cursor-not-allowed bg-muted" />
                                 <InputError message={errors.nia_nrp} />
                             </div>
                             <div className="space-y-2">
                                 <Label>NIK</Label>
-                                <Input value={data.nik} onChange={e => setData('nik', e.target.value)} />
+                                <Input value={data.nik} readOnly className="cursor-not-allowed bg-muted" />
                                 <InputError message={errors.nik} />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Tempat Lahir</Label>
-                                <Input value={data.tempat_lahir} onChange={e => setData('tempat_lahir', e.target.value)} />
+                                <Input value={data.tempat_lahir} readOnly className="cursor-not-allowed bg-muted" />
                                 <InputError message={errors.tempat_lahir} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Tanggal Lahir</Label>
-                                <Input type="date" value={data.tanggal_lahir} onChange={e => setData('tanggal_lahir', e.target.value)} />
+                                <Input type="date" value={data.tanggal_lahir} readOnly className="cursor-not-allowed bg-muted" />
                                 <InputError message={errors.tanggal_lahir} />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Jenis Kelamin</Label>
-                            <Select value={data.jenis_kelamin} onValueChange={val => setData('jenis_kelamin', val)}>
-                                <SelectTrigger><SelectValue placeholder="Pilih Jenis Kelamin" /></SelectTrigger>
+                            <Select value={data.jenis_kelamin} disabled>
+                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Pilih Jenis Kelamin" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Laki-laki">Laki-laki</SelectItem>
                                     <SelectItem value="Perempuan">Perempuan</SelectItem>
@@ -296,52 +309,72 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                 </CardContainer>
 
                 {/* 2. Employment Information */}
-                <CardContainer>
-                    <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
-                        <div className="flex items-center gap-4">
-                            <GradientIcon icon={Briefcase} colorClass="bg-gradient-to-br from-blue-500 to-cyan-600" />
-                            <div>
-                                <CardTitle className="text-base">Data Kepegawaian</CardTitle>
-                                <CardDescription>Unit kerja dan jabatan saat ini</CardDescription>
+                {false && (
+                    <CardContainer hideSubmit={true}>
+                        <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                            <div className="flex items-center gap-4">
+                                <GradientIcon icon={Briefcase} colorClass="bg-gradient-to-br from-blue-500 to-cyan-600" />
+                                <div>
+                                    <CardTitle className="text-base">Data Kepegawaian</CardTitle>
+                                    <CardDescription>Unit kerja dan jabatan saat ini</CardDescription>
+                                </div>
                             </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-4">
-                        <div className="space-y-2">
-                            <Label>Jabatan</Label>
-                            <Select value={data.jabatan_id} onValueChange={val => setData('jabatan_id', val)}>
-                                <SelectTrigger><SelectValue placeholder="Pilih Jabatan" /></SelectTrigger>
-                                <SelectContent>
-                                    {jabatans.map((j: any) => <SelectItem key={j.id} value={j.id.toString()}>{j.nama}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <InputError message={errors.jabatan_id} />
-                            <p className="text-sm text-muted-foreground">Jabatan akan menentukan struktur organisasi Anda</p>
-                        </div>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-4">
+                            {/* Unit / Structure Selection */}
+                            <div className="space-y-2">
+                                <Label>Jabatan & Struktur Organisasi</Label>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Tanggal Pengangkatan</Label>
-                                <Input type="date" value={data.tanggal_pengangkatan} onChange={e => setData('tanggal_pengangkatan', e.target.value)} />
-                            </div>
-                        </div>
+                                <div
+                                    className={cn(
+                                        "flex items-center justify-between w-full rounded-md border text-sm px-3 py-2 cursor-not-allowed transition-colors",
+                                        "bg-[#2a2a2a] border-white/10 opacity-70",
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "flex flex-col",
+                                        !data.jabatan_id ? "text-muted-foreground" : "text-white"
+                                    )}>
+                                        <span className="font-medium">{jabatanDisplayText}</span>
+                                        {selectedJabatanObj && (
+                                            <span className="text-xs text-muted-foreground mt-0.5">
+                                                {selectedJabatanObj.kategori}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <Edit2 className="w-4 h-4 text-gray-500" />
+                                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Nomor SK</Label>
-                                <Input value={data.nomor_sk} onChange={e => setData('nomor_sk', e.target.value)} />
+                                <div className="space-y-1">
+                                    <InputError message={errors.jabatan_id} />
+                                    <InputError message={errors.jabatan_role} />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Nomor KTA</Label>
-                                <Input value={data.nomor_kta} onChange={e => setData('nomor_kta', e.target.value)} />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Tanggal Pengangkatan</Label>
+                                    <Input type="date" value={data.tanggal_pengangkatan} readOnly className="cursor-not-allowed bg-muted" />
+                                </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </CardContainer>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Nomor SK</Label>
+                                    <Input value={data.nomor_sk} readOnly className="cursor-not-allowed bg-muted" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Nomor KTA</Label>
+                                    <Input value={data.nomor_kta} readOnly className="cursor-not-allowed bg-muted" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </CardContainer>
+                )}
             </div>
 
             {/* 3. Address Information */}
-            <CardContainer>
+            <CardContainer hideSubmit={true}>
                 <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
                     <div className="flex items-center gap-4">
                         <GradientIcon icon={MapPin} colorClass="bg-gradient-to-br from-orange-500 to-red-600" />
@@ -355,8 +388,8 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="space-y-2">
                             <Label>Provinsi</Label>
-                            <Select value={data.province_id} onValueChange={val => fetchCities(val)}>
-                                <SelectTrigger><SelectValue placeholder="Provinsi" /></SelectTrigger>
+                            <Select value={data.province_id} disabled>
+                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Provinsi" /></SelectTrigger>
                                 <SelectContent>
                                     {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
                                 </SelectContent>
@@ -364,8 +397,8 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                         </div>
                         <div className="space-y-2">
                             <Label>Kota/Kab</Label>
-                            <Select value={data.city_id} onValueChange={val => fetchDistricts(val)}>
-                                <SelectTrigger><SelectValue placeholder="Kota/Kab" /></SelectTrigger>
+                            <Select value={data.city_id} disabled>
+                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Kota/Kab" /></SelectTrigger>
                                 <SelectContent>
                                     {cities.map(c => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
                                 </SelectContent>
@@ -373,8 +406,8 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                         </div>
                         <div className="space-y-2">
                             <Label>Kecamatan</Label>
-                            <Select value={data.district_id} onValueChange={val => fetchVillages(val)}>
-                                <SelectTrigger><SelectValue placeholder="Kecamatan" /></SelectTrigger>
+                            <Select value={data.district_id} disabled>
+                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Kecamatan" /></SelectTrigger>
                                 <SelectContent>
                                     {districts.map(d => <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>)}
                                 </SelectContent>
@@ -382,8 +415,8 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                         </div>
                         <div className="space-y-2">
                             <Label>Kelurahan</Label>
-                            <Select value={data.village_id} onValueChange={val => setData('village_id', val)}>
-                                <SelectTrigger><SelectValue placeholder="Kelurahan" /></SelectTrigger>
+                            <Select value={data.village_id} disabled>
+                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Kelurahan" /></SelectTrigger>
                                 <SelectContent>
                                     {villages.map(v => <SelectItem key={v.code} value={v.code}>{v.name}</SelectItem>)}
                                 </SelectContent>
@@ -393,88 +426,90 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                     <div className="mt-4">
                         <div className="space-y-2">
                             <Label>Alamat Lengkap (Jalan, RT/RW)</Label>
-                            <Input value={data.alamat_domisili_lengkap} onChange={e => setData('alamat_domisili_lengkap', e.target.value)} />
+                            <Input value={data.alamat_domisili_lengkap} readOnly className="cursor-not-allowed bg-muted" />
                         </div>
                     </div>
                 </CardContent>
             </CardContainer>
 
             {/* 4. Documents */}
-            <CardContainer>
-                <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
-                    <div className="flex items-center gap-4">
-                        <GradientIcon icon={FileText} colorClass="bg-gradient-to-br from-emerald-500 to-teal-600" />
-                        <div>
-                            <CardTitle className="text-base">Dokumen Digital</CardTitle>
-                            <CardDescription>Kelola berkas digital dan tanda tangan</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <FileUploadCard
-                            label="Foto Profil"
-                            field="foto_profil"
-                            icon={Camera}
-                            description="Foto resmi (JPG/PNG)"
-                        />
-
-                        {/* Signature Field - Click to Open Modal */}
-                        <div className="space-y-3 group">
-                            <Label className="text-base font-medium group-hover:text-primary transition-colors">Tanda Tangan Digital</Label>
-                            <div
-                                onClick={() => setIsSignatureModalOpen(true)}
-                                className={cn(
-                                    "cursor-pointer relative border border-dashed border-input hover:border-primary/50 hover:bg-primary/5 rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center h-40"
-                                )}
-                            >
-                                <div className="p-3 bg-background rounded-full shadow-sm ring-1 ring-border group-hover:scale-110 transition-transform duration-300 mb-3">
-                                    <PenTool className="w-5 h-5 text-primary" />
-                                </div>
-                                <div className="space-y-1">
-                                    {signatureDataUrl ? (
-                                        <>
-                                            <p className="text-sm font-medium text-green-600 flex items-center gap-1 justify-center">
-                                                <BadgeCheck className="w-4 h-4" />
-                                                Tanda tangan tersedia
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">Klik untuk ubah</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <p className="text-sm font-medium text-foreground">Buat tanda tangan</p>
-                                            <p className="text-xs text-muted-foreground px-4">Klik untuk menggambar</p>
-                                        </>
-                                    )}
-                                </div>
+            {false && (
+                <CardContainer>
+                    <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                        <div className="flex items-center gap-4">
+                            <GradientIcon icon={FileText} colorClass="bg-gradient-to-br from-emerald-500 to-teal-600" />
+                            <div>
+                                <CardTitle className="text-base">Dokumen Digital</CardTitle>
+                                <CardDescription>Kelola berkas digital dan tanda tangan</CardDescription>
                             </div>
-                            <InputError message={errors.tanda_tangan} />
                         </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <FileUploadCard
+                                label="Foto Profil"
+                                field="foto_profil"
+                                icon={Camera}
+                                description="Foto resmi (JPG/PNG)"
+                            />
 
-                        <FileUploadCard
-                            label="Scan KTP"
-                            field="scan_ktp"
-                            icon={FileType}
-                            description="Dokumen Identitas"
-                            accept=".pdf,image/*"
-                        />
-                        <FileUploadCard
-                            label="Scan KTA"
-                            field="scan_kta"
-                            icon={FileType}
-                            description="Kartu Tanda Anggota"
-                            accept=".pdf,image/*"
-                        />
-                        <FileUploadCard
-                            label="Scan SK Terakhir"
-                            field="scan_sk"
-                            icon={FileType}
-                            description="SK Pangkat/Jabatan"
-                            accept=".pdf,image/*"
-                        />
-                    </div>
-                </CardContent>
-            </CardContainer>
+                            {/* Signature Field - Click to Open Modal */}
+                            <div className="space-y-3 group">
+                                <Label className="text-base font-medium group-hover:text-primary transition-colors">Tanda Tangan Digital</Label>
+                                <div
+                                    onClick={() => setIsSignatureModalOpen(true)}
+                                    className={cn(
+                                        "cursor-pointer relative border border-dashed border-input hover:border-primary/50 hover:bg-primary/5 rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center h-40"
+                                    )}
+                                >
+                                    <div className="p-3 bg-background rounded-full shadow-sm ring-1 ring-border group-hover:scale-110 transition-transform duration-300 mb-3">
+                                        <PenTool className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        {signatureDataUrl ? (
+                                            <>
+                                                <p className="text-sm font-medium text-green-600 flex items-center gap-1 justify-center">
+                                                    <BadgeCheck className="w-4 h-4" />
+                                                    Tanda tangan tersedia
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">Klik untuk ubah</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p className="text-sm font-medium text-foreground">Buat tanda tangan</p>
+                                                <p className="text-xs text-muted-foreground px-4">Klik untuk menggambar</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                <InputError message={errors.tanda_tangan} />
+                            </div>
+
+                            <FileUploadCard
+                                label="Scan KTP"
+                                field="scan_ktp"
+                                icon={FileType}
+                                description="Dokumen Identitas"
+                                accept=".pdf,image/*"
+                            />
+                            <FileUploadCard
+                                label="Scan KTA"
+                                field="scan_kta"
+                                icon={FileType}
+                                description="Kartu Tanda Anggota"
+                                accept=".pdf,image/*"
+                            />
+                            <FileUploadCard
+                                label="Scan SK Terakhir"
+                                field="scan_sk"
+                                icon={FileType}
+                                description="SK Pangkat/Jabatan"
+                                accept=".pdf,image/*"
+                            />
+                        </div>
+                    </CardContent>
+                </CardContainer>
+            )}
 
             {/* Sticky Action Bar */}
 

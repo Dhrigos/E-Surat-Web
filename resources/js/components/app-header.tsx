@@ -17,7 +17,7 @@ import {
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { BreadcrumbItem, SharedData } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
-import { Bell, ChevronDown, LogOut, Menu, UserCog, Trash2, Mail } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, UserCog, Trash2, Mail, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 
 
@@ -92,7 +92,7 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                             size="icon"
                             className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
                         >
-                            <Mail className="h-5 w-5 md:h-6 md:w-6" />
+                            <MessageSquare className="h-5 w-5 md:h-6 md:w-6" />
                         </Button>
                     </Link>
                 </div>
@@ -104,7 +104,7 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                             size="icon"
                             className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
                         >
-                            <Mail className="h-5 w-5 md:h-6 md:w-6" />
+                            <MessageSquare className="h-5 w-5 md:h-6 md:w-6" />
                         </Button>
                     </Link>
                 </div>
@@ -225,7 +225,11 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                 <div className="text-right text-foreground hidden lg:block xl:block">
                     <p className="text-sm text-muted-foreground">{getGreeting()}</p>
                     <p className="font-semibold text-lg xl:text-xl">{user.name}</p>
-                    <p className="text-xs xl:text-sm text-muted-foreground">{user.detail?.jabatan?.nama || 'Staff'}</p>
+                    <p className="text-xs xl:text-sm text-muted-foreground">
+                        {user.roles?.some((r: any) => r.name === 'super-admin') ? 'Super Admin' :
+                            user.roles?.some((r: any) => r.name === 'admin') ? 'Admin' :
+                                (user.detail?.jabatan?.nama || 'Staff')}
+                    </p>
                 </div>
 
                 <div className="h-8 md:h-12 w-px bg-border hidden md:block"></div>

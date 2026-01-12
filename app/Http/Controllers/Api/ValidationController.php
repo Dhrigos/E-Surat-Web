@@ -62,4 +62,39 @@ class ValidationController extends Controller
             'message' => $exists ? 'Nomor KTA sudah terdaftar' : 'Nomor KTA tersedia',
         ]);
     }
+
+    /**
+     * Check general user registration input (email, username, phone)
+     */
+    public function checkRegisterInput(Request $request)
+    {
+        $request->validate([
+            'field' => 'required|in:email,username,phone_number',
+            'value' => 'required|string',
+        ]);
+
+        $field = $request->field;
+        $value = $request->value;
+        $userId = Auth::id(); // Optional: if checking while logged in (e.g. edit profile)
+
+        $query = \App\Models\User::where($field, $value);
+
+        if ($userId) {
+            $query->where('id', '!=', $userId);
+        }
+
+        $exists = $query->exists();
+
+        $label = match($field) {
+            'email' => 'Email',
+            'username' => 'Username',
+            'phone_number' => 'Nomor telepon',
+            default => $field
+        };
+
+        return response()->json([
+            'available' => !$exists,
+            'message' => $exists ? "$label sudah terdaftar" : "$label tersedia",
+        ]);
+    }
 }

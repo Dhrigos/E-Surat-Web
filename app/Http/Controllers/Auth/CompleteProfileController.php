@@ -14,6 +14,9 @@ class CompleteProfileController extends Controller
     {
         return Inertia::render('Auth/CompleteProfile', [
             'jabatans' => Jabatan::active()->orderBy('nama')->get(),
+            'jabatanRoles' => \App\Models\JabatanRole::where('is_active', true)->orderBy('nama')->get(),
+            'golongans' => \App\Models\Golongan::orderBy('nama')->get(),
+            'pangkats' => \App\Models\Pangkat::orderBy('nama')->get(),
             'rejectionReason' => request()->user()->rejection_reason,
         ]);
     }
@@ -31,14 +34,22 @@ class CompleteProfileController extends Controller
             'jenis_kelamin' => 'required|string|in:Laki-laki,Perempuan',
             'alamat_domisili_lengkap' => 'nullable|string',
             'jabatan_id' => 'required|exists:jabatan,id',
+            'jabatan_role_id' => 'nullable|exists:jabatan_roles,id',
+            'pangkat_id' => 'required|exists:pangkat,id',
             'tanggal_pengangkatan' => 'required|date',
-            'nomor_sk' => 'required|string|max:255',
+            'nomor_sk' => 'nullable|string|max:255',
+            'nomor_kta' => 'required|string|max:255|unique:user_details,nomor_kta'.($detail ? ','.$detail->id : ''),
 
             'province_id' => 'required|string',
             'city_id' => 'required|string',
             'district_id' => 'required|string',
             'village_id' => 'required|string',
             'jalan' => 'required|string',
+
+            // Office address fields (nullable)
+            'office_province_id' => 'nullable|string',
+            'office_city_id' => 'nullable|string',
+            'mako_id' => 'nullable|exists:makos,id',
         ];
 
         // Make files optional if updating and they already exist (logic handled in frontend/backend check)
@@ -47,24 +58,26 @@ class CompleteProfileController extends Controller
         $fileRules = $detail ? 'nullable' : 'required';
         // Check if KTP already exists (from E-KYC step)
         $ktpRules = ($detail && $detail->scan_ktp) ? 'nullable' : 'required';
-        $rules['scan_ktp'] = "$ktpRules|image|max:2048";
+        $rules['scan_ktp'] = "$ktpRules|mimes:jpg,jpeg,png,pdf|max:15360";
 
-        $rules['foto_profil'] = "$fileRules|image|max:2048";
+        $rules['foto_profil'] = "$fileRules|image|max:15360";
         // scan_ktp handled above
-        $rules['scan_kta'] = "$fileRules|image|max:2048";
-        $rules['scan_sk'] = "$fileRules|image|max:2048";
-        $rules['tanda_tangan'] = "$fileRules|image|max:2048";
+        $rules['scan_kta'] = "$fileRules|mimes:jpg,jpeg,png,pdf|max:15360";
+        $rules['scan_sk'] = "$fileRules|mimes:jpg,jpeg,png,pdf|max:15360";
+        $rules['tanda_tangan'] = "$fileRules|image|max:15360";
 
         $messages = [
             'nia_nrp.unique' => 'NRP sudah terdaftar.',
             'nik.unique' => 'NIK sudah terdaftar.',
+            'nomor_kta.unique' => 'Nomor KTA sudah terdaftar.',
+            'pangkat_id.required' => 'Pangkat wajib dipilih.',
         ];
 
         $request->validate($rules, $messages);
 
         $data = $request->except([
             'foto_profil', 'scan_ktp', 'scan_kta', 'scan_sk', 'tanda_tangan',
-            'unit_kerja_id', 'subunit_id', 'pangkat_id', 'status_keanggotaan_id',
+            'unit_kerja_id', 'subunit_id', 'status_keanggotaan_id',
         ]);
 
         $data['user_id'] = $user->id;
@@ -87,12 +100,35 @@ class CompleteProfileController extends Controller
             $data['tanda_tangan'] = $request->file('tanda_tangan')->store('user-details/tanda-tangan', 'public');
         }
 
+        // Fix date format
+        if (!empty($data['tanggal_lahir'])) {
+            try {
+                $data['tanggal_lahir'] = \Carbon\Carbon::parse($data['tanggal_lahir'])->format('Y-m-d');
+            } catch (\Exception $e) {
+                // Keep original if parse fails, validation might catch it or DB will error
+            }
+        }
+        if (!empty($data['tanggal_pengangkatan'])) {
+             try {
+                $data['tanggal_pengangkatan'] = \Carbon\Carbon::parse($data['tanggal_pengangkatan'])->format('Y-m-d');
+            } catch (\Exception $e) {
+            }
+        }
+
         UserDetail::updateOrCreate(
             ['user_id' => $user->id],
             $data
         );
 
-        // All done, redirect to pending page (since E-KYC was done first)
+        // Ensure ekyc_verified_at is set (in case user skipped E-KYC or came directly)
+        if (! $user->ekyc_verified_at) {
+            $user->update(['ekyc_verified_at' => now()]);
+        }
+
+        // Refresh user to ensure middleware sees the updated ekyc_verified_at
+        $user->refresh();
+
+        // All done, redirect to pending page
         return redirect()->route('verification.pending');
     }
 
@@ -110,7 +146,7 @@ class CompleteProfileController extends Controller
     {
         $request->validate([
             'image_selfie' => 'required|string', // Base64
-            'scan_ktp' => 'required|file|image|max:5120', // File upload, max 5MB
+            'scan_ktp' => 'required|file|image|max:15360', // File upload, max 15MB
         ]);
 
         $user = $request->user();
@@ -147,6 +183,15 @@ class CompleteProfileController extends Controller
         }
 
         $user->update(['ekyc_verified_at' => now()]);
+
+        // Determine redirect URL
+        // If user already has complete profile (e.g. nia_nrp is filled), skip complete profile step
+        if ($detail && $detail->nia_nrp) {
+             return response()->json([
+                'status' => 'success',
+                'redirect' => route('verification.pending'),
+            ]);
+        }
 
         // Return redirect URL for frontend
         return response()->json([
