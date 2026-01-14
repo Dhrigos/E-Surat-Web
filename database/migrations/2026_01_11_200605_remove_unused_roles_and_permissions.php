@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         // Delete unused roles (keep only: user, admin, super-admin)
-        DB::table('roles')->whereNotIn('name', ['user', 'admin', 'super-admin'])->delete();
+        if (Schema::hasTable('roles')) {
+            DB::table('roles')->whereNotIn('name', ['user', 'admin', 'super-admin'])->delete();
+        }
 
         // Drop permission-related tables
         Schema::dropIfExists('role_has_permissions');

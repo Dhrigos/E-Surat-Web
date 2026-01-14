@@ -59,6 +59,7 @@ class NewLetterNotification extends Notification implements ShouldBroadcast
             'subject' => $this->letter->subject,
             'sender_name' => $this->letter->creator->name,
             'type' => $this->type,
+            'url' => route('letters.show', $this->letter->id),
             'message' => $this->type === 'approval_needed' 
                 ? 'Surat baru menunggu persetujuan Anda: ' . $this->letter->subject 
                 : 'Anda menerima surat baru: ' . $this->letter->subject,

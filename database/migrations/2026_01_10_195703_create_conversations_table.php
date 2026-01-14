@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->boolean('is_group')->default(false);
             $table->string('name')->nullable(); // For group chats
+            $table->string('avatar')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });

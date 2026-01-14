@@ -43,6 +43,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/users-by-jabatan', [\App\Http\Controllers\MasterDataController::class, 'getUsersByJabatan'])->name('api.users-by-jabatan');
 
     Route::get('/api/jabatan', [\App\Http\Controllers\MasterDataController::class, 'getJabatan'])->name('api.jabatan');
+    Route::get('/api/users/superior', [\App\Http\Controllers\MasterDataController::class, 'getSuperior'])->name('api.users.superior');
+    Route::get('jenis-surat/{id}/workflow', [\App\Http\Controllers\JenisSuratController::class, 'getWorkflow'])->name('jenis-surat.workflow.get');
 
     // Validation API Routes
     Route::post('/api/validate/nik', [\App\Http\Controllers\Api\ValidationController::class, 'checkNik'])->name('api.validate.nik');
@@ -55,8 +57,10 @@ Route::middleware(['auth'])->group(function () {
         // Data Master Routes - Super Admin Only
         Route::middleware(['role:super-admin'])->group(function () {
             Route::resource('jabatan', \App\Http\Controllers\JabatanController::class);
+            Route::post('jabatan-roles/reorder', [\App\Http\Controllers\DataMaster\JabatanRoleController::class, 'reorder'])->name('jabatan-roles.reorder');
+            Route::resource('jabatan-roles', \App\Http\Controllers\DataMaster\JabatanRoleController::class)->except(['create', 'show', 'edit']);
             Route::resource('jenis-surat', \App\Http\Controllers\JenisSuratController::class)->except(['create', 'show', 'edit']);
-            Route::get('jenis-surat/{id}/workflow', [\App\Http\Controllers\JenisSuratController::class, 'getWorkflow'])->name('jenis-surat.workflow.get');
+
             Route::post('jenis-surat/{id}/workflow', [\App\Http\Controllers\JenisSuratController::class, 'updateWorkflow'])->name('jenis-surat.workflow.update');
 
             // Master Data Routes
@@ -126,6 +130,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Disposition Routes
         Route::get('/dispositions', [\App\Http\Controllers\DispositionController::class, 'index'])->name('dispositions.index');
+        Route::get('/dispositions/{disposition}/letter-details', [\App\Http\Controllers\DispositionController::class, 'showLetter'])->name('dispositions.show-letter');
         Route::post('/letters/{letter}/dispositions', [\App\Http\Controllers\DispositionController::class, 'store'])->name('dispositions.store');
         Route::put('/dispositions/{disposition}/status', [\App\Http\Controllers\DispositionController::class, 'updateStatus'])->name('dispositions.update-status');
         Route::delete('/dispositions/{disposition}', [\App\Http\Controllers\DispositionController::class, 'destroy'])->name('dispositions.destroy');
@@ -134,6 +139,7 @@ Route::middleware(['auth'])->group(function () {
         // Notification Routes
         Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/clear-all', [\App\Http\Controllers\NotificationController::class, 'clearAll'])->name('notifications.clear-all');
+        Route::delete('/notifications/delete-all', [\App\Http\Controllers\NotificationController::class, 'deleteAll'])->name('notifications.delete-all');
         Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
 

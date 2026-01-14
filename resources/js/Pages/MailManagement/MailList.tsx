@@ -53,14 +53,26 @@ interface Props {
         status?: string;
     };
     letterTypes: { id: number; name: string }[];
+    openedMail?: any;
 }
 
-export default function MailList({ sentMails, inboxMails, incomingApprovals, alreadyApprovedMails, filters, letterTypes = [] }: Props) {
+export default function MailList({ sentMails, inboxMails, incomingApprovals, alreadyApprovedMails, filters, letterTypes = [], openedMail }: Props) {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [selectedLetterType, setSelectedLetterType] = useState(filters.letter_type || 'all');
     const [selectedMail, setSelectedMail] = useState<any>(null);
     const [showDetailDialog, setShowDetailDialog] = useState(false);
     const [activeTab, setActiveTab] = useState('inbox');
+
+    // Handle openedMail from Controller (e.g. from Notifications or Redirects)
+    useEffect(() => {
+        if (openedMail) {
+            setSelectedMail(openedMail);
+            setShowDetailDialog(true);
+
+            // Optional: Clean up URL if you want, but might not be strictly necessary
+            // set search params to remove open_mail_id? 
+        }
+    }, [openedMail]);
 
     // Simple debounce implementation
     useEffect(() => {
@@ -167,7 +179,7 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
                     </div>
                     <div className="flex gap-2 items-center text-xs sm:text-sm">
                         <span className="text-muted-foreground/60">{type === 'sent' ? 'Penerima:' : 'Pengirim:'}</span>
-                        <span className="text-foreground font-medium truncate max-w-[150px]">{type === 'sent' ? mail.recipient : mail.sender}</span>
+                        <span className="text-foreground font-medium truncate max-w-[150px]">{type === 'sent' ? mail.recipient : (mail.sender?.name || mail.sender)}</span>
                     </div>
                     <div className="flex gap-2 items-center text-xs sm:text-sm">
                         <span className="text-muted-foreground/60">Tanggal:</span>
@@ -198,17 +210,7 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
                         <Eye className="h-4 w-4" />
                         <span className="hidden sm:inline">View</span>
                     </Button>
-                    {mail.status === 'approved' && (
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 gap-2 rounded-lg text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
-                            onClick={() => router.put(route('letters.archive', mail.id), {}, { preserveScroll: true })}
-                        >
-                            <Archive className="h-4 w-4" />
-                            <span className="hidden sm:inline">Archive</span>
-                        </Button>
-                    )}
+                    {/* Archive button removed as per request */}
                 </div>
             </div>
         </div>

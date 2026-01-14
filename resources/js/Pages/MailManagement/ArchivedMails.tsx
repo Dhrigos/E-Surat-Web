@@ -178,8 +178,8 @@ export default function ArchivedMails({ archivedMails, filters }: Props) {
 
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <Badge variant="outline" className={`${getStatusColor(mail.status)} border-0 px-4 py-1 rounded-full font-medium`}>
-                        Archived
+                    <Badge variant="outline" className={`${getStatusColor(mail.status)} border-0 px-4 py-1 rounded-full font-medium capitalize`}>
+                        {mail.status === 'archived' ? 'Archived' : mail.status}
                     </Badge>
                     <Badge variant="outline" className={`${getPriorityColor(mail.priority)} border-0 px-4 py-1 rounded-full font-medium`}>
                         {mail.priority.charAt(0).toUpperCase() + mail.priority.slice(1)}

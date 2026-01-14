@@ -56,6 +56,7 @@ class MessageSent implements ShouldBroadcast
                 'conversation_id' => $this->message->conversation_id,
                 'type' => $this->message->type,
                 'created_at' => $this->message->created_at->toISOString(),
+                'attachments' => $this->message->attachments,
                 'sender' => [
                     'id' => $this->message->sender->id,
                     'name' => $this->message->sender->name,

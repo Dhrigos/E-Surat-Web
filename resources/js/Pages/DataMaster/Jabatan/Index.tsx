@@ -161,22 +161,22 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
 
     const handleDelete = (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (confirm('Apakah Anda yakin ingin menghapus jabatan ini?')) {
+        if (confirm('Apakah Anda yakin ingin menghapus unit ini?')) {
             router.delete(`/jabatan/${id}`);
         }
     };
 
     return (
         <AppLayout>
-            <Head title="Data Jabatan" />
+            <Head title="Data Unit" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold">Data Jabatan</h1>
+                            <h1 className="text-3xl font-bold">Data Unit</h1>
                             <p className="text-muted-foreground mt-2">
-                                Kelola struktur dan hierarki jabatan
+                                Kelola struktur dan hierarki unit
                             </p>
                         </div>
 
@@ -200,7 +200,7 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                                 className={`flex items-center hover:text-primary cursor-pointer ${!currentParent ? 'font-bold' : ''}`}
                             >
                                 <Home className="h-4 w-4 mr-1" />
-                                Jabatan
+                                Unit
                             </button>
 
                             {breadcrumbs.map((crumb) => (
@@ -231,7 +231,7 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="text"
-                                    placeholder="Cari jabatan..."
+                                    placeholder="Cari unit..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="pl-10"
@@ -278,7 +278,7 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {jabatan.data.length === 0 ? (
                         <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
-                            <p className="mb-1 text-lg font-medium">Jabatan yang anda cari tidak ditemukan</p>
+                            <p className="mb-1 text-lg font-medium">Unit yang anda cari tidak ditemukan</p>
                             <p className="text-sm text-muted-foreground">
                                 Tambah{' '}
                                 <button
@@ -379,14 +379,14 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Tambah Jabatan</DialogTitle>
+                        <DialogTitle>Tambah Unit</DialogTitle>
                         <DialogDescription>
-                            Menambahkan jabatan di: <span className="font-semibold">{currentParent ? currentParent.nama : 'Root (Tingkat Atas)'}</span>
+                            Menambahkan Unit di: <span className="font-semibold">{currentParent ? currentParent.nama : 'Root (Tingkat Atas)'}</span>
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleCreate} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="create-nama">Nama Jabatan *</Label>
+                            <Label htmlFor="create-nama">Nama Unit *</Label>
                             <Input
                                 id="create-nama"
                                 value={createForm.data.nama}
@@ -435,11 +435,11 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Edit Jabatan</DialogTitle>
+                        <DialogTitle>Edit Unit</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleUpdate} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="edit-nama">Nama Jabatan *</Label>
+                            <Label htmlFor="edit-nama">Nama Unit *</Label>
                             <Input
                                 id="edit-nama"
                                 value={editForm.data.nama}
@@ -472,7 +472,7 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                             <Input
                                 id="edit-parent"
                                 type="number"
-                                placeholder="ID Jabatan Induk"
+                                placeholder="ID Unit Induk"
                                 value={editForm.data.parent_id || ''}
                                 onChange={(e) => editForm.setData('parent_id', e.target.value ? parseInt(e.target.value) : null)}
                             />

@@ -38,6 +38,12 @@ class Letter extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    // Alias for creator
+    public function sender(): BelongsTo
+    {
+        return $this->creator();
+    }
+
     public function approvers(): HasMany
     {
         return $this->hasMany(LetterApprover::class)->orderBy('order');

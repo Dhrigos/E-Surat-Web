@@ -21,4 +21,9 @@ class LetterRecipient extends Model
     {
         return $this->belongsTo(Letter::class);
     }
+
+    public function recipientUser()
+    {
+        return $this->morphTo('recipient', 'recipient_type', 'recipient_id');
+    }
 }

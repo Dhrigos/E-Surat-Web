@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('letter_attachments', function (Blueprint $table) {
+        Schema::create('letter_approvers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('letter_id')->constrained('letters')->onDelete('cascade');
-            $table->string('file_path');
-            $table->string('file_name');
-            $table->integer('file_size');
-            $table->string('mime_type');
+            $table->string('approver_id'); // Position/Role
+            $table->integer('order');
+            $table->string('status')->default('pending'); // pending, approved, rejected
+            $table->text('remarks')->nullable();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('approved_at')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('letter_attachments');
+        Schema::dropIfExists('letter_approvers');
     }
 };

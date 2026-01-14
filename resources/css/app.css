@@ -330,15 +330,15 @@
     /* Hide scrollbar on mobile but allow scrolling */
     @media (max-width: 768px) {
         ::-webkit-scrollbar {
-            display: none;
-            width: 0;
-            background: transparent;
+            display: none !important;
+            width: 0 !important;
+            background: transparent !important;
         }
 
         * {
-            -ms-overflow-style: none;
+            -ms-overflow-style: none !important;
             /* IE and Edge */
-            scrollbar-width: none;
+            scrollbar-width: none !important;
             /* Firefox */
         }
     }

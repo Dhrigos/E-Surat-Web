@@ -34,7 +34,11 @@ class LetterController extends Controller
             'recipient' => $letter->recipients->map(function ($r) {
                 return $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name;
             })->join(', '),
-            'sender' => $letter->creator->name,
+            'sender' => [
+                'name' => $letter->creator->name,
+                'position' => $letter->creator->staff?->jabatan?->nama ?? 'Unknown Position',
+                'profile_photo_url' => $letter->creator->profile_photo_url,
+            ],
             'status' => $letter->status,
             'priority' => $letter->priority,
             'category' => $letter->category,
@@ -54,6 +58,8 @@ class LetterController extends Controller
                 'user_id' => $a->user_id,
                 'approver_id' => $a->approver_id, // Add this line
                 'position' => $a->user?->staff?->jabatan?->nama ?? 'Pejabat',
+                'unit' => $a->user?->staff?->jabatan?->parent?->nama ?? 'Instansi',
+                'rank' => $a->user?->detail?->pangkat?->nama,
                 'status' => $a->status,
                 'order' => $a->order,
                 'remarks' => $a->remarks,
@@ -64,8 +70,13 @@ class LetterController extends Controller
                 'type' => $r->recipient_type,
                 'id' => $r->recipient_id,
                 'name' => $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name,
+                'position' => $r->recipient_type === 'user' ? (User::find($r->recipient_id)?->staff?->jabatan?->nama ?? 'Unknown Position') : 'Division',
+                'profile_photo_url' => $r->recipient_type === 'user' ? User::find($r->recipient_id)?->profile_photo_url : null,
             ]),
-            'dispositions' => $letter->dispositions->map(fn ($d) => [
+            'dispositions' => $letter->dispositions
+                ->filter(fn ($d) => $d->sender_id == Auth::id() || $d->recipient_id == Auth::id())
+                ->values()
+                ->map(fn ($d) => [
                 'id' => $d->id,
                 'sender' => ['name' => $d->sender->name],
                 'recipient' => ['name' => $d->recipient->name],
@@ -281,7 +292,24 @@ class LetterController extends Controller
 
     public function create(Request $request)
     {
-        $users = User::select('id', 'name', 'username')->get();
+        $users = User::with(['staff.jabatan.parent', 'detail.pangkat'])
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'position_name' => $user->staff?->jabatan?->nama,
+                    'rank' => $user->detail?->pangkat?->nama,
+                    'unit' => $user->staff?->jabatan?->parent?->nama,
+                    // Allow nested access if frontend expects it
+                    'staff' => $user->staff ? [
+                        'jabatan' => $user->staff->jabatan ? [
+                            'nama' => $user->staff->jabatan->nama
+                        ] : null
+                    ] : null
+                ];
+            });
         // Fetch Letter Types for dropdown
         $letterTypes = \App\Models\LetterType::select('id', 'name', 'code')->get();
 
@@ -322,6 +350,7 @@ class LetterController extends Controller
             'attachments.*' => 'file|max:10240',
             'signature_positions' => 'nullable|array', // Validate signature positions
             'reference_letter_id' => 'nullable|exists:letters,id',
+            'workflow_steps' => 'nullable|array', // Allow dynamic workflow
         ]);
 
         // Prevent self-sending
@@ -349,7 +378,8 @@ class LetterController extends Controller
         if ($validated['letter_type_id']) {
             try {
                 $customApprovers = $request->input('custom_approvers', []);
-                $this->workflowService->startWorkflow($letter, $customApprovers);
+                $dynamicSteps = $request->input('workflow_steps', []);
+                $this->workflowService->startWorkflow($letter, $customApprovers, $dynamicSteps);
             } catch (\Exception $e) {
                 // Rollback if workflow fails
                 $letter->delete();
@@ -470,6 +500,8 @@ class LetterController extends Controller
         return redirect()->route('letters.index', ['open_mail_id' => $letter->id]);
     }
 
+
+
     /**
      * Update the specified resource in storage.
      */
@@ -514,47 +546,9 @@ class LetterController extends Controller
     {
         $this->authorize('view', $letter);
 
-        $letter->load(['creator', 'recipients', 'approvers', 'attachments', 'letterType.template']);
+        $letter->load(['creator', 'recipients', 'approvers', 'attachments']);
 
-        $htmlContent = '';
-
-        if ($letter->letterType && $letter->letterType->template) {
-            // Use Dynamic Template
-            $template = $letter->letterType->template->content;
-
-            // Prepare Data for Placeholders
-            // Format: SK/kode surat/tanggal/nomor surat urutan
-            $kodeSurat = $letter->letterType ? $letter->letterType->code : 'UM';
-            $tanggalFormat = $letter->created_at->format('dmY');
-            $nomorUrut = str_pad($letter->id, 4, '0', STR_PAD_LEFT);
-            
-            $nomorSurat = "SK/{$kodeSurat}/{$tanggalFormat}/{$nomorUrut}";
-            $perihal = $letter->subject;
-            $tanggal = $letter->created_at->translatedFormat('d F Y');
-
-            $recipients = $letter->recipients->map(function ($r) {
-                if ($r->recipient_type === 'division') {
-                    return $r->recipient_id; // Assuming ID is name for division, or fetch division name
-                } else {
-                    return User::find($r->recipient_id)?->name ?? '-';
-                }
-            })->join(', ');
-
-            $pengirim = $letter->creator->name;
-            $isi = $letter->content;
-
-            // Replace Placeholders
-            $htmlContent = str_replace(
-                ['{{nomor_surat}}', '{{perihal}}', '{{tanggal}}', '{{penerima}}', '{{pengirim}}', '{{isi}}'],
-                [$nomorSurat, $perihal, $tanggal, $recipients, $pengirim, $isi],
-                $template
-            );
-
-        } else {
-            // Fallback to default view if no template selected
-            // We can render a default Blade view to HTML
-            $htmlContent = view('pdf.letter', ['letter' => $letter])->render();
-        }
+        $htmlContent = view('pdf.letter', ['letter' => $letter])->render();
 
         $pdf = Pdf::loadHTML($htmlContent);
 
@@ -689,7 +683,8 @@ class LetterController extends Controller
                             ->where('recipient_id', $user->id);
                     });
             })
-            ->where('status', 'archived');
+            ->whereIn('status', ['sent', 'received', 'read', 'disposed', 'in_progress', 'pending', 'approved', 'rejected', 'returned', 'archived', 'revision'])
+            ->where('status', '!=', 'draft');
 
         if ($search) {
             $archivedQuery->where(function ($q) use ($search) {

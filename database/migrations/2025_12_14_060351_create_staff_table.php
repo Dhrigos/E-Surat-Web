@@ -22,8 +22,7 @@ return new class extends Migration
             $table->string('nia')->unique()->nullable();
             $table->foreignId('pangkat_id')->constrained('pangkat')->onDelete('restrict');
             $table->foreignId('jabatan_id')->constrained('jabatan')->onDelete('restrict');
-            $table->foreignId('unit_kerja_id')->constrained('unit_kerja')->onDelete('restrict');
-            $table->enum('status_keanggotaan', ['Aktif', 'TNI', 'PNS', 'Purnawirawan']);
+            $table->foreignId('status_keanggotaan_id')->nullable()->constrained('status_keanggotaans')->onDelete('restrict');
             $table->date('tanggal_masuk');
             $table->enum('role', ['staff', 'supervisor', 'manager'])->default('staff');
             $table->enum('status', ['active', 'inactive'])->default('active');

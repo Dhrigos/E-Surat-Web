@@ -105,13 +105,16 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
         if (selectedConversation) {
             // @ts-ignore
             window.Echo.private(`conversation.${selectedConversation.id}`)
-                .listen('MessageSent', (e: { message: Message }) => {
-                    setMessages(prev => [...prev, e.message]);
+                .listen('.message.sent', (e: { message: Message }) => {
+                    setMessages(prev => {
+                        if (prev.some(m => m.id === e.message.id)) return prev;
+                        return [...prev, e.message];
+                    });
                     // Mark as read immediately if we are viewing it
                     markAsRead(selectedConversation.id);
                 })
-                .listen('MessageStatusUpdated', (e: { message: Message }) => {
-                    setMessages(prev => prev.map(m => m.id === e.message.id ? e.message : m));
+                .listen('.message.updated', (e: { message: Message }) => {
+                    setMessages(prev => prev.map(m => m.id === e.message.id ? { ...m, ...e.message } : m));
                 });
 
             // Initial mark as read
@@ -416,7 +419,7 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                                             </div>
                                                         )}
 
-                                                        <div className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm shadow-sm ${isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-muted text-foreground rounded-bl-none'}`}>
+                                                        <div className={`max-w-[70%] rounded-2xl text-sm shadow-sm ${msg.type === 'image' || (msg.attachments && msg.attachments.length > 0) ? 'p-1' : 'px-4 py-2'} ${isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-muted text-foreground rounded-bl-none'}`}>
                                                             {msg.type === 'file' || msg.type === 'image' || (msg.attachments && msg.attachments.length > 0) ? (
                                                                 <div className="space-y-1">
                                                                     {msg.attachments && msg.attachments.length > 0 ? (

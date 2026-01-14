@@ -44,7 +44,7 @@ interface Props {
 }
 
 // ... other imports
-import WorkflowEditor from './WorkflowEditor';
+
 
 export default function Index({ jenisSurat, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
@@ -53,13 +53,7 @@ export default function Index({ jenisSurat, filters }: Props) {
     const [editingItem, setEditingItem] = useState<LetterType | null>(null);
 
     // Workflow Editor State
-    const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
-    const [selectedLetterType, setSelectedLetterType] = useState<LetterType | null>(null);
 
-    const handleOpenWorkflow = (item: LetterType) => {
-        setSelectedLetterType(item);
-        setIsWorkflowOpen(true);
-    };
 
     const createForm = useForm({
         name: '',
@@ -181,7 +175,6 @@ export default function Index({ jenisSurat, filters }: Props) {
                             <Card
                                 key={item.id}
                                 className="group relative hover:border-primary/50 transition-colors cursor-pointer"
-                                onDoubleClick={() => handleOpenWorkflow(item)}
                             >
                                 <CardContent className="p-4 flex flex-col gap-3">
                                     <div className="flex items-center gap-3">
@@ -259,12 +252,7 @@ export default function Index({ jenisSurat, filters }: Props) {
                 )}
             </div>
 
-            {/* Workflow Editor Modal */}
-            <WorkflowEditor
-                isOpen={isWorkflowOpen}
-                onClose={() => setIsWorkflowOpen(false)}
-                letterType={selectedLetterType}
-            />
+
 
             {/* Create Modal */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

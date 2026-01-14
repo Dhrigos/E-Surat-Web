@@ -60,7 +60,8 @@ export function AppSidebar() {
             href: '#',
             icon: Users,
             items: [
-                { title: 'Jabatan', href: '/jabatan', icon: FileText },
+                { title: 'Unit', href: '/jabatan', icon: FileText },
+                { title: 'Jabatan', href: '/jabatan-roles', icon: Users },
                 { title: 'Jenis Surat', href: '/jenis-surat', icon: FileText },
                 { title: 'Golongan & Pangkat', href: '/master-data', icon: FileText },
             ]

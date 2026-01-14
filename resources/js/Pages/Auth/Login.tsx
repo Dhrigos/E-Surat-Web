@@ -37,7 +37,7 @@ export default function Login() {
             <div className="text-center mb-6">
                 <div className="flex items-center justify-center gap-2 md:gap-4">
                     <div className="h-px w-8 md:w-24 bg-gradient-to-r from-transparent via-red-600 to-transparent"></div>
-                    <p className="text-sm md:text-xl font-bold text-red-600 drop-shadow-lg uppercase tracking-wider text-center leading-tight">
+                    <p className="text-xs md:text-lg font-bold text-red-600 drop-shadow-lg uppercase tracking-wider text-center leading-tight">
                         <span className="whitespace-nowrap">KEMENTERIAN PERTAHANAN</span><br />
                         <span className="whitespace-nowrap">REPUBLIK INDONESIA</span>
                     </p>
@@ -62,8 +62,8 @@ export default function Login() {
                             className="h-28 w-28 object-contain drop-shadow-2xl"
                         />
                     </div>
-                    <h2 className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight whitespace-nowrap">Badan Cadangan Nasional</h2>
-                    <p className="text-gray-400 font-medium">Buat akun baru untuk mengakses sistem</p>
+                    <h2 className="text-xl md:text-2xl font-black text-red-600 mb-2 tracking-tight">Sistem Informasi Badan Cadangan Nasional</h2>
+                    <p className="text-gray-400 font-medium text-sm">Sistem ini hanya diperuntukkan bagi personel BACADNAS</p>
                 </div>
 
                 {/* Login Form */}
@@ -114,13 +114,13 @@ export default function Login() {
                         href={route('password.request')}
                         className="text-gray-400 hover:text-red-600 p-0 h-auto font-bold"
                     >
-                        Lupa password?
+                        Lupa kata sandi?
                     </Link>
                     <Link
                         href={route('register')}
                         className="text-red-600 hover:text-red-700 p-0 h-auto font-bold"
                     >
-                        Daftar Akun
+                        Daftar akun
                     </Link>
                 </div>
             </div>

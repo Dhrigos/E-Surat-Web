@@ -23,7 +23,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->foreignId('letter_type_id')->constrained('letter_types')->onDelete('cascade');
-            $table->foreignId('unit_id')->nullable()->constrained('unit_kerja')->onDelete('cascade'); // Optional: specific flow per unit
             $table->text('description')->nullable();
             $table->timestamps();
         });

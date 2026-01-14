@@ -68,6 +68,7 @@ class LetterStatusNotification extends Notification
             'status' => $this->status,
             'approver_name' => $this->approverName,
             'type' => 'status_update',
+            'url' => route('letters.show', $this->letter->id),
             'message' => $message,
         ];
     }

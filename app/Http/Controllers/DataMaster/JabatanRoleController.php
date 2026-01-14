@@ -13,8 +13,8 @@ class JabatanRoleController extends Controller
             ->when(request('search'), function ($query, $search) {
                 $query->where('nama', 'like', "%{$search}%");
             })
-            ->orderBy('nama')
-            ->paginate(10)
+            ->orderByLevel()
+            ->paginate(50) // Increased pagination for DnD convenience
             ->withQueryString();
 
         return \Inertia\Inertia::render('DataMaster/JabatanRole/Index', [
@@ -29,9 +29,13 @@ class JabatanRoleController extends Controller
             'nama' => 'required|string|max:255|unique:jabatan_roles,nama',
         ]);
 
+        // Auto assign next level
+        $maxLevel = \App\Models\JabatanRole::max('level') ?? 0;
+
         \App\Models\JabatanRole::create([
             'nama' => $request->nama,
             'is_active' => true,
+            'level' => $maxLevel + 1,
         ]);
 
         return redirect()->back()->with('success', 'Role berhasil ditambahkan');
@@ -57,5 +61,20 @@ class JabatanRoleController extends Controller
         $role->delete();
 
         return redirect()->back()->with('success', 'Role berhasil dihapus');
+    }
+
+    public function reorder(Request $request)
+    {
+        $request->validate([
+            'roles' => 'required|array',
+            'roles.*.id' => 'required|exists:jabatan_roles,id',
+            'roles.*.level' => 'required|integer',
+        ]);
+
+        foreach ($request->roles as $item) {
+            \App\Models\JabatanRole::where('id', $item['id'])->update(['level' => $item['level']]);
+        }
+
+        return redirect()->back()->with('success', 'Urutan role berhasil diperbarui');
     }
 }

@@ -36,6 +36,11 @@ class LetterPolicy
             return true;
         }
 
+        // Disposition recipient can view
+        if ($letter->dispositions()->where('recipient_id', $user->id)->exists()) {
+            return true;
+        }
+
         return false;
     }
 

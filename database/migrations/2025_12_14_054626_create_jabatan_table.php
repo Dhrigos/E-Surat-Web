@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('jabatan', function (Blueprint $table) {
             $table->id();
-            $table->string('nama')->unique();
+            $table->string('nama'); // Removed unique constraint
             $table->enum('kategori', ['struktural', 'fungsional', 'anggota'])->default('anggota');
             $table->integer('level')->default(99); // 1=Tertinggi (Dirjen), 99=Terendah
             $table->foreignId('parent_id')->nullable()->constrained('jabatan')->nullOnDelete();

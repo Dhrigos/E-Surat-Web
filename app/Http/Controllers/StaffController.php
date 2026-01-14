@@ -25,7 +25,7 @@ class StaffController extends Controller implements HasMiddleware
     {
         try {
             \Illuminate\Support\Facades\Log::info('StaffController::index accessed');
-            $query = User::with(['roles', 'detail.jabatan']);
+            $query = User::with(['roles', 'detail.jabatan', 'detail.jabatanRole']);
 
             // Search
             if ($request->has('search')) {
@@ -57,6 +57,7 @@ class StaffController extends Controller implements HasMiddleware
                     'nip' => $user->nip_nik ?? '-',
                     'nik' => $detail?->nik ?? '-',
                     'nia' => $detail?->nia_nrp ?? '-',
+                    'position' => $detail?->jabatanRole?->nama ?? '-',
                     'jabatan' => [
                         'id' => $detail?->jabatan_id ?? 0,
                         'nama' => $detail?->jabatan?->nama ?? '-',

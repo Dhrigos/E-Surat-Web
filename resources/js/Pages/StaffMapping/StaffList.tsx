@@ -39,6 +39,7 @@ interface Staff {
     nip: string;
     nik: string;
     nia: string | null;
+    position: string;
     jabatan: { id: number; nama: string };
     tanggal_masuk: string;
     role: string;
@@ -280,7 +281,8 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
 
                             <div className="space-y-2">
                                 <h3 className="font-semibold">{s.name}</h3>
-                                <p className="text-sm text-muted-foreground">{s.jabatan.nama}</p>
+                                {s.position && <p className="text-sm font-medium text-blue-500 dark:text-blue-400 mb-0.5">{s.position}</p>}
+                                <p className="text-xs text-muted-foreground uppercase tracking-wide">{s.jabatan.nama}</p>
 
                                 <div className="space-y-1 text-xs text-muted-foreground">
                                     <div className="flex items-center gap-1">
@@ -429,6 +431,10 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                             <div className="space-y-2 text-sm border-t pt-4">
                                 <div className="grid grid-cols-3">
                                     <span className="text-muted-foreground">Jabatan</span>
+                                    <span className="col-span-2 font-medium">{viewingStaff.position || '-'}</span>
+                                </div>
+                                <div className="grid grid-cols-3">
+                                    <span className="text-muted-foreground">Unit Kerja</span>
                                     <span className="col-span-2 font-medium">{viewingStaff.jabatan.nama}</span>
                                 </div>
                                 <div className="grid grid-cols-3">

@@ -31,7 +31,7 @@ export default function MasterDataIndex({ golongans = [], pangkats = [] }: Props
             <div className="flex h-full flex-1 flex-col gap-8 p-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h2 className="text-3xl font-bold tracking-tight text-foreground">Master Data Management</h2>
+                        <h2 className="text-3xl font-bold tracking-tight text-foreground">Master Data Golongan dan Pangkat</h2>
                         <p className="text-muted-foreground mt-1">Konfigurasi sistem untuk Golongan dan Pangkat.</p>
                     </div>
                 </div>

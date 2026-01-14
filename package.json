@@ -32,6 +32,7 @@
     },
     "dependencies": {
         "@headlessui/react": "^2.2.0",
+        "@hello-pangea/dnd": "^18.0.1",
         "@inertiajs/react": "^2.1.4",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-alert-dialog": "^1.1.15",

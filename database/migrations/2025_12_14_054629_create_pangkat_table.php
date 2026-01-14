@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nama')->unique();
             $table->string('kode')->unique()->nullable();
             $table->integer('tingkat')->nullable();
+            $table->foreignId('golongan_id')->nullable()->constrained('golongans')->nullOnDelete();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

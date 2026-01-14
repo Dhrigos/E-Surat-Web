@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Send, X, FileText, Check, ArrowRight, ChevronDown, ArrowLeft, ZoomIn, ZoomOut, GitMerge } from 'lucide-react';
+import { Upload, Send, X, FileText, Check, ArrowRight, ChevronDown, ArrowLeft, ZoomIn, ZoomOut, GitMerge, Plus, XCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from "@/lib/utils"
 import axios from 'axios';
@@ -18,6 +19,9 @@ interface User {
     id: number;
     name: string;
     username: string;
+    rank?: string;
+    unit?: string;
+    position_name?: string;
 }
 
 interface LetterType {
@@ -30,6 +34,7 @@ interface WorkflowStep {
     id: number; // Added ID
     order: number;
     type?: 'sequential' | 'parallel';
+    is_required?: boolean;
     approver_type: string;
     approver_id: string;
     step_type?: string;
@@ -38,6 +43,8 @@ interface WorkflowStep {
     condition_value?: string;
     approver_user?: {
         name: string;
+        rank?: string;
+        unit?: string;
         staff?: {
             jabatan?: {
                 nama: string;
@@ -82,6 +89,8 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
         attachments: [] as File[],
         recipients: [] as any[],
         reference_letter_id: referenceLetter?.id || null, // Track reference ID
+        workflow_steps: [] as WorkflowStep[],
+        custom_approvers: {} as Record<string, string>,
     });
 
     const [query, setQuery] = useState(referenceLetter ? `${referenceLetter.sender.name} - ${referenceLetter.sender.username}` : '');
@@ -91,6 +100,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
 
     const [customApprovers, setCustomApprovers] = useState<Record<string, string>>({}); // step_id -> user_id
     const [customApproverNames, setCustomApproverNames] = useState<Record<string, string>>({}); // step_id -> user_name
+    const [customApproverDetails, setCustomApproverDetails] = useState<Record<string, { rank?: string, unit?: string, position_name?: string }>>({}); // step_id -> { rank, unit, position_name }
     const [openStepId, setOpenStepId] = useState<number | null>(null);
     const [stepUsers, setStepUsers] = useState<User[]>([]);
     const [loadingStepUsers, setLoadingStepUsers] = useState(false);
@@ -101,6 +111,237 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
     const [draggedItem, setDraggedItem] = useState<{ id: number, type: 'sidebar' | 'preview', offsetX?: number, offsetY?: number } | null>(null);
     const [ghostPosition, setGhostPosition] = useState<{ x: number; y: number } | null>(null);
     const [zoom, setZoom] = useState(1);
+
+    // Manual Workflow State
+    const [structuralJabatanList, setStructuralJabatanList] = useState<any[]>([]);
+    const [manualWorkflowJabatan, setManualWorkflowJabatan] = useState<string>('');
+    const [usersByJabatanList, setUsersByJabatanList] = useState<User[]>([]);
+    const [manualWorkflowUser, setManualWorkflowUser] = useState<string>('');
+    const [loadingUsersByJabatan, setLoadingUsersByJabatan] = useState(false);
+
+    // Fetch Structural Jabatan on Mount
+    useEffect(() => {
+        axios.get(route('api.jabatan'), { params: { kategori: 'struktural' } }) // Use the new filter
+            .then(response => {
+                setStructuralJabatanList(response.data);
+            })
+            .catch(error => console.error("Failed to fetch structural jabatan", error));
+    }, []);
+
+    // Fetch Users when Manual Jabatan changes
+    // Fetch Users when Manual Jabatan changes - REMOVED to prevent conflict with Smart Add
+    // The Smart Add modal (handleOpenAddModal) fetches users directly via api.users.superior.
+    // This useEffect was causing a race condition by re-fetching from the "dumb" api.users-by-jabatan endpoint.
+    /*
+    useEffect(() => {
+        if (manualWorkflowJabatan) {
+            setLoadingUsersByJabatan(true);
+            setManualWorkflowUser(''); // Reset selected user
+            axios.get(route('api.users-by-jabatan'), { params: { jabatan_id: manualWorkflowJabatan } })
+                .then(response => {
+                    setUsersByJabatanList(response.data);
+                })
+                .catch(error => console.error("Failed to fetch users by jabatan", error))
+                .finally(() => setLoadingUsersByJabatan(false));
+        } else {
+            setUsersByJabatanList([]);
+            setManualWorkflowUser('');
+        }
+    }, [manualWorkflowJabatan]);
+    */
+
+    // Sync Workflow Steps and Custom Approvers to Form Data
+    useEffect(() => {
+        setData(data => ({
+            ...data,
+            workflow_steps: workflowSteps,
+            custom_approvers: customApprovers
+        }));
+    }, [workflowSteps, customApprovers]);
+
+    // --- Manual Workflow & Smart Add Logic ---
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [manualWorkflowJabatanName, setManualWorkflowJabatanName] = useState('');
+    const [insertionIndex, setInsertionIndex] = useState<number | null>(null); // To track where to insert the new step
+
+    // Use existing handleAddManualStep logic but adapt it
+    const handleAddManualStepWrapper = () => {
+        handleAddManualStep();
+        setIsAddModalOpen(false);
+    }
+
+    const handleOpenAddModal = (referenceUserId: number, indexToInsert: number = 0) => {
+        setIsAddModalOpen(true);
+        setManualWorkflowJabatan('');
+        setManualWorkflowJabatanName('');
+        setUsersByJabatanList([]);
+        setManualWorkflowUser('');
+        setInsertionIndex(indexToInsert);
+        setLoadingUsersByJabatan(true);
+
+        let params: any = {};
+
+        if (workflowSteps.length > 0) {
+            const lastStep = workflowSteps[workflowSteps.length - 1];
+            const lastJabatanId = lastStep.jabatan_id || (lastStep.approver_type === 'jabatan' ? lastStep.approver_id : null);
+
+            if (lastJabatanId) {
+                params.jabatan_id = lastJabatanId;
+            } else {
+                params.user_id = referenceUserId;
+            }
+        } else {
+            params.user_id = referenceUserId;
+        }
+
+        axios.get(route('api.users.superior'), { params })
+            .then(response => {
+                const { jabatan, users } = response.data;
+                setManualWorkflowJabatan(jabatan.id.toString());
+                setManualWorkflowJabatanName(jabatan.nama);
+                setUsersByJabatanList(users);
+
+                // If only one user, auto-select
+                if (users.length === 1) {
+                    setManualWorkflowUser(users[0].id.toString());
+                }
+            })
+            .catch(error => {
+                console.error("Failed to get superior", error);
+                if (axios.isAxiosError(error) && error.response && error.response.data.message) {
+                    toast.error(error.response.data.message);
+                } else if (axios.isAxiosError(error) && error.response?.status === 404) {
+                    toast.error("Tidak ditemukan atasan langsung.");
+                } else {
+                    toast.error("Gagal memuat data atasan.");
+                }
+            })
+            .finally(() => setLoadingUsersByJabatan(false));
+    }
+
+    // Reuse allow manual adding but slightly different execution context
+    const handleAddManualStep = () => {
+        if (!manualWorkflowJabatan || !manualWorkflowUser) {
+            toast.error("Pilih Jabatan dan User terlebih dahulu.");
+            return;
+        }
+
+        const selectedUser = usersByJabatanList.find(u => u.id.toString() === manualWorkflowUser);
+        // We might not have structuralJabatanList populated if we only called getSuperior, 
+        // so we use the name we fetched or finding it in the list if available, 
+        // OR rely on what we set in state.
+        // Let's assume we rely on what we set or fetch.
+        // Actually, structuralJabatanList is fetched on mount, so we can try to find it there too,
+        // but getSuperior returns the object. 
+
+        // Simpler: Just construct the object from state we have
+        const selectedJabatanId = manualWorkflowJabatan;
+        const selectedJabatanName = manualWorkflowJabatanName || structuralJabatanList.find(j => j.id.toString() == manualWorkflowJabatan)?.nama || 'Unknown Position';
+
+        if (!selectedUser) return;
+
+        // Use user's actual position name if available, otherwise fallback to selected jabatan
+        const effectivePositionName = selectedUser.position_name || selectedJabatanName;
+
+        const newStep: WorkflowStep = {
+            id: Date.now(),
+            order: (insertionIndex !== null ? insertionIndex : workflowSteps.length) + 1, // Logic needs refinement for complex reordering but OK for appending/inserting
+            type: 'sequential',
+            approver_type: 'jabatan',
+            approver_id: selectedJabatanId,
+            jabatan_id: selectedJabatanId,
+            jabatan_nama: effectivePositionName, // Use effective name
+            step_type: 'sequential',
+            is_required: true,
+            approver_user: {
+                name: selectedUser.name,
+                rank: selectedUser.rank,
+                unit: selectedUser.unit,
+                staff: {
+                    jabatan: {
+                        nama: effectivePositionName // Use effective name
+                    }
+                }
+            }
+        };
+
+        setCustomApprovers(prev => ({ ...prev, [newStep.id]: selectedUser.id.toString() }));
+        setCustomApproverNames(prev => ({ ...prev, [newStep.id]: selectedUser.name }));
+        setCustomApproverDetails(prev => ({
+            ...prev,
+            [newStep.id]: {
+                rank: selectedUser.rank,
+                unit: selectedUser.unit,
+                position_name: effectivePositionName
+            }
+        }));
+
+        // Insert at specific index or append
+        setWorkflowSteps(prev => {
+            const newSteps = [...prev];
+            // If insertionIndex (0-based relative to the array), insert there.
+            // But wait, the UI calls this with "0" for "after Drafter" which means index 0 in the array?
+            // If existing: [Step A, Step B]. 
+            // "After Drafter" -> Insert at 0 -> [New, Step A, Step B]. Correct.
+            // "After Step A" -> Index was 0. We want to insert at 1. 
+
+            if (insertionIndex !== null && insertionIndex >= 0) {
+                newSteps.splice(insertionIndex, 0, newStep);
+                return newSteps;
+            }
+            return [...prev, newStep];
+        });
+
+        toast.success("Approver berhasil ditambahkan.");
+    };
+
+    const handleRemoveStep = (stepId: number) => {
+        setWorkflowSteps(prev => {
+            // Check if it's a top-level step
+            const isTopLevel = prev.some(s => s.id === stepId);
+            if (isTopLevel) {
+                return prev.filter(s => s.id !== stepId);
+            }
+
+            // Check if it's inside a parallel step
+            return prev.map(step => {
+                if (step.approvers) {
+                    return {
+                        ...step,
+                        approvers: step.approvers.filter(sub => sub.id !== stepId)
+                    };
+                }
+                return step;
+            }).filter(step => {
+                // Remove empty parallel steps if needed, or keep them? 
+                // If a parallel step becomes empty, maybe remove the parent step too?
+                if (step.type === 'parallel' && step.approvers && step.approvers.length === 0) {
+                    return false;
+                }
+                return true;
+            });
+        });
+
+        // Also clean up custom approvers state
+        setCustomApprovers(prev => {
+            const next = { ...prev };
+            delete next[stepId];
+            return next;
+        });
+        setCustomApproverNames(prev => {
+            const next = { ...prev };
+            delete next[stepId];
+            return next;
+        });
+        setCustomApproverDetails(prev => {
+            const next = { ...prev };
+            delete next[stepId];
+            return next;
+        });
+
+        toast.success("Approver dihapus.");
+    };
+
 
     // --- Mouse Drag Handlers ---
     const handleDragStart = (e: React.DragEvent, id: number, type: 'sidebar' | 'preview') => {
@@ -209,7 +450,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                 let x = touch.clientX - containerRect.left;
                 let y = touch.clientY - containerRect.top;
 
-                if (draggedItem.offsetX !== undefined && draggedItem.offsetY !== undefined) {
+                if (draggedItem && draggedItem.offsetX !== undefined && draggedItem.offsetY !== undefined) {
                     x -= draggedItem.offsetX;
                     y -= draggedItem.offsetY;
                 }
@@ -286,7 +527,33 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
 
             axios.get(route('jenis-surat.workflow.get', { id: data.letter_type_id }))
                 .then(response => {
-                    setWorkflowSteps(response.data.steps || []);
+                    const fetchedSteps = response.data.steps || [];
+
+                    // Find current user details for the sender step
+                    const currentUser = users.find(u => u.id === auth.user.id);
+
+                    const senderStep: WorkflowStep = {
+                        id: 0, // Special ID for sender
+                        order: 0,
+                        type: 'sequential',
+                        approver_type: 'user',
+                        approver_id: auth.user.id.toString(),
+                        step_type: 'sequential',
+                        is_required: true,
+                        approver_user: {
+                            name: auth.user.name,
+                            rank: currentUser?.rank,
+                            unit: currentUser?.unit,
+                            staff: {
+                                jabatan: {
+                                    nama: currentUser?.position_name || 'Pejabat'
+                                }
+                            }
+                        },
+                        current_holder: { name: auth.user.name }
+                    };
+
+                    setWorkflowSteps([senderStep, ...fetchedSteps]);
                 })
                 .catch(error => {
                     console.error("Failed to fetch workflow", error);
@@ -321,6 +588,14 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
     const handleSelectApprover = (stepId: number, user: User) => {
         setCustomApprovers(prev => ({ ...prev, [stepId]: user.id.toString() }));
         setCustomApproverNames(prev => ({ ...prev, [stepId]: user.name }));
+        setCustomApproverDetails(prev => ({
+            ...prev,
+            [stepId]: {
+                rank: user.rank,
+                unit: user.unit,
+                position_name: user.position_name // Store specific position name
+            }
+        }));
         setOpenStepId(null);
     };
 
@@ -378,6 +653,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
             mail_type: data.mailType,
             recipients: [{ type: 'user', id: data.recipient }],
             custom_approvers: customApprovers,
+            workflow_steps: workflowSteps, // Send dynamic steps
             signature_positions: signaturePositions, // Send signature positions
             letter_type_id: data.letter_type_id, // Mandatory now
             reference_letter_id: data.reference_letter_id // Include reference ID
@@ -594,8 +870,53 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                         </div>
                                     </div>
 
+                                    {/* Smart Add Approver Modal */}
+                                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Tambah Approval Manual</DialogTitle>
+                                                <DialogDescription>
+                                                    Pilih atasan atau pejabat yang ingin ditambahkan sebagai approver.
+                                                </DialogDescription>
+                                            </DialogHeader>
+
+                                            <div className="space-y-4 py-4">
+                                                <div className="space-y-2">
+                                                    <Label>Jabatan</Label>
+                                                    <Input value={manualWorkflowJabatanName} disabled placeholder="Jabatan akan terisi otomatis" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>User</Label>
+                                                    {loadingUsersByJabatan ? (
+                                                        <div className="text-sm text-muted-foreground">Memuat user...</div>
+                                                    ) : usersByJabatanList.length > 0 ? (
+                                                        <Select value={manualWorkflowUser} onValueChange={setManualWorkflowUser}>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Pilih User..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {usersByJabatanList.map((user) => (
+                                                                    <SelectItem key={user.id} value={user.id.toString()}>
+                                                                        {user.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    ) : (
+                                                        <div className="text-sm text-red-500">Tidak ada user aktif menjabat posisi ini</div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <DialogFooter>
+                                                <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Batal</Button>
+                                                <Button onClick={handleAddManualStepWrapper} disabled={!manualWorkflowUser}>Tambah</Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+
                                     {/* Workflow Preview - Only show if workflow exists */}
-                                    {data.letter_type_id && workflowSteps.length > 0 && (
+                                    {data.letter_type_id && (
                                         <div className="space-y-4 border p-4 rounded-lg bg-muted/20">
                                             <div className="flex items-center justify-between">
                                                 <Label className="text-base font-semibold">Alur Approval</Label>
@@ -611,172 +932,231 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                                 Drafter (Anda)
                                                             </div>
                                                         </div>
-                                                        {workflowSteps.map((step, index) => (
-                                                            <React.Fragment key={index}>
-                                                                <div className="h-8 flex items-center">
-                                                                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                                                                </div>
-                                                                <div className="flex flex-col items-center gap-1">
-                                                                    {step.type === 'parallel' && step.approvers ? (
-                                                                        <div className="flex-1 min-w-[300px] flex flex-col gap-3 p-4 bg-white dark:bg-zinc-900/50 border rounded-xl shadow-sm hover:shadow-md transition-all relative group">
-                                                                            {/* Header Label */}
-                                                                            <div className="flex items-center gap-2 border-b pb-2">
-                                                                                <div className="p-1 bg-orange-100 dark:bg-orange-900/30 rounded text-orange-600 dark:text-orange-400">
-                                                                                    <GitMerge className="w-3.5 h-3.5" />
-                                                                                </div>
-                                                                                <div className="flex flex-col">
-                                                                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none">
-                                                                                        Approval Paralel
-                                                                                    </span>
-                                                                                    <span className="text-[10px] text-muted-foreground/70 leading-none mt-0.5">
-                                                                                        Dilakukan secara bersamaan
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
 
-                                                                            {/* Approvers Grid */}
-                                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-                                                                                {step.approvers.map((subStep) => (
-                                                                                    <div key={subStep.id} className="flex flex-col gap-1.5 p-2 rounded-lg bg-muted/30 dark:bg-muted/10 border border-transparent hover:border-border transition-colors">
-                                                                                        {/* Jabatan Label */}
-                                                                                        <span className="text-[11px] font-semibold text-foreground truncate px-1" title={subStep.jabatan_nama || subStep.jabatan_id.toString()}>
-                                                                                            {subStep.jabatan_nama || subStep.jabatan_id}
-                                                                                        </span>
+                                                        {/* Connector after Drafter - Only show Arrow if steps exist, otherwise the End Button handles it */}
+                                                        {workflowSteps.length > 0 && (
+                                                            <div className="h-8 w-8 flex items-center justify-center">
+                                                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                                            </div>
+                                                        )}
 
-                                                                                        {/* User Selector */}
-                                                                                        <Popover open={openStepId === subStep.id} onOpenChange={(open) => {
-                                                                                            if (open) handleStepClick({ ...step, id: subStep.id, approver_id: subStep.jabatan_id, approver_type: 'jabatan' });
-                                                                                            else setOpenStepId(null);
-                                                                                        }}>
-                                                                                            <PopoverTrigger asChild>
-                                                                                                <div
-                                                                                                    className="w-full px-3 py-2 bg-background border rounded-md text-sm flex items-center justify-between gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-all shadow-sm"
-                                                                                                >
-                                                                                                    <span className={cn("truncate text-xs", !customApproverNames[subStep.id] && "text-muted-foreground")}>
-                                                                                                        {customApproverNames[subStep.id] || "Pilih Pejabat..."}
-                                                                                                    </span>
-                                                                                                    <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
-                                                                                                </div>
-                                                                                            </PopoverTrigger>
-                                                                                            <PopoverContent className="p-0 w-[240px]" align="start">
-                                                                                                <Command>
-                                                                                                    <CommandInput placeholder="Cari nama..." className="h-8 text-xs" />
-                                                                                                    <CommandList>
-                                                                                                        <CommandEmpty className="py-2 text-center text-xs text-muted-foreground">
-                                                                                                            {loadingStepUsers ? 'Memuat...' : 'Tidak ditemukan.'}
-                                                                                                        </CommandEmpty>
-                                                                                                        <CommandGroup>
-                                                                                                            {stepUsers.map((user) => (
-                                                                                                                <CommandItem
-                                                                                                                    key={user.id}
-                                                                                                                    value={user.name}
-                                                                                                                    onSelect={() => handleSelectApprover(subStep.id, user)}
-                                                                                                                    className="text-xs"
-                                                                                                                >
-                                                                                                                    <Check
-                                                                                                                        className={cn(
-                                                                                                                            "mr-2 h-3.5 w-3.5",
-                                                                                                                            customApprovers[subStep.id] === user.id.toString() ? "opacity-100" : "opacity-0"
-                                                                                                                        )}
-                                                                                                                    />
-                                                                                                                    {user.name}
-                                                                                                                </CommandItem>
-                                                                                                            ))}
-                                                                                                        </CommandGroup>
-                                                                                                    </CommandList>
-                                                                                                </Command>
-                                                                                            </PopoverContent>
-                                                                                        </Popover>
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
+                                                        {workflowSteps.map((step, index) => {
+                                                            // Hide the "Sender" step (ID 0) from visualization as it is represented by the "Drafter" badge
+                                                            if (step.id === 0) return null;
+
+                                                            return (
+                                                                <React.Fragment key={index}>
+                                                                    {/* Arrow before this step. 
+                                                                        If it's the first visible step (index 1, since 0 is receiver), logic handles connection to Drafter.
+                                                                        Actually, if index > 0, we render arrow. 
+                                                                        Since index 0 is hidden, index 1 will render arrow which connects to Drafter pill. 
+                                                                    */}
+                                                                    {(index > 0) && (
+                                                                        <div className="h-8 w-8 flex items-center justify-center">
+                                                                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                                                         </div>
-                                                                    ) : (
-                                                                        <>
-                                                                            {step.approver_type === 'jabatan' ? (
-                                                                                <Popover open={openStepId === step.id} onOpenChange={(open) => {
-                                                                                    if (open) handleStepClick(step);
-                                                                                    else setOpenStepId(null);
-                                                                                }}>
-                                                                                    <PopoverTrigger asChild>
-                                                                                        <div
-                                                                                            className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm font-medium border border-border flex items-center gap-2 cursor-pointer hover:bg-secondary/80 transition-colors h-8"
-                                                                                        >
-                                                                                            <span>
-                                                                                                {step.jabatan_nama || step.jabatan_id}
-                                                                                            </span>
-                                                                                            <ChevronDown className="h-3 w-3 opacity-50" />
-                                                                                        </div>
-                                                                                    </PopoverTrigger>
-                                                                                    <PopoverContent className="p-0 w-[250px]" align="start">
-                                                                                        <Command>
-                                                                                            <CommandInput placeholder="Cari user..." />
-                                                                                            <CommandList>
-                                                                                                <CommandEmpty>
-                                                                                                    {loadingStepUsers ? 'Memuat...' : 'Tidak ada user ditemukan.'}
-                                                                                                </CommandEmpty>
-                                                                                                <CommandGroup>
-                                                                                                    {stepUsers.map((user) => (
-                                                                                                        <CommandItem
-                                                                                                            key={user.id}
-                                                                                                            value={user.name}
-                                                                                                            onSelect={() => handleSelectApprover(step.id, user)}
-                                                                                                        >
-                                                                                                            <Check
-                                                                                                                className={cn(
-                                                                                                                    "mr-2 h-4 w-4",
-                                                                                                                    customApprovers[step.id] === user.id.toString() ? "opacity-100" : "opacity-0"
-                                                                                                                )}
-                                                                                                            />
-                                                                                                            {user.name}
-                                                                                                        </CommandItem>
-                                                                                                    ))}
-                                                                                                </CommandGroup>
-                                                                                            </CommandList>
-                                                                                        </Command>
-                                                                                    </PopoverContent>
-                                                                                </Popover>
-                                                                            ) : (
-                                                                                <div className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm font-medium border border-border flex items-center gap-2 h-8">
-                                                                                    <span>
-                                                                                        {step.jabatan_nama || step.jabatan_id}
-                                                                                    </span>
-                                                                                </div>
-                                                                            )}
-
-                                                                            {/* User Name Display */}
-                                                                            <span className="text-xs text-muted-foreground max-w-[150px] text-center truncate">
-                                                                                {step.approver_type === 'user'
-                                                                                    ? step.approver_user?.name
-                                                                                    : (customApproverNames[step.id] ? (
-                                                                                        <span className="text-primary font-medium">{customApproverNames[step.id]}</span>
-                                                                                    ) : "Pilih User...")}
-                                                                            </span>
-                                                                        </>
                                                                     )}
+                                                                    <div className="flex flex-col items-center gap-1">
+                                                                        {step.type === 'parallel' && step.approvers ? (
+                                                                            <div className="flex-1 min-w-[300px] flex flex-col gap-3 p-4 bg-white dark:bg-zinc-900/50 border rounded-xl shadow-sm hover:shadow-md transition-all relative group">
+                                                                                {/* Header Label */}
+                                                                                <div className="flex items-center gap-2 border-b pb-2">
+                                                                                    <div className="p-1 bg-orange-100 dark:bg-orange-900/30 rounded text-orange-600 dark:text-orange-400">
+                                                                                        <GitMerge className="w-3.5 h-3.5" />
+                                                                                    </div>
+                                                                                    <div className="flex flex-col">
+                                                                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none">
+                                                                                            Approval Paralel
+                                                                                        </span>
+                                                                                        <span className="text-[10px] text-muted-foreground/70 leading-none mt-0.5">
+                                                                                            Dilakukan secara bersamaan
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
 
-                                                                    {/* Tags */}
-                                                                    <div className="flex gap-1">
-                                                                        {step.step_type === 'conditional' && (
-                                                                            <span className="text-[10px] bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded">
-                                                                                Conditional
-                                                                            </span>
+                                                                                {/* Approvers Grid */}
+                                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                                                                                    {step.approvers.map((subStep) => (
+                                                                                        <div key={subStep.id} className="relative group/step">
+                                                                                            <div className="flex flex-col gap-1.5 p-2 rounded-lg bg-muted/30 dark:bg-muted/10 border border-transparent hover:border-border transition-colors">
+                                                                                                {/* Jabatan Label */}
+                                                                                                <span className="text-[11px] font-semibold text-foreground truncate px-1" title={subStep.jabatan_nama || subStep.jabatan_id.toString()}>
+                                                                                                    {subStep.jabatan_nama || subStep.jabatan_id}
+                                                                                                </span>
+
+                                                                                                {/* User Selector */}
+                                                                                                <Popover open={openStepId === subStep.id} onOpenChange={(open) => {
+                                                                                                    if (open) handleStepClick({ ...step, id: subStep.id, approver_id: subStep.jabatan_id, approver_type: 'jabatan' });
+                                                                                                    else setOpenStepId(null);
+                                                                                                }}>
+                                                                                                    <PopoverTrigger asChild>
+                                                                                                        <div
+                                                                                                            className="w-full px-3 py-2 bg-background border rounded-md text-sm flex items-center justify-between gap-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-all shadow-sm"
+                                                                                                        >
+                                                                                                            <span className={cn("truncate text-xs", !customApproverNames[subStep.id] && "text-muted-foreground")}>
+                                                                                                                {customApproverNames[subStep.id] || "Pilih Pejabat..."}
+                                                                                                            </span>
+                                                                                                            <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
+                                                                                                        </div>
+                                                                                                    </PopoverTrigger>
+                                                                                                    <PopoverContent className="p-0 w-[240px]" align="start">
+                                                                                                        <Command>
+                                                                                                            <CommandInput placeholder="Cari nama..." className="h-8 text-xs" />
+                                                                                                            <CommandList>
+                                                                                                                <CommandEmpty className="py-2 text-center text-xs text-muted-foreground">
+                                                                                                                    {loadingStepUsers ? 'Memuat...' : 'Tidak ditemukan.'}
+                                                                                                                </CommandEmpty>
+                                                                                                                <CommandGroup>
+                                                                                                                    {stepUsers.map((user) => (
+                                                                                                                        <CommandItem
+                                                                                                                            key={user.id}
+                                                                                                                            value={user.name}
+                                                                                                                            onSelect={() => handleSelectApprover(subStep.id, user)}
+                                                                                                                            className="text-xs"
+                                                                                                                        >
+                                                                                                                            <Check
+                                                                                                                                className={cn(
+                                                                                                                                    "mr-2 h-3.5 w-3.5",
+                                                                                                                                    customApprovers[subStep.id] === user.id.toString() ? "opacity-100" : "opacity-0"
+                                                                                                                                )}
+                                                                                                                            />
+                                                                                                                            {user.name}
+                                                                                                                        </CommandItem>
+                                                                                                                    ))}
+                                                                                                                </CommandGroup>
+                                                                                                            </CommandList>
+                                                                                                        </Command>
+                                                                                                    </PopoverContent>
+                                                                                                </Popover>
+                                                                                            </div>
+
+                                                                                            {/* Remove Button - Only visible on hover or if it's the last step? Let's make it always accessible but subtle, or absolute top-right */}
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => handleRemoveStep(subStep.id)}
+                                                                                                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover/step:opacity-100 transition-opacity shadow-sm hover:bg-destructive/90"
+                                                                                                title="Hapus Step"
+                                                                                            >
+                                                                                                <XCircle className="h-4 w-4" />
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="relative group/step flex flex-col items-center gap-1">
+                                                                                {step.approver_type === 'jabatan' ? (
+                                                                                    <Popover open={openStepId === step.id} onOpenChange={(open) => {
+                                                                                        if (open) handleStepClick(step);
+                                                                                        else setOpenStepId(null);
+                                                                                    }}>
+                                                                                        <PopoverTrigger asChild>
+                                                                                            <div
+                                                                                                className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm font-medium border border-border flex items-center gap-2 cursor-pointer hover:bg-secondary/80 transition-colors h-8"
+                                                                                            >
+                                                                                                <span>
+                                                                                                    {step.jabatan_nama || step.jabatan_id}
+                                                                                                </span>
+                                                                                                <ChevronDown className="h-3 w-3 opacity-50" />
+                                                                                            </div>
+                                                                                        </PopoverTrigger>
+                                                                                        <PopoverContent className="p-0 w-[250px]" align="start">
+                                                                                            <Command>
+                                                                                                <CommandInput placeholder="Cari user..." />
+                                                                                                <CommandList>
+                                                                                                    <CommandEmpty>
+                                                                                                        {loadingStepUsers ? 'Memuat...' : 'Tidak ada user ditemukan.'}
+                                                                                                    </CommandEmpty>
+                                                                                                    <CommandGroup>
+                                                                                                        {stepUsers.map((user) => (
+                                                                                                            <CommandItem
+                                                                                                                key={user.id}
+                                                                                                                value={user.name}
+                                                                                                                onSelect={() => handleSelectApprover(step.id, user)}
+                                                                                                            >
+                                                                                                                <Check
+                                                                                                                    className={cn(
+                                                                                                                        "mr-2 h-4 w-4",
+                                                                                                                        customApprovers[step.id] === user.id.toString() ? "opacity-100" : "opacity-0"
+                                                                                                                    )}
+                                                                                                                />
+                                                                                                                {user.name}
+                                                                                                            </CommandItem>
+                                                                                                        ))}
+                                                                                                    </CommandGroup>
+                                                                                                </CommandList>
+                                                                                            </Command>
+                                                                                        </PopoverContent>
+                                                                                    </Popover>
+                                                                                ) : (
+                                                                                    <div className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm font-medium border border-border flex items-center gap-2 h-8">
+                                                                                        <span>
+                                                                                            {step.jabatan_nama || step.jabatan_id}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                <span className="text-xs text-muted-foreground max-w-[150px] text-center truncate">
+                                                                                    {step.approver_type === 'user'
+                                                                                        ? step.approver_user?.name
+                                                                                        : (customApproverNames[step.id] ? (
+                                                                                            <span className="text-primary font-medium">{customApproverNames[step.id]}</span>
+                                                                                        ) : "Pilih User...")}
+                                                                                </span>
+
+                                                                                {/* Remove Button for Sequential Steps */}
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleRemoveStep(step.id)}
+                                                                                    className="absolute -top-3 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover/step:opacity-100 transition-opacity shadow-sm hover:bg-destructive/90 z-10"
+                                                                                    title="Hapus Step"
+                                                                                >
+                                                                                    <XCircle className="h-4 w-4" />
+                                                                                </button>
+                                                                            </div>
                                                                         )}
-                                                                        {step.step_type === 'parallel' && (
-                                                                            <span className="text-[10px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">
-                                                                                Parallel
-                                                                            </span>
+
+                                                                        {/* Tags */}
+                                                                        <div className="flex gap-1">
+                                                                            {step.step_type === 'conditional' && (
+                                                                                <span className="text-[10px] bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded">
+                                                                                    Conditional
+                                                                                </span>
+                                                                            )}
+                                                                            {step.step_type === 'parallel' && (
+                                                                                <span className="text-[10px] bg-blue-500/20 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">
+                                                                                    Parallel
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+
+                                                                        {step.step_type === 'conditional' && step.condition_field && (
+                                                                            <div className="text-[10px] text-muted-foreground italic px-2">
+                                                                                If {step.condition_field} {step.condition_operator} {step.condition_value}
+                                                                            </div>
                                                                         )}
                                                                     </div>
+                                                                </React.Fragment>
+                                                            );
+                                                        })}
 
-                                                                    {step.step_type === 'conditional' && step.condition_field && (
-                                                                        <div className="text-[10px] text-muted-foreground italic px-2">
-                                                                            If {step.condition_field} {step.condition_operator} {step.condition_value}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </React.Fragment>
-                                                        ))}
+                                                        {/* Recursive Smart Add Button for Subsequent Steps */}
+                                                        <div className="h-8 flex items-center relative group w-8 justify-center">
+                                                            <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200 opacity-50 group-hover:opacity-0 pointer-events-none">
+                                                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                                            </div>
+                                                            <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleOpenAddModal(auth.user.id, workflowSteps.length)}
+                                                                    className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 shadow-sm transition-all"
+                                                                    title="Tambah Approval (Atasan Berjenjang)"
+                                                                >
+                                                                    <Plus className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
                                                         {/* Recipient Node */}
                                                         <div className="h-8 flex items-center">
                                                             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -978,9 +1358,15 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                                 onDragStart={(e) => handleDragStart(e, parseInt(stepId), 'preview')}
                                                                 onTouchStart={(e) => handleTouchStart(e, parseInt(stepId), 'preview')}
                                                             >
-                                                                <p className="text-xs font-semibold uppercase">{jabatan}</p>
+                                                                <p className="text-xs font-semibold uppercase">{customApproverDetails[parseInt(stepId)]?.position_name || jabatan}</p>
+                                                                {(step.approver_type === 'user' && step.approver_user?.unit) || (customApproverDetails[step.id]?.unit) ? (
+                                                                    <p className="text-[10px] font-semibold uppercase">{step.approver_user?.unit || customApproverDetails[step.id]?.unit}</p>
+                                                                ) : null}
                                                                 <div className="h-12"></div>
                                                                 <p className="text-xs font-bold underline">{name}</p>
+                                                                {(step.approver_type === 'user' && step.approver_user?.rank) || (customApproverDetails[step.id]?.rank) ? (
+                                                                    <p className="text-[10px]">{step.approver_user?.rank || customApproverDetails[step.id]?.rank}</p>
+                                                                ) : null}
                                                             </div>
                                                         );
                                                     })}
@@ -1061,6 +1447,9 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                             <div className="flex flex-col">
                                                                 <span className="text-xs font-bold uppercase text-gray-700">{jabatan}</span>
                                                                 <span className="text-sm font-medium">{name}</span>
+                                                                {(step.approver_type === 'user' && step.approver_user?.rank) || (customApproverDetails[step.id]?.rank) ? (
+                                                                    <span className="text-[10px] text-muted-foreground">{step.approver_user?.rank || customApproverDetails[step.id]?.rank}</span>
+                                                                ) : null}
                                                             </div>
                                                             <div className="h-6 w-6 bg-gray-100 rounded flex items-center justify-center">
                                                                 <FileText className="h-3 w-3 text-gray-500" />

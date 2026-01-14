@@ -38,9 +38,12 @@ import {
     ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import StaffDetailModal from '@/Components/StaffDetailModal';
+
+
 import DispositionModal from '@/components/DispositionModal';
 import DispositionList from '@/components/DispositionList';
-import ApprovalView from './ApprovalView'; // Import ApprovalView
+import ApprovalView from './ApprovalView';
 import { SharedData } from '@/types';
 
 interface Attachment {
@@ -49,23 +52,6 @@ interface Attachment {
     url: string;
     size: number;
     type: string;
-}
-
-interface Approver {
-    user_id?: number;
-    approver_id: number; // Add this line
-    position: string;
-    user_name?: string;
-    status: 'pending' | 'approved' | 'rejected';
-    order: number;
-    remarks?: string;
-    signature_url?: string;
-}
-
-interface Recipient {
-    type: 'user' | 'division';
-    id: string;
-    name: string;
 }
 
 interface Disposition {
@@ -96,7 +82,7 @@ interface MailDetailProps {
         approvers: Approver[];
         recipients_list?: Recipient[];
         dispositions?: Disposition[];
-        sender?: string;
+        sender?: Sender;
         type?: 'sent' | 'inbox';
         comments?: {
             id: number;
@@ -105,16 +91,94 @@ interface MailDetailProps {
             created_at: string;
         }[];
     };
+    hideTimeline?: boolean;
 }
 
-export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps) {
+interface Approver {
+    user_id?: number;
+    approver_id: number;
+    position: string;
+    user_name?: string;
+    email?: string;
+    unit?: string;
+    jabatan?: string;
+    pangkat?: string;
+    nip?: string;
+    nik?: string;
+    join_date?: string;
+    user_status?: string;
+    role?: string;
+    status: 'pending' | 'approved' | 'rejected';
+    order: number;
+    remarks?: string;
+    signature_url?: string;
+}
+
+interface Sender {
+    name: string;
+    email?: string;
+    position: string;
+    unit?: string;
+    jabatan?: string;
+    pangkat?: string;
+    nip?: string;
+    nik?: string;
+    join_date?: string;
+    status?: string;
+    role?: string;
+    profile_photo_url?: string;
+}
+
+interface Recipient {
+    type: 'user' | 'division';
+    id: string;
+    name: string;
+    email?: string;
+    position?: string;
+    unit?: string;
+    jabatan?: string;
+    pangkat?: string;
+    nip?: string;
+    nik?: string;
+    join_date?: string;
+    status?: string;
+    role?: string;
+    profile_photo_url?: string;
+}
+
+// ... other interfaces ...
+
+export default function MailDetail({ open, onOpenChange, mail, hideTimeline = false }: MailDetailProps) {
     const { auth } = usePage<SharedData>().props;
     const [isDispositionOpen, setIsDispositionOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<'detail' | 'approval'>('detail'); // New viewMode state
+    const [viewMode, setViewMode] = useState<'detail' | 'approval'>('detail');
     const [approvalAction, setApprovalAction] = useState<'approve' | 'reject' | null>(null);
     const [remarks, setRemarks] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [pendingSignature, setPendingSignature] = useState<{ x: number; y: number } | null>(null);
+
+    // Staff Detail Modal State
+    const [selectedStaff, setSelectedStaff] = useState<any>(null);
+    const [isStaffDetailOpen, setIsStaffDetailOpen] = useState(false);
+
+    const handleStaffClick = (staff: any) => {
+        if (!staff) return;
+        // Transform to match StaffDetailModal props
+        setSelectedStaff({
+            name: staff.name || staff.user_name,
+            email: staff.email || '-',
+            role: staff.role || 'user',
+            unit: staff.unit || 'Unknown Unit',
+            jabatan: staff.jabatan || 'Unknown Position',
+            pangkat: staff.pangkat || '-',
+            nip: staff.nip || '-',
+            nik: staff.nik || '-',
+            join_date: staff.join_date || '-',
+            status: staff.status || staff.user_status || 'inactive',
+            profile_photo_url: staff.profile_photo_url
+        });
+        setIsStaffDetailOpen(true);
+    };
 
     if (!mail) return null;
 
@@ -122,33 +186,24 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
     const canApprove = currentApprover?.status === 'pending';
     const isRecipient = mail.recipients_list?.some(r => r.type === 'user' && String(r.id) === String(auth.user.id));
 
-    console.log('Auth User ID:', auth.user.id);
-    console.log('Mail Approvers:', mail.approvers);
-    console.log('Current Approver:', currentApprover);
-    console.log('Can Approve:', canApprove);
-
     const handleApproval = (data?: { remarks: string; signature_position: { x: number; y: number } | null }, actionType: 'approve' | 'reject' = 'approve') => {
         setIsSubmitting(true);
 
-        // Determine action and remarks based on where it's called from
-        const action = actionType || approvalAction || 'approve'; // Use passed action or state
+        const action = actionType || approvalAction || 'approve';
         const finalRemarks = data?.remarks || remarks;
         const signaturePosition = data?.signature_position || pendingSignature || null;
-
-        // Find the step_id for the current approver to save signature position correctly
-        // ... (comments omitted for brevity) ...
 
         router.put(route('letters.update-status', mail.id), {
             status: action === 'approve' ? 'approved' : 'rejected',
             remarks: finalRemarks,
             signature_position: signaturePosition,
-            step_id: currentApprover?.approver_id // Use approver_id (workflow step id)
+            step_id: currentApprover?.approver_id
         }, {
             onSuccess: () => {
                 setApprovalAction(null);
                 setRemarks('');
                 setPendingSignature(null);
-                setViewMode('detail'); // Reset view mode
+                setViewMode('detail');
                 onOpenChange(false);
             },
             onFinish: () => setIsSubmitting(false)
@@ -182,305 +237,269 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
+    if (!mail) return null;
+
+    // ... existing logic ...
+
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-[90vw] h-[95vh] md:h-[90vh] p-0 gap-0 bg-[#09090b] border-zinc-800 text-zinc-100 overflow-hidden flex flex-col [&>button]:hidden">
-                    {viewMode === 'approval' && currentApprover ? (
-                        <ApprovalView
-                            mail={mail}
-                            approver={currentApprover}
-                            onApprove={(data) => {
-                                setRemarks(data.remarks);
-                                setPendingSignature(data.signature_position);
-                                setApprovalAction('approve');
-                            }}
-                            onReject={(remarks) => handleApproval({ remarks, signature_position: null }, 'reject')}
-                            onCancel={() => setViewMode('detail')}
-                            isSubmitting={isSubmitting}
-                            readonly={!canApprove}
-                        />
-                    ) : (
-                        <>
-                            {/* Mobile-friendly Header */}
-                            <div className="flex-none p-6 md:p-8 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
-                                <div className="flex flex-col gap-6">
-                                    <div className="flex items-start justify-between gap-6">
-                                        <div className="space-y-2 flex-1 min-w-0">
-                                            <div className="flex items-center gap-3 text-sm text-zinc-500 mb-2">
-                                                <span className="font-mono">
-                                                    SRT/{mail.date.split('-')[0]}/{String(mail.id).padStart(4, '0')}
-                                                </span>
-                                                <span>•</span>
-                                                <span className="flex items-center gap-1.5">
-                                                    <Calendar className="h-4 w-4" />
-                                                    {mail.date}
-                                                </span>
-                                            </div>
-                                            <DialogTitle className="text-2xl md:text-3xl font-bold leading-tight break-words tracking-tight">
-                                                {mail.subject}
-                                            </DialogTitle>
-                                            <DialogDescription className="text-zinc-400">
-                                                Detail view of letter #{mail.id} - {mail.subject}
-                                            </DialogDescription>
-                                        </div>
-                                        <DialogClose asChild>
-                                            <Button variant="ghost" size="icon" className="h-10 w-10 -mr-2 text-zinc-400 hover:text-white">
-                                                <XCircle className="h-6 w-6" />
-                                            </Button>
-                                        </DialogClose>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <Badge variant="outline" className={cn("capitalize font-medium px-3 py-1 text-sm", getStatusColor(mail.status))}>
-                                            {mail.status}
-                                        </Badge>
-                                        <Badge variant="outline" className={cn("capitalize font-medium px-3 py-1 text-sm", getPriorityColor(mail.priority))}>
-                                            {mail.priority} Priority
-                                        </Badge>
-                                        <Badge variant="outline" className="bg-zinc-800/50 border-zinc-700 text-zinc-400 capitalize px-3 py-1 text-sm">
-                                            {mail.category}
-                                        </Badge>
-                                    </div>
-                                </div>
+                <DialogContent className="w-full sm:max-w-6xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-zinc-100 p-0 gap-0">
+                    <div className="sticky top-0 z-10 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800 p-6 flex items-center justify-between">
+                        <div className="space-y-1">
+                            <DialogTitle className="text-xl font-bold text-zinc-100 flex items-center gap-3">
+                                {mail.subject}
+                                <Badge variant="outline" className={`${getStatusColor(mail.status)} border-0 px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide`}>
+                                    {mail.status}
+                                </Badge>
+                                <Badge variant="outline" className={`${getPriorityColor(mail.priority)} border-0 px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide`}>
+                                    {mail.priority}
+                                </Badge>
+                            </DialogTitle>
+                            <div className="flex items-center gap-2 text-sm text-zinc-400">
+                                <span className="uppercase tracking-wider font-medium text-xs bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded text-zinc-500">
+                                    {mail.category}
+                                </span>
+                                <span>&bull;</span>
+                                <span className="flex items-center gap-1.5">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    {mail.date}
+                                </span>
                             </div>
+                        </div>
+                        <DialogClose className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 transition-colors">
+                            <X className="h-5 w-5" />
+                        </DialogClose>
+                    </div>
 
-                            {/* Scrollable Content Area */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                <div className="p-6 md:p-8 space-y-10">
-                                    {/* Sender/Recipient Card */}
-                                    <div className="flex flex-col md:flex-row gap-6 p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/50">
-                                        <div className="flex-1 flex items-center gap-5">
-                                            <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-900/20">
+                    <div className="p-6 space-y-8">
+                        {/* Sender/Recipient Card */}
+                        <div className="flex flex-col md:flex-row gap-6 p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/50">
+                            <div className="flex-1 flex items-center gap-5">
+                                {mail.sender ? (
+                                    <div
+                                        className="flex items-center gap-5 cursor-pointer hover:opacity-80 transition-opacity"
+                                        onClick={() => handleStaffClick(mail.sender)}
+                                    >
+                                        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-900/20 overflow-hidden">
+                                            {mail.sender.profile_photo_url ? (
+                                                <img src={mail.sender.profile_photo_url} alt={mail.sender.name} className="h-full w-full object-cover" />
+                                            ) : (
                                                 <User className="h-7 w-7 text-white" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-zinc-500 uppercase tracking-wider font-semibold mb-1">
-                                                    {mail.sender ? 'From' : 'To'}
-                                                </p>
-                                                <p className="text-lg font-semibold text-zinc-200">
-                                                    {mail.sender || mail.recipient}
-                                                </p>
-                                            </div>
+                                            )}
                                         </div>
-                                        {mail.recipients_list && mail.recipients_list.length > 0 && (
-                                            <>
-                                                <div className="hidden md:block w-px bg-zinc-800" />
-                                                <div className="flex-1">
-                                                    <p className="text-sm text-zinc-500 uppercase tracking-wider font-semibold mb-3">
-                                                        Recipients ({mail.recipients_list.length})
-                                                    </p>
-                                                    <div className="flex -space-x-3 overflow-hidden">
-                                                        {mail.recipients_list.slice(0, 5).map((r, i) => (
-                                                            <div key={i} className="h-10 w-10 rounded-full bg-zinc-800 border-2 border-[#09090b] flex items-center justify-center text-sm font-medium text-zinc-400" title={r.name}>
-                                                                {r.name.charAt(0).toUpperCase()}
-                                                            </div>
-                                                        ))}
-                                                        {mail.recipients_list.length > 5 && (
-                                                            <div className="h-10 w-10 rounded-full bg-zinc-800 border-2 border-[#09090b] flex items-center justify-center text-sm font-medium text-zinc-400">
-                                                                +{mail.recipients_list.length - 5}
-                                                            </div>
+                                        <div>
+                                            <p className="text-sm text-zinc-500 uppercase tracking-wider font-semibold mb-1">
+                                                From
+                                            </p>
+                                            <p className="text-lg font-semibold text-zinc-200">
+                                                {mail.sender.name}
+                                            </p>
+                                            <p className="text-sm text-zinc-400">
+                                                {mail.sender.position}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex-1">
+                                        <p className="text-sm text-zinc-500 uppercase tracking-wider font-semibold mb-1">To</p>
+                                        <p className="text-lg font-semibold text-zinc-200">{mail.recipient}</p>
+                                    </div>
+                                )}
+                            </div>
+                            {mail.recipients_list && mail.recipients_list.length > 0 && (
+                                <>
+                                    <div className="hidden md:block w-px bg-zinc-800" />
+                                    <div className="flex-1">
+                                        <p className="text-sm text-zinc-500 uppercase tracking-wider font-semibold mb-3">
+                                            Recipients ({mail.recipients_list.length})
+                                        </p>
+                                        <div className="flex flex-col gap-3">
+                                            {mail.recipients_list.map((r, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                                                    onClick={() => r.type === 'user' && handleStaffClick(r)}
+                                                >
+                                                    <div className="h-8 w-8 rounded-full bg-zinc-800 border-2 border-[#09090b] flex items-center justify-center text-xs font-medium text-zinc-400 overflow-hidden">
+                                                        {r.profile_photo_url ? (
+                                                            <img src={r.profile_photo_url} alt={r.name} className="h-full w-full object-cover" />
+                                                        ) : (
+                                                            r.name.charAt(0).toUpperCase()
                                                         )}
                                                     </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-zinc-200">{r.name}</p>
+                                                        {r.position && <p className="text-xs text-zinc-500">{r.position}</p>}
+                                                    </div>
                                                 </div>
-                                            </>
-                                        )}
+                                            ))}
+                                        </div>
                                     </div>
+                                </>
+                            )}
+                        </div>
 
+                        {/* Letter Content */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-blue-500" />
+                                Isi Surat
+                            </h3>
+                            <div className="prose prose-invert max-w-none p-6 rounded-2xl bg-zinc-900/30 border border-zinc-800/50 text-zinc-300 leading-relaxed">
+                                <div dangerouslySetInnerHTML={{ __html: mail.content || mail.description || '<i>Tidak ada konten surat.</i>' }} />
+                            </div>
+                        </div>
 
-                                    {/* Attachments Grid */}
-                                    {mail.attachments && mail.attachments.length > 0 && (
-                                        <div className="space-y-4">
-                                            <h3 className="text-base font-semibold text-zinc-400 flex items-center gap-2.5">
-                                                <Paperclip className="h-5 w-5" />
-                                                Attachments ({mail.attachments.length})
-                                            </h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {mail.attachments.map((file, i) => (
+                        {/* Attachments */}
+                        {mail.attachments && mail.attachments.length > 0 && (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
+                                    <Paperclip className="h-5 w-5 text-blue-500" />
+                                    Lampiran ({mail.attachments.length})
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {mail.attachments.map((file) => (
+                                        <a
+                                            key={file.id}
+                                            href={file.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50 hover:bg-zinc-800/50 hover:border-zinc-700 transition-all group"
+                                        >
+                                            <div className="h-10 w-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <FileText className="h-5 w-5" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-zinc-200 truncate">{file.name}</p>
+                                                <p className="text-xs text-zinc-500 mt-0.5">{formatFileSize(file.size)}</p>
+                                            </div>
+                                            <Download className="h-4 w-4 text-zinc-600 group-hover:text-zinc-300 transition-colors" />
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Approvers List */}
+                        {!hideTimeline && mail.approvers && mail.approvers.length > 0 && (
+                            <div className="space-y-6 pt-6 border-t border-zinc-800/50">
+                                <h3 className="text-lg font-bold text-zinc-200 flex items-center gap-2">
+                                    <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                                    Timeline Approval
+                                </h3>
+                                <div className="relative pl-5 space-y-10">
+                                    <div className="absolute left-[27px] top-4 bottom-4 w-px bg-zinc-800" />
+                                    {mail.approvers.map((approver, i) => (
+                                        <div key={i} className="relative flex gap-6 group">
+                                            <div className={cn(
+                                                "relative z-10 h-14 w-14 rounded-2xl border-4 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105",
+                                                approver.status === 'approved' ? "bg-emerald-950/50 border-emerald-900 text-emerald-500 shadow-lg shadow-emerald-900/20" :
+                                                    approver.status === 'rejected' ? "bg-rose-950/50 border-rose-900 text-rose-500 shadow-lg shadow-rose-900/20" :
+                                                        approver.status === 'pending' ? "bg-amber-950/50 border-amber-900 text-amber-500 shadow-lg shadow-amber-900/20" :
+                                                            "bg-zinc-900 border-zinc-800 text-zinc-600"
+                                            )}>
+                                                {approver.status === 'approved' ? <Check className="h-6 w-6" /> :
+                                                    approver.status === 'rejected' ? <X className="h-6 w-6" /> :
+                                                        <User className="h-6 w-6" />}
+                                                {approver.status === 'pending' && (
+                                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1 min-w-0 -mt-1.5">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                                                     <div
-                                                        key={i}
-                                                        onClick={() => window.open(file.url, '_blank')}
-                                                        className="group relative flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/30 border border-zinc-800/50 hover:bg-zinc-800/50 hover:border-zinc-700 transition-all cursor-pointer overflow-hidden"
+                                                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                                                        onClick={() => handleStaffClick(approver)}
                                                     >
-                                                        <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 transition-colors">
-                                                            <FileText className="h-6 w-6 text-blue-400" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-base font-medium text-zinc-200 truncate group-hover:text-blue-400 transition-colors">
-                                                                {file.name}
-                                                            </p>
+                                                        <p className="text-base font-semibold text-zinc-200 capitalize">
+                                                            {approver.position.replace(/-/g, ' ')}
+                                                        </p>
+                                                        {approver.user_name && (
                                                             <p className="text-sm text-zinc-500">
-                                                                {formatFileSize(file.size)}
+                                                                {approver.user_name}
                                                             </p>
-                                                        </div>
-                                                        <Download className="h-5 w-5 text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        )}
                                                     </div>
-                                                ))}
+                                                    <Badge variant="outline" className={cn(
+                                                        "w-fit capitalize border-0 px-2.5 py-0.5 rounded-full text-xs font-semibold",
+                                                        approver.status === 'approved' ? "bg-emerald-500/10 text-emerald-500" :
+                                                            approver.status === 'rejected' ? "bg-rose-500/10 text-rose-500" :
+                                                                approver.status === 'pending' ? "bg-amber-500/10 text-amber-500" :
+                                                                    "bg-zinc-500/10 text-zinc-500"
+                                                    )}>
+                                                        {approver.status}
+                                                    </Badge>
+                                                </div>
+
+                                                {approver.remarks && (
+                                                    <div className="bg-zinc-900/50 rounded-lg p-3 text-sm text-zinc-400 border border-zinc-800/50">
+                                                        <span className="text-zinc-500 text-xs uppercase tracking-wide font-semibold block mb-1">Catatan:</span>
+                                                        {approver.remarks}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                    )}
-
-                                    {/* Disposition List */}
-                                    {mail.dispositions && mail.dispositions.length > 0 && (
-                                        <div className="space-y-6 pt-6 border-t border-zinc-800/50">
-                                            <h3 className="text-base font-semibold text-zinc-400 flex items-center gap-2.5">
-                                                <Share2 className="h-5 w-5" />
-                                                Disposisi
-                                            </h3>
-                                            <DispositionList dispositions={mail.dispositions} />
-                                        </div>
-                                    )}
-
-                                    {/* Approval Timeline - Vertical for Mobile */}
-                                    {mail.approvers && mail.approvers.length > 0 && (
-                                        <div className="space-y-6 pt-6 border-t border-zinc-800/50">
-                                            <h3 className="text-base font-semibold text-zinc-400 flex items-center gap-2.5">
-                                                <CheckCircle2 className="h-5 w-5" />
-                                                Approval Timeline
-                                            </h3>
-                                            <div className="relative pl-5 space-y-10">
-                                                <div className="absolute left-[27px] top-4 bottom-4 w-px bg-zinc-800" />
-
-                                                {mail.approvers.filter((approver, index, array) => {
-                                                    // Show if approved or rejected
-                                                    if (approver.status === 'approved' || approver.status === 'rejected') return true;
-
-                                                    // Show if it's pending AND it's the FIRST pending item in the list
-                                                    // (assuming array is sorted by order, which it is from backend)
-                                                    const firstPendingIndex = array.findIndex(a => a.status === 'pending');
-                                                    return index === firstPendingIndex;
-                                                }).map((approver, i) => (
-                                                    <div key={i} className="relative flex gap-6 group">
-                                                        <div className={cn(
-                                                            "relative z-10 h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 bg-[#09090b] transition-colors mt-0.5",
-                                                            approver.status === 'approved' ? 'border-emerald-500 bg-emerald-500/10' :
-                                                                approver.status === 'rejected' ? 'border-rose-500 bg-rose-500/10' :
-                                                                    'border-zinc-700 bg-zinc-800'
-                                                        )}>
-                                                            {approver.status === 'approved' && <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />}
-                                                            {approver.status === 'rejected' && <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />}
-                                                            {approver.status === 'pending' && <div className="h-2.5 w-2.5 rounded-full bg-zinc-500 animate-pulse" />}
-                                                        </div>
-
-                                                        <div className="flex-1 min-w-0 -mt-1.5">
-                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                                                <div>
-                                                                    <p className="text-base font-semibold text-zinc-200 capitalize">
-                                                                        {approver.position.replace(/-/g, ' ')}
-                                                                    </p>
-                                                                    {approver.user_name && (
-                                                                        <p className="text-sm text-zinc-500">
-                                                                            {approver.user_name}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-                                                                <Badge variant="outline" className={cn(
-                                                                    "w-fit text-xs px-2.5 py-0.5 h-6 border-0",
-                                                                    approver.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
-                                                                        approver.status === 'rejected' ? 'bg-rose-500/10 text-rose-500' :
-                                                                            'bg-amber-500/10 text-amber-500'
-                                                                )}>
-                                                                    {approver.status}
-                                                                </Badge>
-                                                            </div>
-                                                            {approver.remarks && (
-                                                                <div className="mt-3 text-sm text-zinc-400 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 italic relative">
-                                                                    <div className="absolute -top-1.5 left-5 w-3 h-3 bg-zinc-900 border-t border-l border-zinc-800 transform rotate-45" />
-                                                                    "{approver.remarks}"
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
+                        )}
 
-                            {/* Mobile-friendly Footer Actions */}
-                            <div className="flex-none p-6 border-t border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
-                                <div className="grid grid-cols-2 gap-4 md:flex md:justify-end">
-                                    {canApprove && (
-                                        <Button
-                                            size="lg"
-                                            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white h-12 text-base"
-                                            onClick={() => {
-                                                setViewMode('approval');
-                                            }}
-                                        >
-                                            Next
-                                            <ArrowRight className="h-5 w-5 ml-2.5" />
-                                        </Button>
-                                    )}
-                                    {!canApprove && currentApprover && (currentApprover.status === 'approved' || currentApprover.status === 'rejected') && (
-                                        <Button
-                                            size="lg"
-                                            variant="outline"
-                                            className="w-full md:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white h-12 text-base"
-                                            onClick={() => {
-                                                setViewMode('approval');
-                                            }}
-                                        >
-                                            <Eye className="h-5 w-5 mr-2.5" />
-                                            Preview
-                                        </Button>
-                                    )}
-                                    {mail.status !== 'approved' && !canApprove && isRecipient && (
-                                        <Button
-                                            variant="outline"
-                                            size="lg"
-                                            className="w-full md:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white h-12 text-base"
-                                            onClick={() => setIsDispositionOpen(true)}
-                                        >
-                                            <Send className="h-5 w-5 mr-2.5" />
-                                            Disposisi
-                                        </Button>
-                                    )}
-                                    {!canApprove && isRecipient && (
-                                        <Button
-                                            variant="outline"
-                                            size="lg"
-                                            className="w-full md:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white h-12 text-base"
-                                            onClick={() => router.visit(route('letters.create', { reply_to: mail.id }))}
-                                        >
-                                            <Share2 className="h-5 w-5 mr-2.5" />
-                                            Reply
-                                        </Button>
-                                    )}
+                        {/* Dispositions List */}
+                        {mail.dispositions && mail.dispositions.length > 0 && (
+                            <DispositionList dispositions={mail.dispositions} />
+                        )}
+
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="sticky bottom-0 z-10 bg-zinc-950/80 backdrop-blur-xl border-t border-zinc-800 p-6 flex justify-between items-center gap-4">
+                        <div className="flex gap-2">
+                            {(canApprove) && (
+                                <>
                                     <Button
-                                        variant="outline"
-                                        size="lg"
-                                        className="w-full md:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white h-12 text-base"
-                                        onClick={() => window.open(`/letters/${mail.id}/export-pdf`, '_blank')}
+                                        onClick={() => setApprovalAction('approve')}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
                                     >
-                                        <Download className="h-5 w-5 mr-2.5" />
-                                        Export PDF
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Approve
                                     </Button>
-                                    {!canApprove && (
-                                        <>
-                                            <Button variant="outline" size="lg" className="w-full md:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white h-12 text-base">
-                                                <Edit className="h-5 w-5 mr-2.5" />
-                                                Edit
-                                            </Button>
-                                            <Button variant="outline" size="lg" className="w-full md:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white h-12 text-base">
-                                                <Archive className="h-5 w-5 mr-2.5" />
-                                                Archive
-                                            </Button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </DialogContent>
+                                    <Button
+                                        onClick={() => setApprovalAction('reject')}
+                                        variant="destructive"
+                                        className="gap-2"
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        Reject
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
 
-                <DispositionModal
-                    isOpen={isDispositionOpen}
-                    onClose={() => setIsDispositionOpen(false)}
-                    letterId={mail.id}
-                />
+                            <Button variant="outline" className="border-zinc-700 hover:bg-zinc-800 text-zinc-300" onClick={() => onOpenChange(false)}>
+                                Close
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
             </Dialog>
+
+            <DispositionModal
+                isOpen={isDispositionOpen}
+                onClose={() => setIsDispositionOpen(false)}
+                letterId={mail.id}
+            />
+
+            <StaffDetailModal
+                open={isStaffDetailOpen}
+                onOpenChange={setIsStaffDetailOpen}
+                staff={selectedStaff}
+            />
 
             <AlertDialog open={!!approvalAction} onOpenChange={(open) => !open && setApprovalAction(null)}>
                 <AlertDialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100">

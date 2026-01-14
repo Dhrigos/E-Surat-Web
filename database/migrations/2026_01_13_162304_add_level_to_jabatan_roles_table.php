@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('letter_approvers', function (Blueprint $table) {
-            $table->timestamp('approved_at')->nullable()->after('status');
+        Schema::table('jabatan_roles', function (Blueprint $table) {
+            $table->integer('level')->default(99)->after('nama'); // Default high number (low priority)
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('letter_approvers', function (Blueprint $table) {
-            $table->dropColumn('approved_at');
+        Schema::table('jabatan_roles', function (Blueprint $table) {
+            $table->dropColumn('level');
         });
     }
 };

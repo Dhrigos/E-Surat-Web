@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, router } from '@inertiajs/react';
@@ -7,20 +6,27 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Pencil, Trash2, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, CheckCircle2, XCircle, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface JabatanRole {
     id: number;
     nama: string;
     is_active: boolean;
+    level: number;
 }
 
 interface Props {
     roles: {
         data: JabatanRole[];
         links: any[];
-        meta: any;
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
     };
     filters: {
         search?: string;
@@ -32,6 +38,12 @@ export default function Index({ roles, filters }: Props) {
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [editingRole, setEditingRole] = useState<JabatanRole | null>(null);
+    const [localRoles, setLocalRoles] = useState(roles.data);
+
+    // Sync local roles when props change
+    React.useEffect(() => {
+        setLocalRoles(roles.data);
+    }, [roles.data]);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         nama: '',
@@ -40,7 +52,7 @@ export default function Index({ roles, filters }: Props) {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get(route('data-master.jabatan-role.index'), { search }, { preserveState: true });
+        router.get(route('jabatan-roles.index'), { search }, { preserveState: true });
     };
 
     const openCreateModal = () => {
@@ -59,7 +71,7 @@ export default function Index({ roles, filters }: Props) {
 
     const handleSubmitCreate = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('data-master.jabatan-role.store'), {
+        post(route('jabatan-roles.store'), {
             onSuccess: () => {
                 setCreateModalOpen(false);
                 reset();
@@ -70,7 +82,7 @@ export default function Index({ roles, filters }: Props) {
     const handleSubmitEdit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingRole) return;
-        put(route('data-master.jabatan-role.update', editingRole.id), {
+        put(route('jabatan-roles.update', editingRole.id), {
             onSuccess: () => {
                 setEditModalOpen(false);
                 reset();
@@ -80,87 +92,134 @@ export default function Index({ roles, filters }: Props) {
 
     const handleDelete = (id: number) => {
         if (confirm('Apakah Anda yakin ingin menghapus role ini?')) {
-            destroy(route('data-master.jabatan-role.destroy', id));
+            destroy(route('jabatan-roles.destroy', id));
+        }
+    };
+
+    const onDragEnd = async (result: DropResult) => {
+        if (!result.destination) return;
+
+        const items = Array.from(localRoles);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+
+        setLocalRoles(items);
+
+        const payload = items.map((role, idx) => ({
+            id: role.id,
+            level: idx + 1 + ((roles.current_page - 1) * roles.per_page)
+        }));
+
+        try {
+            await axios.post(route('jabatan-roles.reorder'), { roles: payload });
+            toast.success('Urutan diperbarui');
+        } catch (error) {
+            console.error(error);
+            toast.error('Gagal memperbarui urutan');
+            setLocalRoles(roles.data);
         }
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Data Master', href: '#' },
-            { title: 'Jabatan Role', href: route('data-master.jabatan-role.index') },
-        ]}>
-            <Head title="Manajemen Jabatan Role" />
+        <AppLayout>
+            <Head title="Manajemen Jabatan" />
 
-            <div className="p-6 max-w-7xl mx-auto space-y-6">
+            <div className="p-6 w-full space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Manajemen Jabatan Role</h1>
-                        <p className="text-gray-400 text-sm mt-1">Kelola data role jabatan (misal: Ketua, Staff, Anggota)</p>
+                        <h1 className="text-2xl font-bold text-white">Manajemen Jabatan</h1>
+                        <p className="text-gray-400 text-sm mt-1">Kelola data jabatan (misal: Ketua, Staff, Anggota). Drag untuk mengatur hierarki.</p>
                     </div>
                     <Button onClick={openCreateModal} className="bg-red-600 hover:bg-red-700 text-white">
                         <Plus className="w-4 h-4 mr-2" />
-                        Tambah Role
+                        Tambah Jabatan
                     </Button>
                 </div>
 
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/10 overflow-hidden">
                     <div className="p-4 border-b border-white/10">
-                        <form onSubmit={handleSearch} className="relative max-w-md">
+                        <form onSubmit={handleSearch} className="relative w-full sm:max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                             <Input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Cari role..."
+                                placeholder="Cari jabatan..."
                                 className="pl-9 bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-red-500/50"
                             />
                         </form>
                     </div>
 
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="border-white/10 hover:bg-white/5">
-                                <TableHead className="text-gray-400">Nama Role</TableHead>
-                                <TableHead className="text-gray-400">Status</TableHead>
-                                <TableHead className="text-right text-gray-400">Aksi</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {roles.data.length > 0 ? (
-                                roles.data.map((role) => (
-                                    <TableRow key={role.id} className="border-white/10 hover:bg-white/5">
-                                        <TableCell className="font-medium text-white">{role.nama}</TableCell>
-                                        <TableCell>
-                                            {role.is_active ? (
-                                                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                                                    Aktif
-                                                </Badge>
-                                            ) : (
-                                                <Badge className="bg-red-500/10 text-red-500 border-red-500/20">
-                                                    Non-Aktif
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button size="icon" variant="ghost" onClick={() => openEditModal(role)} className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10">
-                                                    <Pencil className="w-4 h-4" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" onClick={() => handleDelete(role.id)} className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-400/10">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                    <div className="overflow-x-auto">
+                        <DragDropContext onDragEnd={onDragEnd}>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="border-white/10 hover:bg-white/5">
+                                        <TableHead className="w-[50px]"></TableHead>
+                                        <TableHead className="text-gray-400 pl-6">Nama Jabatan</TableHead>
+                                        <TableHead className="text-gray-400">Status</TableHead>
+                                        <TableHead className="text-right text-gray-400 pr-6">Aksi</TableHead>
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={3} className="h-24 text-center text-gray-500">
-                                        Tidak ada data role ditemukan.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                                </TableHeader>
+                                <Droppable droppableId="jabatan-roles">
+                                    {(provided) => (
+                                        <TableBody
+                                            {...provided.droppableProps}
+                                            ref={provided.innerRef}
+                                        >
+                                            {localRoles.length > 0 ? (
+                                                localRoles.map((role, index) => (
+                                                    <Draggable key={role.id} draggableId={role.id.toString()} index={index}>
+                                                        {(provided) => (
+                                                            <TableRow
+                                                                ref={provided.innerRef}
+                                                                {...provided.draggableProps}
+                                                                className="border-white/10 hover:bg-white/5"
+                                                            >
+                                                                <TableCell>
+                                                                    <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-white pl-4">
+                                                                        <GripVertical className="w-5 h-5" />
+                                                                    </div>
+                                                                </TableCell>
+                                                                <TableCell className="font-medium text-white pl-6">{role.nama}</TableCell>
+                                                                <TableCell>
+                                                                    {role.is_active ? (
+                                                                        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                                                                            Aktif
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <Badge className="bg-red-500/10 text-red-500 border-red-500/20">
+                                                                            Non-Aktif
+                                                                        </Badge>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell className="text-right pr-6">
+                                                                    <div className="flex justify-end gap-2">
+                                                                        <Button size="icon" variant="ghost" onClick={() => openEditModal(role)} className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10">
+                                                                            <Pencil className="w-4 h-4" />
+                                                                        </Button>
+                                                                        <Button size="icon" variant="ghost" onClick={() => handleDelete(role.id)} className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-400/10">
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )}
+                                                    </Draggable>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="h-24 text-center text-gray-500">
+                                                        Tidak ada data jabatan ditemukan.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                            {provided.placeholder}
+                                        </TableBody>
+                                    )}
+                                </Droppable>
+                            </Table>
+                        </DragDropContext>
+                    </div>
                 </div>
             </div>
 
@@ -168,12 +227,12 @@ export default function Index({ roles, filters }: Props) {
             <Dialog open={isCreateModalOpen} onOpenChange={setCreateModalOpen}>
                 <DialogContent className="bg-[#1a1a1a] border border-white/10 text-white sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Tambah Role Baru</DialogTitle>
-                        <DialogDescription className="text-gray-400">Tambahkan role jabatan baru ke dalam sistem.</DialogDescription>
+                        <DialogTitle>Tambah Jabatan Baru</DialogTitle>
+                        <DialogDescription className="text-gray-400">Tambahkan jabatan baru ke dalam sistem.</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmitCreate} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="create-nama">Nama Role</Label>
+                            <Label htmlFor="create-nama">Nama Jabatan</Label>
                             <Input
                                 id="create-nama"
                                 value={data.nama}
@@ -196,11 +255,11 @@ export default function Index({ roles, filters }: Props) {
             <Dialog open={isEditModalOpen} onOpenChange={setEditModalOpen}>
                 <DialogContent className="bg-[#1a1a1a] border border-white/10 text-white sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Edit Role</DialogTitle>
+                        <DialogTitle>Edit Jabatan</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmitEdit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="edit-nama">Nama Role</Label>
+                            <Label htmlFor="edit-nama">Nama Jabatan</Label>
                             <Input
                                 id="edit-nama"
                                 value={data.nama}

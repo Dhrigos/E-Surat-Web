@@ -19,10 +19,11 @@ return new class extends Migration
             $table->string('mail_type')->default('official');
             $table->text('description');
             $table->text('content')->nullable();
-            $table->string('file_path')->nullable();
+            $table->json('signature_positions')->nullable();
             $table->string('status')->default('draft');
-            $table->string('approver_position')->nullable();
+            $table->boolean('is_starred')->default(false);
             $table->foreignId('created_by')->constrained('users');
+            $table->foreignId('reference_letter_id')->nullable()->constrained('letters')->nullOnDelete();
             $table->timestamps();
         });
     }

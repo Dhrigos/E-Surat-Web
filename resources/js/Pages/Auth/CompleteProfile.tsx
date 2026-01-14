@@ -620,7 +620,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                             className="h-28 w-28 object-contain drop-shadow-2xl"
                         />
                     </div>
-                    <CardTitle className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight animate-in fade-in duration-700 delay-200 whitespace-nowrap">Badan Cadangan Nasional</CardTitle>
+                    <CardTitle className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight animate-in fade-in duration-700 delay-200 whitespace-nowrap">Sistem Informasi BACADNAS</CardTitle>
 
                     {step > 0 && (
                         <div className="flex justify-center items-center gap-2 md:gap-4 mb-4">
@@ -987,7 +987,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-white/10">
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Scan KTP</Label>
+                                        <Label className="text-white font-medium">Upload KTP</Label>
                                         {previews.scan_ktp && (
                                             <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
                                                 {previews.scan_ktp === 'PDF_FILE' || previews.scan_ktp === 'PDF_EXISTING' ? (
@@ -1010,7 +1010,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         {errors.scan_ktp && <p className="text-red-500 text-sm">{errors.scan_ktp}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Scan KTA</Label>
+                                        <Label className="text-white font-medium">Upload KTA</Label>
                                         {previews.scan_kta && (
                                             <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
                                                 {previews.scan_kta === 'PDF_FILE' ? (
@@ -1027,7 +1027,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         {errors.scan_kta && <p className="text-red-500 text-sm">{errors.scan_kta}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Scan SK</Label>
+                                        <Label className="text-white font-medium">Upload SK</Label>
                                         {previews.scan_sk && (
                                             <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
                                                 {previews.scan_sk === 'PDF_FILE' ? (

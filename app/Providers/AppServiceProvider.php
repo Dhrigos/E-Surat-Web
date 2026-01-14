@@ -38,6 +38,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Register authentication event listeners
         $this->registerAuthenticationListeners();
+
+        // Enforce Morph Map
+        \Illuminate\Database\Eloquent\Relations\Relation::enforceMorphMap([
+            'user' => 'App\Models\User',
+        ]);
     }
 
     /**

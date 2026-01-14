@@ -110,14 +110,30 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
 
     const roleOptions = useMemo(() => {
         if (!selectedUnit) return [];
-        let allowedNames = ['ANGGOTA', 'KETUA', 'WAKIL KETUA', 'SEKRETARIS', 'STAFF', 'WAKIL'];
 
-        if (selectedUnit.nama === 'ANGGOTA' && selectedUnit.level === 1) allowedNames = ['ANGGOTA'];
-        else if (selectedUnit.kategori === 'FUNGSIONAL') allowedNames = ['STAFF AHLI', 'STAFF KHUSUS', 'ANGGOTA'];
-        else if (selectedUnit.kategori === 'STRUKTURAL') allowedNames = ['KETUA', 'WAKIL KETUA', 'SEKRETARIS', 'ANGGOTA', 'STAFF'];
+        // Normalize checking values
+        const unitName = selectedUnit.nama?.toUpperCase() || '';
+        const unitCategory = selectedUnit.kategori?.toUpperCase() || '';
 
-        // Filter valid roles from master data
-        return jabatanRoles.filter(r => allowedNames.includes(r.nama));
+        // Define all possible roles mapping (add DB values here: "Direktur", "Kepala", "Staf")
+        const commonRoles = ['ANGGOTA', 'KETUA', 'WAKIL KETUA', 'SEKRETARIS', 'STAFF', 'WAKIL', 'DIREKTUR', 'KEPALA', 'STAF'];
+
+        let allowedNames = [...commonRoles];
+
+        if (unitName === 'ANGGOTA' && selectedUnit.level === 1) {
+            allowedNames = ['ANGGOTA', 'STAF', 'STAFF'];
+        }
+        else if (unitCategory === 'FUNGSIONAL') {
+            allowedNames = ['STAFF AHLI', 'STAFF KHUSUS', 'ANGGOTA', 'STAF', 'STAFF'];
+        }
+        else if (unitCategory === 'STRUKTURAL') {
+            allowedNames = ['KETUA', 'WAKIL KETUA', 'SEKRETARIS', 'ANGGOTA', 'STAFF', 'KEPALA', 'DIREKTUR', 'WAKIL', 'STAF'];
+        }
+
+        // Filter valid roles from master data (case-insensitive)
+        return jabatanRoles.filter(r =>
+            allowedNames.some(allowed => allowed.toUpperCase() === r.nama.toUpperCase())
+        );
     }, [selectedUnit, jabatanRoles]);
 
     const handleConfirm = () => {

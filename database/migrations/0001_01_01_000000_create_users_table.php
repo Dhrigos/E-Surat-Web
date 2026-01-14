@@ -15,9 +15,20 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('province')->nullable();
+            $table->string('profile')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
+            $table->boolean('is_active')->default(true);
+            $table->boolean('verifikasi')->default(0);
+            $table->timestamp('ekyc_verified_at')->nullable();
+            $table->timestamp('verified_at')->nullable();
+            $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('verification_locked_at')->nullable();
+            $table->foreignId('verification_locked_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->integer('verification_duration')->nullable(); // Duration in seconds
+            $table->text('rejection_reason')->nullable();
             $table->timestamps();
         });
 

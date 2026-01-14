@@ -21,30 +21,15 @@ export default function AppSidebarLayout({
             // @ts-ignore
             window.Echo.private(`App.Models.User.${user.id}`)
                 .notification((notification: any) => {
-                    if (notification.type === 'message') {
-                        // Check if current URL matches the conversation URL to avoid toast if already chatting
-                        const currentPath = window.location.pathname;
-                        // Determine conversation ID from URL if possible, or just string match
-                        // Assuming URL is /messages/{id}
-                        const isOnConversation = currentPath === `/messages/${notification.conversation_id}` || currentPath.startsWith(`/messages?conversation_id=${notification.conversation_id}`);
+                    if (notification.type === 'message') return;
 
-                        if (!isOnConversation) {
-                            toast.info(`${notification.sender_name}: ${notification.body}`, {
-                                action: {
-                                    label: 'Reply',
-                                    onClick: () => router.visit(notification.url)
-                                }
-                            });
+                    // Legacy letter notification
+                    toast.info(notification.message, {
+                        action: {
+                            label: 'View',
+                            onClick: () => router.visit(route('letters.show', notification.letter_id))
                         }
-                    } else {
-                        // Legacy letter notification
-                        toast.info(notification.message, {
-                            action: {
-                                label: 'View',
-                                onClick: () => router.visit(route('letters.show', notification.letter_id))
-                            }
-                        });
-                    }
+                    });
                 });
         }
 

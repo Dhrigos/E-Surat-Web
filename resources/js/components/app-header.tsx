@@ -18,7 +18,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { BreadcrumbItem, SharedData } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
 import { Bell, ChevronDown, LogOut, Menu, UserCog, Trash2, Mail, MessageSquare } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 
 interface AppHeaderProps {
@@ -31,10 +31,40 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
     const user = auth.user;
     const notifications = auth.notifications || [];
 
-    const unreadCount = notifications.filter((n: any) => !n.read_at).length;
+    const [localNotifications, setLocalNotifications] = useState(notifications);
+    useEffect(() => {
+        setLocalNotifications(notifications);
+    }, [notifications]);
+
+    useEffect(() => {
+        if (user?.id) {
+            // @ts-ignore
+            const channel = window.Echo.private(`App.Models.User.${user.id}`);
+
+            channel.notification((notification: any) => {
+                setLocalNotifications((prev: any[]) => {
+                    // Check if already exists to prevent duplicates (though typically new ID)
+                    if (prev.find(n => n.id === notification.id)) return prev;
+                    return [notification, ...prev];
+                });
+            });
+
+            return () => {
+                channel.stopListening('.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated');
+            };
+        }
+    }, [user?.id]);
+
+    const localUnreadCount = localNotifications.filter((n: any) => !n.read_at).length;
 
     const markAsRead = (id: string, onSuccess?: () => void) => {
         if (!id) return;
+
+        // Optimistic Update
+        setLocalNotifications((prev: any[]) => prev.map((n: any) =>
+            n.id === id ? { ...n, read_at: new Date().toISOString() } : n
+        ));
+
         router.post(route('notifications.read', id), {}, {
             preserveScroll: true,
             onSuccess: () => {
@@ -44,6 +74,9 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
     };
 
     const clearAllNotifications = () => {
+        // Optimistic Update
+        setLocalNotifications((prev: any[]) => prev.map((n: any) => ({ ...n, read_at: new Date().toISOString() })));
+
         router.post(route('notifications.clear-all'), {}, {
             preserveScroll: true,
         });
@@ -118,9 +151,9 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                             className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
                         >
                             <Bell className="h-5 w-5 md:h-6 md:w-6" />
-                            {unreadCount > 0 && (
+                            {localUnreadCount > 0 && (
                                 <Badge className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 flex items-center justify-center p-0 bg-red-600 text-white text-xs">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                    {localUnreadCount > 9 ? '9+' : localUnreadCount}
                                 </Badge>
                             )}
                         </Button>
@@ -134,9 +167,9 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                             className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
                         >
                             <Bell className="h-5 w-5 md:h-6 md:w-6" />
-                            {unreadCount > 0 && (
+                            {localUnreadCount > 0 && (
                                 <Badge className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 flex items-center justify-center p-0 bg-red-600 text-white text-xs">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                    {localUnreadCount > 9 ? '9+' : localUnreadCount}
                                 </Badge>
                             )}
                         </Button>
@@ -145,25 +178,38 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                         <div className="p-3 md:p-4 border-b border-border">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-semibold">Notifikasi</h3>
-                                {notifications.length > 0 && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={clearAllNotifications}
-                                        className="text-xs h-7 text-muted-foreground hover:text-foreground hover:bg-accent"
-                                    >
-                                        Tandai Semua Dibaca
-                                    </Button>
+                                {localNotifications.length > 0 && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={clearAllNotifications}
+                                            className="text-xs h-7 text-muted-foreground hover:text-foreground hover:bg-accent"
+                                        >
+                                            Tandai Dibaca
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                setLocalNotifications([]);
+                                                router.delete(route('notifications.delete-all'), { preserveScroll: true });
+                                            }}
+                                            className="text-xs h-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                        >
+                                            Hapus Semua
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         </div>
                         <div className="overflow-y-auto max-h-80">
-                            {notifications.length === 0 ? (
+                            {localNotifications.length === 0 ? (
                                 <div className="p-4 text-center text-muted-foreground text-sm">
                                     Tidak ada notifikasi
                                 </div>
                             ) : (
-                                notifications.map((notification: any) => (
+                                localNotifications.map((notification: any) => (
                                     <div
                                         key={notification.id}
                                         className={`p-3 md:p-4 border-b border-border hover:bg-accent/50 transition-colors ${!notification.read_at ? 'bg-accent/20' : ''}`}
@@ -172,20 +218,17 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                                             <div
                                                 className="flex-1 min-w-0 cursor-pointer"
                                                 onClick={() => {
-                                                    const visitUrl = () => router.visit(notification.data.type === 'message' ? notification.data.url : route('notifications.index')); // Fallback for others
+                                                    // Determine effective URL: use data.url if available, else fallback
+                                                    const targetUrl = notification.data.url
+                                                        ? notification.data.url
+                                                        : (notification.data.type === 'message' ? route('messages.index') : route('notifications.index'));
 
-                                                    if (notification.data.type === 'message') {
-                                                        if (!notification.read_at) {
-                                                            markAsRead(notification.id, visitUrl);
-                                                        } else {
-                                                            visitUrl();
-                                                        }
+                                                    const visitUrl = () => router.visit(targetUrl);
+
+                                                    if (!notification.read_at) {
+                                                        markAsRead(notification.id, visitUrl);
                                                     } else {
-                                                        if (!notification.read_at) {
-                                                            markAsRead(notification.id);
-                                                        }
-                                                        // For other types, maybe we don't visit or we do?
-                                                        // Previous logic implied just marking as read.
+                                                        visitUrl();
                                                     }
                                                 }}
                                             >
@@ -217,6 +260,14 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                                     </div>
                                 ))
                             )}
+                        </div>
+                        <div className="p-2 border-t border-border text-center">
+                            <Link
+                                href={route('notifications.index')}
+                                className="text-sm text-primary hover:underline"
+                            >
+                                Lihat Semua Notifikasi
+                            </Link>
                         </div>
                     </PopoverContent>
                 </Popover>
