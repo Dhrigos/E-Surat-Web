@@ -36,7 +36,9 @@ class LetterController extends Controller
             })->join(', '),
             'sender' => [
                 'name' => $letter->creator->name,
-                'position' => $letter->creator->staff?->jabatan?->nama ?? 'Unknown Position',
+                'position' => ($letter->creator->detail?->jabatanRole?->nama ?? 'Staff') . ($letter->creator->detail?->jabatan?->nama ? ' (' . $letter->creator->detail?->jabatan?->nama . ')' : ''),
+                'unit' => $letter->creator->detail?->jabatan?->nama ?? 'Instansi',
+                'role' => $letter->creator->detail?->jabatanRole?->nama ?? 'User',
                 'profile_photo_url' => $letter->creator->profile_photo_url,
             ],
             'status' => $letter->status,
@@ -57,8 +59,9 @@ class LetterController extends Controller
             'approvers' => $letter->approvers->map(fn ($a) => [
                 'user_id' => $a->user_id,
                 'approver_id' => $a->approver_id, // Add this line
-                'position' => $a->user?->staff?->jabatan?->nama ?? 'Pejabat',
-                'unit' => $a->user?->staff?->jabatan?->parent?->nama ?? 'Instansi',
+                'position' => ($a->user?->detail?->jabatanRole?->nama ?? 'Staff') . ($a->user?->detail?->jabatan?->nama ? ' (' . $a->user?->detail?->jabatan?->nama . ')' : ''),
+                'unit' => $a->user?->detail?->jabatan?->nama ?? 'Instansi',
+                'role' => $a->user?->detail?->jabatanRole?->nama ?? 'Approver',
                 'rank' => $a->user?->detail?->pangkat?->nama,
                 'status' => $a->status,
                 'order' => $a->order,
@@ -70,7 +73,12 @@ class LetterController extends Controller
                 'type' => $r->recipient_type,
                 'id' => $r->recipient_id,
                 'name' => $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name,
-                'position' => $r->recipient_type === 'user' ? (User::find($r->recipient_id)?->staff?->jabatan?->nama ?? 'Unknown Position') : 'Division',
+                'position' => $r->recipient_type === 'user' ? (function($userId) {
+                    $user = User::find($userId);
+                    return ($user?->detail?->jabatanRole?->nama ?? 'Staff') . ($user?->detail?->jabatan?->nama ? ' (' . $user?->detail?->jabatan?->nama . ')' : '');
+                })($r->recipient_id) : 'Division',
+                'unit' => $r->recipient_type === 'user' ? User::find($r->recipient_id)?->detail?->jabatan?->nama : null,
+                'role' => $r->recipient_type === 'user' ? User::find($r->recipient_id)?->detail?->jabatanRole?->nama : 'Recipient',
                 'profile_photo_url' => $r->recipient_type === 'user' ? User::find($r->recipient_id)?->profile_photo_url : null,
             ]),
             'dispositions' => $letter->dispositions
@@ -102,7 +110,7 @@ class LetterController extends Controller
         $letterTypeFilter = $request->input('letter_type');
 
         // Sent mails query
-        $sentQuery = Letter::with(['recipients', 'approvers.user.staff.jabatan', 'approvers.user.detail', 'attachments', 'creator', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
+        $sentQuery = Letter::with(['recipients', 'approvers.user.detail.jabatan', 'approvers.user.detail.jabatanRole', 'approvers.user.detail', 'attachments', 'creator.detail.jabatan', 'creator.detail.jabatanRole', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where('created_by', $user->id);
 
         if ($search) {
@@ -141,7 +149,7 @@ class LetterController extends Controller
         // Inbox mails query
         $inboxQuery = LetterRecipient::where('recipient_type', 'user')
             ->where('recipient_id', $user->id)
-            ->with(['letter.creator', 'letter.attachments', 'letter.approvers.user.staff.jabatan', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.detail.jabatan', 'letter.creator.detail.jabatanRole', 'letter.attachments', 'letter.approvers.user.detail.jabatan', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $inboxQuery->whereHas('letter', function ($q) use ($search) {
@@ -206,7 +214,7 @@ class LetterController extends Controller
                 AND prev.order < letter_approvers.order 
                 AND prev.status != "approved"
             )')
-            ->with(['letter.creator', 'letter.attachments', 'letter.approvers.user.staff.jabatan', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.detail.jabatan', 'letter.creator.detail.jabatanRole', 'letter.attachments', 'letter.approvers.user.detail.jabatan', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $approvalsQuery->whereHas('letter', function ($q) use ($search) {
@@ -234,7 +242,7 @@ class LetterController extends Controller
         // Already Approved Query
         $alreadyApprovedQuery = LetterApprover::where('user_id', $user->id)
             ->where('status', 'approved')
-            ->with(['letter.creator', 'letter.attachments', 'letter.approvers.user.staff.jabatan', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.detail.jabatan', 'letter.creator.detail.jabatanRole', 'letter.attachments', 'letter.approvers.user.detail.jabatan', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $alreadyApprovedQuery->whereHas('letter', function ($q) use ($search) {
@@ -292,20 +300,21 @@ class LetterController extends Controller
 
     public function create(Request $request)
     {
-        $users = User::with(['staff.jabatan.parent', 'detail.pangkat'])
+        $users = User::with(['detail.jabatan.parent', 'detail.jabatanRole', 'detail.pangkat'])
             ->get()
             ->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
                     'username' => $user->username,
-                    'position_name' => $user->staff?->jabatan?->nama,
+                    'position_name' => ($user->detail?->jabatanRole?->nama ?? 'Staff') . ($user->detail?->jabatan?->nama ? ' (' . $user->detail?->jabatan?->nama . ')' : ''),
                     'rank' => $user->detail?->pangkat?->nama,
-                    'unit' => $user->staff?->jabatan?->parent?->nama,
+                    'unit' => $user->detail?->jabatan?->parent?->nama,
+                    'signature_url' => $user->detail?->tanda_tangan ? Storage::url($user->detail->tanda_tangan) : null,
                     // Allow nested access if frontend expects it
-                    'staff' => $user->staff ? [
-                        'jabatan' => $user->staff->jabatan ? [
-                            'nama' => $user->staff->jabatan->nama
+                    'staff' => $user->detail ? [
+                        'jabatan' => $user->detail->jabatan ? [
+                            'nama' => $user->detail->jabatan->nama
                         ] : null
                     ] : null
                 ];

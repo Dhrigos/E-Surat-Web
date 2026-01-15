@@ -14,12 +14,13 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolePermissionSeeder::class,
-            // MasterDataSeeder::class,
-            // LetterSettingSeeder::class,
             UserSeeder::class,
-            // LetterTransactionSeeder::class,
             \Laravolt\Indonesia\Seeds\DatabaseSeeder::class,
             JabatanSeeder::class,
+            JabatanRoleSeeder::class,
+            GolonganPangkatSeeder::class,
+            LetterTypeSeeder::class,
+            MakoSeeder::class,
         ]);
     }
 }

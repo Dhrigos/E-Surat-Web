@@ -32,6 +32,10 @@ class RegionController extends Controller
 
     public function makos(Request $request)
     {
-        return response()->json(\App\Models\Mako::where('city_code', $request->city_code)->select('id', 'name')->get());
+        if ($request->has('province_code') && $request->province_code) {
+            return response()->json(\App\Models\Mako::where('province_code', $request->province_code)->select('id', 'name')->get());
+        }
+
+        return response()->json([]);
     }
 }

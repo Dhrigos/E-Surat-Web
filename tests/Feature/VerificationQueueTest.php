@@ -17,10 +17,28 @@ test('can list verification queue', function () {
 
 test('can verify user', function () {
     $userToVerify = User::factory()->create();
+    
+    // Create Detail for the user to trigger Staff creation logic
+    $jabatan = \App\Models\Jabatan::firstOrCreate(['nama' => 'Test Jabatan', 'is_active' => true]);
+    $pangkat = \App\Models\Pangkat::firstOrCreate(['nama' => 'Test Pangkat', 'tingkat' => 1]);
+    
+    $userToVerify->detail()->create([
+       'nia_nrp' => '123456',
+       'nik' => '987654',
+       'jabatan_id' => $jabatan->id,
+       'pangkat_id' => $pangkat->id,
+    ]);
 
     $response = $this->post(route('verification-queue.verify', $userToVerify));
 
     $response->assertRedirect();
+    
+    // Assert staff was created
+    $this->assertDatabaseHas('staff', [
+        'user_id' => $userToVerify->id,
+        'email' => $userToVerify->email,
+        'pangkat_id' => $pangkat->id,
+    ]);
 });
 
 test('it records verification duration', function () {

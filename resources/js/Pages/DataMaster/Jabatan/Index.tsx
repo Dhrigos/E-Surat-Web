@@ -419,6 +419,8 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
 
 
 
+
+
                         <div className="flex gap-3 pt-4">
                             <Button type="submit" disabled={createForm.processing}>
                                 {createForm.processing ? 'Menyimpan...' : 'Simpan'}
@@ -478,6 +480,8 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                             />
                             <p className="text-xs text-muted-foreground">Biarkan kosong jika berada di root.</p>
                         </div>
+
+
 
 
 

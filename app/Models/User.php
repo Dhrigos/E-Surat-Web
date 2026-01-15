@@ -5,15 +5,15 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-// use Laravel\Fortify\TwoFactorAuthenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, LogsActivity, Notifiable, HasRoles;
+    use HasFactory, LogsActivity, Notifiable, HasRoles, SoftDeletes;
 
     /**
      * Define the roles relationship manually to avoid using Spatie's HasRoles trait.
@@ -41,6 +41,8 @@ class User extends Authenticatable
         'nia_nrp',
         'profile',
         'ekyc_verified_at',
+        'verified_at',
+        'verified_by',
     ];
 
     public function detail(): \Illuminate\Database\Eloquent\Relations\HasOne

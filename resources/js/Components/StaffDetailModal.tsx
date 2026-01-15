@@ -64,34 +64,8 @@ export default function StaffDetailModal({ open, onOpenChange, staff }: StaffDet
                             <span className="text-zinc-500">Jabatan</span>
                             <span className="col-span-2 font-medium text-zinc-200">{staff.jabatan}</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
-                            <span className="text-zinc-500">Pangkat</span>
-                            <span className="col-span-2 font-medium text-zinc-200">{staff.pangkat}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                            <span className="text-zinc-500">NIP</span>
-                            <span className="col-span-2 font-medium text-zinc-200">{staff.nip || '-'}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                            <span className="text-zinc-500">NIK</span>
-                            <span className="col-span-2 font-medium text-zinc-200">{staff.nik || '-'}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                            <span className="text-zinc-500">Bergabung</span>
-                            <span className="col-span-2 font-medium text-zinc-200">{staff.join_date || '-'}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                            <span className="text-zinc-500">Status</span>
-                            <span className="col-span-2 font-medium text-zinc-200">
-                                {staff.status === 'active' ? (
-                                    <span className="text-emerald-500 flex items-center gap-1">
-                                        Terverifikasi
-                                    </span>
-                                ) : (
-                                    <span className="text-rose-500">Belum Terverifikasi</span>
-                                )}
-                            </span>
-                        </div>
+
+
                     </div>
                 </div>
             </DialogContent>

@@ -100,6 +100,22 @@ export default function DispositionIndex({ dispositions }: Props) {
                 setSelectedDisposition(prev => prev ? { ...prev, status: updatedStatus } : null);
             }
 
+            const getPositionName = (detail: any) => {
+                const roleName = detail?.jabatan_role?.name;
+                const jabatanName = detail?.jabatan?.nama;
+                const jabatanLengkap = detail?.jabatan?.nama_lengkap;
+
+                if (jabatanLengkap) return jabatanLengkap;
+                if (roleName && jabatanName) {
+                    // Check if roleName is already part of jabatanName (case insensitive)
+                    if (jabatanName.toLowerCase().includes(roleName.toLowerCase())) {
+                        return jabatanName;
+                    }
+                    return `${roleName} ${jabatanName}`;
+                }
+                return roleName || jabatanName || 'Staff';
+            };
+
             setDetailedMail({
                 ...response.data,
                 // Ensure date format matches UI expectations if needed
@@ -107,7 +123,7 @@ export default function DispositionIndex({ dispositions }: Props) {
                 sender: response.data.sender ? {
                     name: response.data.sender.name,
                     email: response.data.sender.email,
-                    position: response.data.sender.detail?.jabatan_role?.name || 'Staff',
+                    position: getPositionName(response.data.sender.detail),
                     unit: response.data.sender.detail?.jabatan?.nama || 'Unknown Unit',
                     pangkat: response.data.sender.detail?.pangkat?.nama || '-',
                     jabatan: response.data.sender.detail?.jabatan_role?.name || '-',
@@ -123,7 +139,7 @@ export default function DispositionIndex({ dispositions }: Props) {
                     id: r.recipient_id,
                     name: r.recipient?.name || r.recipient_name || 'Unknown',
                     email: r.recipient?.email,
-                    position: r.recipient?.detail?.jabatan_role?.name,
+                    position: getPositionName(r.recipient?.detail),
                     unit: r.recipient?.detail?.jabatan?.nama || 'Unknown Unit',
                     pangkat: r.recipient?.detail?.pangkat?.nama || '-',
                     jabatan: r.recipient?.detail?.jabatan_role?.name || '-',
@@ -137,7 +153,7 @@ export default function DispositionIndex({ dispositions }: Props) {
                 approvers: response.data.approvers?.map((a: any) => ({
                     user_id: a.user_id || a.user?.id,
                     approver_id: a.id,
-                    position: a.user?.detail?.jabatan_role?.name || 'Approver',
+                    position: getPositionName(a.user?.detail),
                     user_name: a.user?.name,
                     email: a.user?.email,
                     unit: a.user?.detail?.jabatan?.nama || 'Unknown Unit',
@@ -297,7 +313,7 @@ export default function DispositionIndex({ dispositions }: Props) {
                     open={showFullDetail}
                     onOpenChange={setShowFullDetail}
                     mail={detailedMail}
-                    hideTimeline={true}
+                    hideTimeline={false}
                 />
             )}
         </AppLayout>

@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
@@ -44,6 +44,21 @@ interface Staff {
     tanggal_masuk: string;
     role: string;
     status: string; // active (verified) or inactive
+    pangkat: string;
+    detail?: {
+        tempat_lahir: string;
+        tanggal_lahir: string;
+        jenis_kelamin: string;
+        alamat: string;
+        nomor_kta: string;
+        kta_expired_at: string;
+        is_kta_lifetime: boolean;
+        foto_profil: string | null;
+        scan_ktp: string | null;
+        scan_kta: string | null;
+        scan_sk: string | null;
+        tanda_tangan: string | null;
+    };
 }
 
 interface Props {
@@ -285,10 +300,12 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
                                 <p className="text-xs text-muted-foreground uppercase tracking-wide">{s.jabatan.nama}</p>
 
                                 <div className="space-y-1 text-xs text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                        <IdCard className="h-3 w-3" />
-                                        <span>NIP: {s.nip}</span>
-                                    </div>
+                                    {s.nip && s.nip !== '-' && (
+                                        <div className="flex items-center gap-1">
+                                            <IdCard className="h-3 w-3" />
+                                            <span>NIP: {s.nip}</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-1">
                                         <IdCard className="h-3 w-3" />
                                         <span>NIK: {s.nik}</span>
@@ -410,50 +427,125 @@ export default function StaffList({ staff, jabatan = [], filters }: Props) {
 
             {/* Detail Dialog */}
             <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="w-full max-w-6xl bg-[#0f0f0f] border-white/10 text-white font-sans">
                     <DialogHeader>
-                        <DialogTitle>Detail Staff</DialogTitle>
+                        <DialogTitle>Detail Profil Anggota</DialogTitle>
                     </DialogHeader>
                     {viewingStaff && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                                <Avatar className="h-16 w-16">
-                                    <AvatarFallback className="text-xl">
+                        <div className="space-y-6">
+                            {/* Header Section */}
+                            <div className="flex items-start gap-5 p-4 bg-white/5 rounded-lg border border-white/5">
+                                <Avatar className="h-20 w-20 border-2 border-white/10 shadow-lg">
+                                    {/* Use photo if available */
+                                        viewingStaff.detail?.foto_profil && (
+                                            <AvatarImage src={viewingStaff.detail.foto_profil} alt={viewingStaff.name} className="object-cover" />
+                                        )
+                                    }
+                                    <AvatarFallback className="text-2xl bg-gradient-to-br from-red-600 to-red-900 text-white font-bold">
                                         {viewingStaff.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div>
-                                    <h3 className="font-bold text-lg">{viewingStaff.name}</h3>
-                                    <p className="text-muted-foreground">{viewingStaff.email}</p>
-                                    <Badge className={getRoleColor(viewingStaff.role) + " mt-2"}>{viewingStaff.role}</Badge>
+                                <div className="space-y-1">
+                                    <h3 className="font-bold text-xl">{viewingStaff.name}</h3>
+                                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                        <Mail className="w-4 h-4" /> {viewingStaff.email}
+                                    </div>
+                                    <div className="flex gap-2 mt-2">
+                                        <Badge variant="outline" className={getRoleColor(viewingStaff.role)}>{viewingStaff.role}</Badge>
+                                        <Badge variant="outline" className={getStatusColor(viewingStaff.status)}>
+                                            {viewingStaff.status === 'active' ? 'Terverifikasi' : 'Belum Terverifikasi'}
+                                        </Badge>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-2 text-sm border-t pt-4">
-                                <div className="grid grid-cols-3">
-                                    <span className="text-muted-foreground">Jabatan</span>
-                                    <span className="col-span-2 font-medium">{viewingStaff.position || '-'}</span>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Kepegawaian */}
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Data Kepegawaian</h4>
+                                    <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                                        <span className="text-gray-500">Jabatan</span>
+                                        <span className="font-medium">{viewingStaff.position || '-'}</span>
+
+                                        <span className="text-gray-500">Pangkat</span>
+                                        <span className="font-medium">{viewingStaff.pangkat || '-'}</span>
+
+                                        <span className="text-gray-500">Unit Kerja</span>
+                                        <span className="font-medium">{viewingStaff.jabatan.nama}</span>
+
+                                        <span className="text-gray-500">NIP/NIA</span>
+                                        <span className="font-medium">
+                                            {viewingStaff.nip && viewingStaff.nip !== '-' ? viewingStaff.nip : viewingStaff.nia}
+                                        </span>
+
+                                        <span className="text-gray-500">Nomor KTA</span>
+                                        <span className="font-medium">{viewingStaff.detail?.nomor_kta || '-'}</span>
+
+                                        <span className="text-gray-500">Masa KTA</span>
+                                        <span className="font-medium">
+                                            {viewingStaff.detail?.is_kta_lifetime ? 'Seumur Hidup' : (viewingStaff.detail?.kta_expired_at || '-')}
+                                        </span>
+
+                                        <span className="text-gray-500">Bergabung</span>
+                                        <span className="font-medium">{viewingStaff.tanggal_masuk}</span>
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-3">
-                                    <span className="text-muted-foreground">Unit Kerja</span>
-                                    <span className="col-span-2 font-medium">{viewingStaff.jabatan.nama}</span>
+
+                                {/* Pribadi */}
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Data Pribadi</h4>
+                                    <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                                        <span className="text-gray-500">NIK</span>
+                                        <span className="font-medium">{viewingStaff.nik}</span>
+
+                                        <span className="text-gray-500">TTL</span>
+                                        <span className="font-medium">
+                                            {viewingStaff.detail?.tempat_lahir}, {viewingStaff.detail?.tanggal_lahir}
+                                        </span>
+
+                                        <span className="text-gray-500">Alamat</span>
+                                        <span className="font-medium line-clamp-3" title={viewingStaff.detail?.alamat}>
+                                            {viewingStaff.detail?.alamat || '-'}
+                                        </span>
+
+                                        <span className="text-gray-500">Tanda Tangan</span>
+                                        <div className="mt-1">
+                                            {viewingStaff.detail?.tanda_tangan ? (
+                                                <img src={viewingStaff.detail.tanda_tangan} alt="TTD" className="h-10 border border-white/20 bg-white rounded p-1" />
+                                            ) : '-'}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-3">
-                                    <span className="text-muted-foreground">NIP</span>
-                                    <span className="col-span-2 font-medium">{viewingStaff.nip}</span>
-                                </div>
-                                <div className="grid grid-cols-3">
-                                    <span className="text-muted-foreground">NIK</span>
-                                    <span className="col-span-2 font-medium">{viewingStaff.nik}</span>
-                                </div>
-                                <div className="grid grid-cols-3">
-                                    <span className="text-muted-foreground">Bergabung</span>
-                                    <span className="col-span-2 font-medium">{viewingStaff.tanggal_masuk}</span>
-                                </div>
-                                <div className="grid grid-cols-3">
-                                    <span className="text-muted-foreground">Status</span>
-                                    <span className="col-span-2 font-medium">
-                                        {viewingStaff.status === 'active' ? 'Terverifikasi' : 'Belum Terverifikasi'}
-                                    </span>
+                            </div>
+
+                            {/* Documents */}
+                            <div className="space-y-3 pt-2">
+                                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Dokumen Digital</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { label: 'KTP', file: viewingStaff.detail?.scan_ktp },
+                                        { label: 'KTA', file: viewingStaff.detail?.scan_kta },
+                                        { label: 'SK', file: viewingStaff.detail?.scan_sk },
+                                        { label: 'Foto Profil', file: viewingStaff.detail?.foto_profil },
+                                    ].map((doc, i) => (
+                                        <div key={i} className="bg-white/5 rounded p-3 text-center border border-white/5 hover:border-white/20 transition-colors">
+                                            <p className="text-xs text-gray-400 mb-2">{doc.label}</p>
+                                            {doc.file ? (
+                                                <a href={doc.file} target="_blank" rel="noreferrer" className="block">
+                                                    <div className="aspect-video bg-black/50 rounded flex items-center justify-center mb-2 overflow-hidden">
+                                                        {doc.file.endsWith('.pdf') ? (
+                                                            <div className="text-xs">PDF</div>
+                                                        ) : (
+                                                            <img src={doc.file} className="w-full h-full object-cover opacity-70 hover:opacity-100" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs text-blue-400 hover:underline">Lihat</span>
+                                                </a>
+                                            ) : (
+                                                <span className="text-xs text-gray-600 italic">Tidak ada</span>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

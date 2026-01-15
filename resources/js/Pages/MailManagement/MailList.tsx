@@ -301,28 +301,28 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
                 <Tabs defaultValue="inbox" className="space-y-6" onValueChange={(val) => {
                     setActiveTab(val);
                 }}>
-                    <TabsList className="w-full bg-transparent p-0 h-auto border-b border-zinc-200 dark:border-zinc-800 flex justify-start gap-8 rounded-none shadow-none">
+                    <TabsList className="w-auto inline-flex bg-zinc-100 dark:bg-zinc-900 p-1 h-auto rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-inner">
                         <TabsTrigger
                             value="inbox"
-                            className="rounded-none px-0 py-3 text-sm font-medium text-muted-foreground bg-transparent ring-0 outline-none border-0 border-b-2 border-transparent data-[state=active]:border-red-600 data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all hover:text-foreground hover:bg-transparent"
+                            className="rounded-lg px-6 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-red-600 data-[state=active]:shadow-sm transition-all"
                         >
                             Inbox {inboxMails.total > 0 ? `(${inboxMails.total})` : ''}
                         </TabsTrigger>
                         <TabsTrigger
                             value="approvals"
-                            className="rounded-none px-0 py-3 text-sm font-medium text-muted-foreground bg-transparent ring-0 outline-none border-0 border-b-2 border-transparent data-[state=active]:border-red-600 data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all hover:text-foreground hover:bg-transparent"
+                            className="rounded-lg px-6 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-red-600 data-[state=active]:shadow-sm transition-all"
                         >
                             Approval {(incomingApprovals?.total > 0) ? `(${incomingApprovals.total})` : ''}
                         </TabsTrigger>
                         <TabsTrigger
                             value="sent"
-                            className="rounded-none px-0 py-3 text-sm font-medium text-muted-foreground bg-transparent ring-0 outline-none border-0 border-b-2 border-transparent data-[state=active]:border-red-600 data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all hover:text-foreground hover:bg-transparent"
+                            className="rounded-lg px-6 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-red-600 data-[state=active]:shadow-sm transition-all"
                         >
                             Sent {sentMails.total > 0 ? `(${sentMails.total})` : ''}
                         </TabsTrigger>
                         <TabsTrigger
                             value="approved"
-                            className="rounded-none px-0 py-3 text-sm font-medium text-muted-foreground bg-transparent ring-0 outline-none border-0 border-b-2 border-transparent data-[state=active]:border-red-600 data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all hover:text-foreground hover:bg-transparent"
+                            className="rounded-lg px-6 py-2.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-red-600 data-[state=active]:shadow-sm transition-all"
                         >
                             Approved {alreadyApprovedMails?.total > 0 ? `(${alreadyApprovedMails.total})` : ''}
                         </TabsTrigger>
@@ -330,22 +330,12 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
 
                     <TabsContent value="inbox" className="space-y-4 mt-6">
                         {inboxMails.data.length === 0 ? (
-                            <div className="relative overflow-hidden text-center py-16 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 dark:from-blue-950/20 dark:via-[#18181b] dark:to-purple-950/20 rounded-2xl border border-border dark:border-zinc-800 shadow-lg">
-                                {/* Background decoration */}
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 dark:bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-                                <div className="relative z-10">
-                                    <div className="inline-flex p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-2xl mb-6 animate-pulse">
-                                        <FileText className="h-16 w-16 text-blue-600 dark:text-blue-400" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">Inbox Kosong</h3>
-                                    <p className="text-muted-foreground max-w-md mx-auto mb-6">Belum ada surat masuk. Surat yang diterima akan muncul di sini.</p>
-                                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                        <span>Menunggu surat masuk...</span>
-                                    </div>
+                            <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/20">
+                                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                                    <FileText className="w-8 h-8 text-zinc-400" />
                                 </div>
+                                <h3 className="text-xl font-bold text-foreground mb-2">Inbox Kosong</h3>
+                                <p className="text-muted-foreground max-w-sm mx-auto mb-6">Belum ada surat masuk saat ini.</p>
                             </div>
                         ) : (
                             <>
@@ -359,21 +349,12 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
 
                     <TabsContent value="approvals" className="space-y-4 mt-6">
                         {incomingApprovals?.data.length === 0 ? (
-                            <div className="relative overflow-hidden text-center py-16 bg-gradient-to-br from-green-50/50 via-white to-emerald-50/50 dark:from-green-950/20 dark:via-[#18181b] dark:to-emerald-950/20 rounded-2xl border border-border dark:border-zinc-800 shadow-lg">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 dark:bg-green-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-                                <div className="relative z-10">
-                                    <div className="inline-flex p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 rounded-2xl mb-6">
-                                        <CheckCircle className="h-16 w-16 text-green-600 dark:text-green-400" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">Semua Beres!</h3>
-                                    <p className="text-muted-foreground max-w-md mx-auto mb-6">Tidak ada surat yang menunggu persetujuan Anda saat ini.</p>
-                                    <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400">
-                                        <CheckCircle className="w-4 h-4" />
-                                        <span className="font-medium">Semua approval selesai</span>
-                                    </div>
+                            <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/20">
+                                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                                    <CheckCircle className="w-8 h-8 text-zinc-400" />
                                 </div>
+                                <h3 className="text-xl font-bold text-foreground mb-2">Semua Beres!</h3>
+                                <p className="text-muted-foreground max-w-sm mx-auto mb-6">Tidak ada surat yang menunggu persetujuan Anda saat ini.</p>
                             </div>
                         ) : (
                             <>
@@ -387,23 +368,18 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
 
                     <TabsContent value="sent" className="space-y-4 mt-6">
                         {sentMails.data.length === 0 ? (
-                            <div className="relative overflow-hidden text-center py-16 bg-gradient-to-br from-orange-50/50 via-white to-red-50/50 dark:from-orange-950/20 dark:via-[#18181b] dark:to-red-950/20 rounded-2xl border border-border dark:border-zinc-800 shadow-lg">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 dark:bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-500/5 dark:bg-red-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-                                <div className="relative z-10">
-                                    <div className="inline-flex p-4 bg-gradient-to-br from-orange-500/10 to-red-500/10 dark:from-orange-500/20 dark:to-red-500/20 rounded-2xl mb-6">
-                                        <PenLine className="h-16 w-16 text-red-600 dark:text-red-400" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-400 dark:to-red-400 bg-clip-text text-transparent">Belum Ada Surat Terkirim</h3>
-                                    <p className="text-muted-foreground max-w-md mx-auto mb-6">Mulai buat surat pertama Anda. Semua surat yang dikirim akan tersimpan di sini.</p>
-                                    <Link href="/buat-surat">
-                                        <Button className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white gap-2 rounded-full px-6 shadow-lg hover:shadow-red-600/30 transition-all">
-                                            <PenLine className="h-4 w-4" />
-                                            <span>Tulis Surat Pertama</span>
-                                        </Button>
-                                    </Link>
+                            <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/20">
+                                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                                    <PenLine className="w-8 h-8 text-zinc-400" />
                                 </div>
+                                <h3 className="text-xl font-bold text-foreground mb-2">Belum Ada Surat Terkirim</h3>
+                                <p className="text-muted-foreground max-w-sm mx-auto mb-6">Mulai buat surat pertama Anda. Semua surat yang dikirim akan tersimpan di sini.</p>
+                                <Link href="/buat-surat">
+                                    <Button className="bg-red-600 hover:bg-red-700 text-white gap-2 rounded-full px-6 transition-all">
+                                        <PenLine className="h-4 w-4" />
+                                        <span>Tulis Surat Pertama</span>
+                                    </Button>
+                                </Link>
                             </div>
                         ) : (
                             <>
@@ -417,17 +393,12 @@ export default function MailList({ sentMails, inboxMails, incomingApprovals, alr
 
                     <TabsContent value="approved" className="space-y-4 mt-6">
                         {alreadyApprovedMails?.data.length === 0 ? (
-                            <div className="relative overflow-hidden text-center py-16 bg-gradient-to-br from-teal-50/50 via-white to-cyan-50/50 dark:from-teal-950/20 dark:via-[#18181b] dark:to-cyan-950/20 rounded-2xl border border-border dark:border-zinc-800 shadow-lg">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 dark:bg-teal-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                                <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-                                <div className="relative z-10">
-                                    <div className="inline-flex p-4 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 dark:from-teal-500/20 dark:to-cyan-500/20 rounded-2xl mb-6">
-                                        <Star className="h-16 w-16 text-teal-600 dark:text-teal-400" />
-                                    </div>
-                                    <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">Belum Ada Approval</h3>
-                                    <p className="text-muted-foreground max-w-md mx-auto">Surat yang sudah Anda setujui akan ditampilkan di sini untuk referensi.</p>
+                            <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/20">
+                                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                                    <Star className="w-8 h-8 text-zinc-400" />
                                 </div>
+                                <h3 className="text-xl font-bold text-foreground mb-2">Belum Ada Approval</h3>
+                                <p className="text-muted-foreground max-w-sm mx-auto mb-6">Surat yang sudah Anda setujui akan ditampilkan di sini.</p>
                             </div>
                         ) : (
                             <>

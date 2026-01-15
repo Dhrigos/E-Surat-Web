@@ -3,7 +3,7 @@ import { useForm, Head, Link, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { DateSelect } from '@/components/ui/date-select';
 import { ImageCropper } from '@/components/ui/image-cropper';
-// import { FastInput } from '@/components/ui/fast-input';
+import { FastInput } from '@/components/ui/fast-input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import SignatureCanvas from 'react-signature-canvas';
 import { CascadingJabatanSelector } from '@/components/CascadingJabatanSelector';
+import { SearchableSelect } from '@/components/SearchableSelect';
 
 interface Golongan {
     id: number;
@@ -41,33 +42,7 @@ interface Props {
     rejectionReason?: string;
 }
 
-function FastInput({ value: initialValue, onChange, onBlur, onValueChange, className, ...props }: React.ComponentProps<typeof Input> & { onValueChange?: (value: string) => void }) {
-    const [value, setValue] = useState(initialValue || "");
 
-    useEffect(() => {
-        setValue(initialValue || "");
-    }, [initialValue]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setValue(e.target.value);
-        onChange?.(e);
-        onValueChange?.(e.target.value);
-    };
-
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        onBlur?.(e);
-    };
-
-    return (
-        <Input
-            value={value}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={className}
-            {...props}
-        />
-    );
-}
 
 export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], golongans = [], pangkats = [], rejectionReason }: Props) {
     // Main Form Step (starts after E-KYC)
@@ -113,10 +88,10 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
         scan_sk: null as File | null,
         tanda_tangan: null as File | null,
 
-        // Office Address
         office_province_id: auth.user?.detail?.office_province_id || '',
-        office_city_id: auth.user?.detail?.office_city_id || '',
         mako_id: auth.user?.detail?.mako_id || '',
+        kta_expired_at: auth.user?.detail?.kta_expired_at ? new Date(auth.user.detail.kta_expired_at) : undefined,
+        is_kta_lifetime: auth.user?.detail?.is_kta_lifetime === (true as any || 1 as any),
     });
 
     const filteredPangkats = useMemo(() => {
@@ -134,7 +109,6 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
     const [birthplaceCities, setBirthplaceCities] = useState<any[]>([]);
 
     // Office address region states
-    const [officeCities, setOfficeCities] = useState<any[]>([]);
     const [makos, setMakos] = useState<any[]>([]);
 
     // Preview states
@@ -146,8 +120,14 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
     // Signature canvas ref and modal state
     const signatureRef = useRef<SignatureCanvas>(null);
+    const [signatures, setSignatures] = useState<any[]>([]);
     const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
-    const [signatureFilename, setSignatureFilename] = useState<string>('');
+    const [signatureFilename, setSignatureFilename] = useState<string>(''); // Filename from backend
+    const signatureCanvasRef = useRef<any>(null); // Ref for canvas
+
+    // File input refs for custom triggers
+    const ktaInputRef = useRef<HTMLInputElement>(null);
+    const skInputRef = useRef<HTMLInputElement>(null);
     const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
 
 
@@ -176,9 +156,15 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
     const jabatanDisplayText = useMemo(() => {
         const roleObj = jabatanRoles.find(r => r.id.toString() === data.jabatan_role_id);
         const roleName = roleObj ? roleObj.nama : '';
-        return selectedJabatanObj
-            ? `${selectedJabatanObj.nama}${roleName ? ' - ' + roleName : ''}`
-            : 'Pilih Jabatan...';
+
+        if (!selectedJabatanObj) return 'Pilih Jabatan...';
+
+        // Check for duplicates like ANGGOTA - Anggota
+        if (roleName && selectedJabatanObj.nama.toLowerCase() === roleName.toLowerCase()) {
+            return roleName; // Return just the role name (e.g. "Anggota")
+        }
+
+        return `${selectedJabatanObj.nama}${roleName ? ' - ' + roleName : ''}`;
     }, [selectedJabatanObj, data.jabatan_role_id, jabatanRoles]);
 
     // Handler to prevent re-creation on every render (Optimized for Modal)
@@ -251,12 +237,13 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
         setData(field as any, finalFile);
         clearErrors(field as any);
 
-        const objectUrl = URL.createObjectURL(finalFile);
-        // Check if PDF for preview logic
-        if (finalFile.type === 'application/pdf') {
-            setPreviews(prev => ({ ...prev, [field]: 'PDF_FILE' })); // Marker for PDF
-        } else {
+        // Check if image for preview
+        if (finalFile.type.startsWith('image/')) {
+            const objectUrl = URL.createObjectURL(finalFile);
             setPreviews(prev => ({ ...prev, [field]: objectUrl }));
+        } else {
+            // For PDF or other docs, use a marker
+            setPreviews(prev => ({ ...prev, [field]: 'DOC_FILE' }));
         }
     }
 
@@ -309,7 +296,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
 
     useEffect(() => {
-        axios.get(route('regions.provinces')).then(res => setProvinces(Object.entries(res.data).map(([code, name]) => ({ code, name }))));
+        axios.get(route('regions.provinces')).then(res => setProvinces(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
 
         if ((user as any).detail?.scan_ktp) {
             const path = (user as any).detail.scan_ktp;
@@ -322,65 +309,44 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
         setData('province_id', provinceCode);
         clearErrors('province_id');
         setCities([]); setDistricts([]); setVillages([]);
-        axios.get(route('regions.cities', { province_code: provinceCode })).then(res => setCities(Object.entries(res.data).map(([code, name]) => ({ code, name }))));
+        axios.get(route('regions.cities', { province_code: provinceCode })).then(res => setCities(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
     };
 
     const fetchBirthplaceCities = (provinceCode: string) => {
         setData('birthplace_province_id', provinceCode);
         clearErrors('birthplace_province_id');
         setBirthplaceCities([]);
-        axios.get(route('regions.cities', { province_code: provinceCode })).then(res => setBirthplaceCities(Object.entries(res.data).map(([code, name]) => ({ code, name }))));
+        axios.get(route('regions.cities', { province_code: provinceCode })).then(res => setBirthplaceCities(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
     };
 
     const fetchDistricts = (cityCode: string) => {
         setData('city_id', cityCode);
         clearErrors('city_id');
         setDistricts([]); setVillages([]);
-        axios.get(route('regions.districts', { city_code: cityCode })).then(res => setDistricts(Object.entries(res.data).map(([code, name]) => ({ code, name }))));
+        axios.get(route('regions.districts', { city_code: cityCode })).then(res => setDistricts(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
     };
 
     const fetchVillages = (districtCode: string) => {
         setData('district_id', districtCode);
         clearErrors('district_id');
         setVillages([]);
-        axios.get(route('regions.villages', { district_code: districtCode })).then(res => setVillages(Object.entries(res.data).map(([code, name]) => ({ code, name }))));
+        axios.get(route('regions.villages', { district_code: districtCode })).then(res => setVillages(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
     };
 
     // Office address fetch functions
     const fetchOfficeCities = async (provinceCode: string) => {
-        setData('office_province_id', provinceCode);
-        setData('office_city_id', '');
-        setData('mako_id', '');
+        setData(data => ({ ...data, office_province_id: provinceCode, mako_id: '' }));
         setMakos([]); // Reset makos
 
         if (provinceCode) {
             try {
-                const response = await axios.get(route('regions.cities'), { params: { province_code: provinceCode } });
-                // console.log('Office Cities:', response.data);
-                setOfficeCities(Object.entries(response.data).map(([code, name]) => ({ code, name })));
+                // Fetch Makos by Province
+                const makosRes = await axios.get(route('regions.makos'), { params: { province_code: provinceCode } });
+                setMakos(makosRes.data);
             } catch (error) {
-                console.error('Error fetching office cities:', error);
-                toast.error('Gagal memuat data kota kantor');
+                console.error('Error fetching office data:', error);
+                toast.error('Gagal memuat data wilayah kantor');
             }
-        } else {
-            setOfficeCities([]);
-        }
-    };
-
-    const fetchMakos = async (cityCode: string) => {
-        setData('office_city_id', cityCode);
-        setData('mako_id', '');
-
-        if (cityCode) {
-            try {
-                const response = await axios.get(route('regions.makos'), { params: { city_code: cityCode } });
-                setMakos(response.data);
-            } catch (error) {
-                console.error('Error fetching makos:', error);
-                toast.error('Gagal memuat data mako');
-            }
-        } else {
-            setMakos([]);
         }
     };
     // E-KYC logic removed (moved to VerificationEkyc page)
@@ -462,6 +428,11 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
         if (!nik) {
             setNikExists(false);
             return true;
+        }
+
+        if (nik.length !== 16) {
+            setError('nik', 'NIK harus 16 digit');
+            return false;
         }
 
         setIsValidatingNik(true);
@@ -587,6 +558,11 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                 hasError = true;
             }
 
+            if (!data.is_kta_lifetime && !data.kta_expired_at) {
+                setError('kta_expired_at', 'Wajib diisi');
+                hasError = true;
+            }
+
             if (hasError) {
                 toast.error('Harap lengkapi semua data kepegawaian yang wajib diisi');
                 return;
@@ -650,7 +626,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                             </AlertDescription>
                         </Alert>
                     )}
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
 
 
                         {/* STEP 1: DATA DIRI */}
@@ -660,11 +636,18 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     <Label className="text-white font-medium">NRP</Label>
                                     <FastInput
                                         value={data.nia_nrp}
-                                        onBlur={(e) => { setData('nia_nrp', e.target.value); clearErrors('nia_nrp'); }}
+                                        onBlur={(e) => {
+                                            setData('nia_nrp', e.target.value);
+                                            validateNiaNrp(e.target.value);
+                                        }}
                                         onPaste={(e) => e.preventDefault()}
                                         onCopy={(e) => e.preventDefault()}
                                         onCut={(e) => e.preventDefault()}
                                         minLength={14}
+                                        name="nia_nrp_field_no_autofill"
+                                        id="nia_nrp_field_no_autofill"
+                                        autoComplete="off"
+                                        data-lpignore="true"
                                         className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nia_nrp || niaNrpExists ? 'border-red-500' : ''}`}
                                         placeholder="Nomor Registrasi Pokok"
                                     />
@@ -674,11 +657,18 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     <Label className="text-white font-medium">NIK</Label>
                                     <FastInput
                                         value={data.nik}
-                                        onBlur={(e) => { setData('nik', e.target.value); clearErrors('nik'); }}
+                                        onBlur={(e) => {
+                                            setData('nik', e.target.value);
+                                            validateNik(e.target.value);
+                                        }}
                                         onPaste={(e) => e.preventDefault()}
                                         onCopy={(e) => e.preventDefault()}
                                         onCut={(e) => e.preventDefault()}
                                         maxLength={16}
+                                        name="nik_field_no_autofill"
+                                        id="nik_field_no_autofill"
+                                        autoComplete="off"
+                                        data-lpignore="true"
                                         className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nik || nikExists ? 'border-red-500' : ''}`}
                                         placeholder="Nomor Induk Kependudukan"
                                     />
@@ -687,19 +677,24 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                 <div className="space-y-2">
                                     <Label className="text-white font-medium">Tempat Lahir</Label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        <Select value={data.birthplace_province_id} onValueChange={fetchBirthplaceCities}>
-                                            <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.tempat_lahir ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
-                                            <SelectContent className="max-w-[280px]">
-                                                {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <SearchableSelect
+                                            value={data.birthplace_province_id}
+                                            onValueChange={fetchBirthplaceCities}
+                                            options={provinces.map(p => ({ value: p.code, label: p.name }))}
+                                            placeholder="Pilih Provinsi"
+                                            searchPlaceholder="Cari Provinsi..."
+                                            error={!!errors.tempat_lahir}
+                                        />
 
-                                        <Select value={data.tempat_lahir} onValueChange={val => { setData('tempat_lahir', val); clearErrors('tempat_lahir'); }} disabled={birthplaceCities.length === 0}>
-                                            <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.tempat_lahir ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Kota" /></SelectTrigger>
-                                            <SelectContent>
-                                                {birthplaceCities.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <SearchableSelect
+                                            value={data.tempat_lahir}
+                                            onValueChange={val => { setData('tempat_lahir', val); clearErrors('tempat_lahir'); }}
+                                            options={birthplaceCities.map(c => ({ value: c.name, label: c.name }))}
+                                            placeholder="Pilih Kota"
+                                            searchPlaceholder="Cari Kota..."
+                                            disabled={birthplaceCities.length === 0}
+                                            error={!!errors.tempat_lahir}
+                                        />
                                     </div>
                                     {errors.tempat_lahir && <p className="text-red-500 text-sm">{errors.tempat_lahir}</p>}
                                 </div>
@@ -796,43 +791,35 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                 <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Golongan *</Label>
-                                        <Select
-                                            value={data.golongan_id?.toString()}
+                                        <SearchableSelect
+                                            value={data.golongan_id?.toString() || ""}
                                             onValueChange={(val) => {
                                                 const gid = parseInt(val);
                                                 setData(prev => ({ ...prev, golongan_id: gid, pangkat_id: undefined }));
                                             }}
-                                        >
-                                            <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-white">
-                                                <SelectValue placeholder="Pilih Golongan" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {golongans.map(g => (
-                                                    <SelectItem key={g.id} value={g.id.toString()}>
-                                                        {g.nama} {g.keterangan ? `(${g.keterangan})` : ''}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            options={golongans.map(g => ({
+                                                value: g.id.toString(),
+                                                label: `${g.nama} ${g.keterangan ? `(${g.keterangan})` : ''}`
+                                            }))}
+                                            placeholder="Pilih Golongan"
+                                            searchPlaceholder="Cari Golongan..."
+                                            error={!!errors.golongan_id}
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Pangkat *</Label>
-                                        <Select
-                                            value={data.pangkat_id?.toString()}
+                                        <SearchableSelect
+                                            value={data.pangkat_id?.toString() || ""}
                                             onValueChange={(val) => setData('pangkat_id', parseInt(val))}
+                                            options={filteredPangkats.map(p => ({
+                                                value: p.id.toString(),
+                                                label: p.nama
+                                            }))}
+                                            placeholder={data.golongan_id ? "Pilih Pangkat" : "Pilih Golongan Dahulu"}
+                                            searchPlaceholder="Cari Pangkat..."
                                             disabled={!data.golongan_id}
-                                        >
-                                            <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.pangkat_id ? 'border-red-500' : ''}`}>
-                                                <SelectValue placeholder={data.golongan_id ? "Pilih Pangkat" : "Pilih Golongan Dahulu"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {filteredPangkats.map(p => (
-                                                    <SelectItem key={p.id} value={p.id.toString()}>
-                                                        {p.nama}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            error={!!errors.pangkat_id}
+                                        />
                                         {errors.pangkat_id && <p className="text-red-500 text-sm">{errors.pangkat_id}</p>}
                                     </div>
                                 </div>
@@ -866,6 +853,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                 </div>
 
 
+
                                 {/* Signature Field - Click to Open Modal */}
                                 <div className="space-y-2">
                                     <Label className="text-white font-medium">Tanda Tangan Digital *</Label>
@@ -886,42 +874,79 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     {errors.tanda_tangan && <p className="text-red-500 text-sm">{errors.tanda_tangan}</p>}
                                 </div>
 
+                                <div className="space-y-4 col-span-1 md:col-span-2">
+                                    <Label className="text-white font-medium">Masa Berlaku KTA {!data.is_kta_lifetime && <span className="text-red-500">*</span>}</Label>
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="radio"
+                                                    id="kta_lifetime_false"
+                                                    name="is_kta_lifetime"
+                                                    className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                                    checked={!data.is_kta_lifetime}
+                                                    onChange={() => setData('is_kta_lifetime', false)}
+                                                />
+                                                <Label htmlFor="kta_lifetime_false" className="text-gray-300">Waktu Ditentukan</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="radio"
+                                                    id="kta_lifetime_true"
+                                                    name="is_kta_lifetime"
+                                                    className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                                    checked={data.is_kta_lifetime}
+                                                    onChange={() => {
+                                                        setData(data => ({ ...data, is_kta_lifetime: true, kta_expired_at: undefined }));
+                                                    }}
+                                                />
+                                                <Label htmlFor="kta_lifetime_true" className="text-gray-300">Sampai Dilengserkan</Label>
+                                            </div>
+                                        </div>
+
+                                        {!data.is_kta_lifetime && (
+                                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <DateSelect
+                                                    value={data.kta_expired_at ? format(data.kta_expired_at, 'yyyy-MM-dd') : ''}
+                                                    onChange={(val) => setData('kta_expired_at', val ? new Date(val) : undefined)}
+                                                    error={!!errors.kta_expired_at}
+                                                />
+                                                {errors.kta_expired_at && <p className="text-red-500 text-sm mt-1">{errors.kta_expired_at}</p>}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {/* Office Address Section */}
                                 <div className="col-span-1 md:col-span-2 space-y-2 pt-4 border-t border-white/10">
                                     <Label className="text-white font-medium text-base">Alamat Kantor</Label>
-                                    <p className="text-xs text-gray-400">Provinsi, Kota, Kecamatan, dan Desa/Kelurahan tempat kantor Anda berada</p>
+
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label className="text-white font-medium">Provinsi Kantor</Label>
-                                    <Select value={data.office_province_id} onValueChange={fetchOfficeCities}>
-                                        <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.office_province_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
-                                        <SelectContent className="max-w-[280px]">
-                                            {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                    <SearchableSelect
+                                        value={data.office_province_id}
+                                        onValueChange={fetchOfficeCities}
+                                        options={provinces.map(p => ({ value: p.code, label: p.name }))}
+                                        placeholder="Pilih Provinsi"
+                                        searchPlaceholder="Cari Provinsi..."
+                                        error={!!errors.office_province_id}
+                                    />
                                     {errors.office_province_id && <p className="text-red-500 text-sm">{errors.office_province_id}</p>}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Kota/Kabupaten Kantor</Label>
-                                    <Select value={data.office_city_id} onValueChange={fetchMakos} disabled={!data.office_province_id}>
-                                        <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.office_city_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Kota/Kabupaten" /></SelectTrigger>
-                                        <SelectContent>
-                                            {officeCities.map(c => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    {errors.office_city_id && <p className="text-red-500 text-sm">{errors.office_city_id}</p>}
-                                </div>
-
-                                <div className="space-y-2 col-span-1 md:col-span-2">
                                     <Label className="text-white font-medium">Mako</Label>
-                                    <Select value={String(data.mako_id)} onValueChange={val => { setData('mako_id', val); clearErrors('mako_id'); }} disabled={!data.office_city_id}>
-                                        <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.mako_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Mako" /></SelectTrigger>
-                                        <SelectContent>
-                                            {makos.map(m => <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                    <SearchableSelect
+                                        value={String(data.mako_id)}
+                                        onValueChange={val => { setData('mako_id', val); clearErrors('mako_id'); }}
+                                        options={makos.map(m => ({ value: String(m.id), label: m.name }))}
+                                        placeholder="Pilih Mako"
+                                        searchPlaceholder="Cari Mako..."
+                                        disabled={!data.office_province_id}
+                                        error={!!errors.mako_id}
+                                    />
                                     {errors.mako_id && <p className="text-red-500 text-sm">{errors.mako_id}</p>}
                                 </div>
                             </div>
@@ -945,42 +970,53 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Provinsi</Label>
-                                        <Select value={data.province_id} onValueChange={fetchCities}>
-                                            <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.province_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
-                                            <SelectContent className="max-w-[280px]">
-                                                {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <SearchableSelect
+                                            value={data.province_id}
+                                            onValueChange={fetchCities}
+                                            options={provinces.map(p => ({ value: p.code, label: p.name }))}
+                                            placeholder="Pilih Provinsi"
+                                            searchPlaceholder="Cari Provinsi..."
+                                            error={!!errors.province_id}
+                                        />
                                         {errors.province_id && <p className="text-red-500 text-sm">{errors.province_id}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Kota/Kabupaten</Label>
-                                        <Select value={data.city_id} onValueChange={fetchDistricts} disabled={!data.province_id}>
-                                            <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.city_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Kota/Kabupaten" /></SelectTrigger>
-                                            <SelectContent>
-                                                {cities.map(c => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <SearchableSelect
+                                            value={data.city_id}
+                                            onValueChange={fetchDistricts}
+                                            options={cities.map(c => ({ value: c.code, label: c.name }))}
+                                            placeholder="Pilih Kota/Kabupaten"
+                                            searchPlaceholder="Cari Kota/Kabupaten..."
+                                            disabled={!data.province_id}
+                                            error={!!errors.city_id}
+                                        />
                                         {errors.city_id && <p className="text-red-500 text-sm">{errors.city_id}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Kecamatan</Label>
-                                        <Select value={data.district_id} onValueChange={fetchVillages} disabled={!data.city_id}>
-                                            <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.district_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Kecamatan" /></SelectTrigger>
-                                            <SelectContent>
-                                                {districts.map(d => <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <SearchableSelect
+                                            value={data.district_id}
+                                            onValueChange={fetchVillages}
+                                            options={districts.map(d => ({ value: d.code, label: d.name }))}
+                                            placeholder="Pilih Kecamatan"
+                                            searchPlaceholder="Cari Kecamatan..."
+                                            disabled={!data.city_id}
+                                            error={!!errors.district_id}
+                                        />
                                         {errors.district_id && <p className="text-red-500 text-sm">{errors.district_id}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Desa/Kelurahan</Label>
-                                        <Select value={data.village_id} onValueChange={val => { setData('village_id', val); clearErrors('village_id'); }} disabled={!data.district_id}>
-                                            <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.village_id ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Desa/Kelurahan" /></SelectTrigger>
-                                            <SelectContent>
-                                                {villages.map(v => <SelectItem key={v.code} value={v.code}>{v.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <Label className="text-white font-medium">Kelurahan</Label>
+                                        <SearchableSelect
+                                            value={data.village_id}
+                                            onValueChange={(val) => { setData('village_id', val); clearErrors('village_id'); }}
+                                            options={villages.map(v => ({ value: v.code, label: v.name }))}
+                                            placeholder="Pilih Kelurahan"
+                                            searchPlaceholder="Cari Kelurahan..."
+                                            disabled={!data.district_id}
+                                            error={!!errors.village_id}
+                                        />
                                         {errors.village_id && <p className="text-red-500 text-sm">{errors.village_id}</p>}
                                     </div>
                                 </div>
@@ -1011,36 +1047,81 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Upload KTA</Label>
-                                        {previews.scan_kta && (
-                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
-                                                {previews.scan_kta === 'PDF_FILE' ? (
+                                        <div
+                                            onClick={() => ktaInputRef.current?.click()}
+                                            className={`relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border-2 border-dashed ${errors.scan_kta ? 'border-red-500' : 'border-gray-600 hover:border-gray-400'} cursor-pointer flex items-center justify-center transition-colors group`}
+                                        >
+                                            {previews.scan_kta ? (
+                                                previews.scan_kta === 'PDF_FILE' || previews.scan_kta === 'DOC_FILE' ? (
                                                     <div className="flex flex-col items-center text-gray-400">
                                                         <FileText className="w-12 h-12 mb-2" />
-                                                        <span className="text-xs">Dokumen PDF Dipilih</span>
+                                                        <span className="text-xs">Dokumen Terlampir</span>
+                                                        <span className="text-[10px] mt-1 text-gray-500">Klik untuk ganti</span>
                                                     </div>
                                                 ) : (
-                                                    <img src={previews.scan_kta} alt="Preview KTA" className="w-full h-full object-contain" />
-                                                )}
-                                            </div>
-                                        )}
-                                        <Input type="file" accept="image/*,application/pdf" onChange={e => handleFileInput(e, 'scan_kta')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_kta ? 'border-red-500' : ''}`} />
+                                                    <>
+                                                        <img src={previews.scan_kta} alt="Preview KTA" className="w-full h-full object-contain" />
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="text-white text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                                                                <FileText className="w-3 h-3" /> Ganti File
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )
+                                            ) : (
+                                                <div className="flex flex-col items-center text-gray-400 group-hover:text-gray-300">
+                                                    <FileText className="w-8 h-8 mb-2 opacity-50" />
+                                                    <span className="text-sm">Klik untuk upload KTA</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Input
+                                            ref={ktaInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={e => handleFileInput(e, 'scan_kta')}
+                                            className="hidden"
+                                        />
                                         {errors.scan_kta && <p className="text-red-500 text-sm">{errors.scan_kta}</p>}
                                     </div>
+
                                     <div className="space-y-2">
                                         <Label className="text-white font-medium">Upload SK</Label>
-                                        {previews.scan_sk && (
-                                            <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
-                                                {previews.scan_sk === 'PDF_FILE' ? (
+                                        <div
+                                            onClick={() => skInputRef.current?.click()}
+                                            className={`relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border-2 border-dashed ${errors.scan_sk ? 'border-red-500' : 'border-gray-600 hover:border-gray-400'} cursor-pointer flex items-center justify-center transition-colors group`}
+                                        >
+                                            {previews.scan_sk ? (
+                                                previews.scan_sk === 'PDF_FILE' || previews.scan_sk === 'DOC_FILE' ? (
                                                     <div className="flex flex-col items-center text-gray-400">
                                                         <FileText className="w-12 h-12 mb-2" />
-                                                        <span className="text-xs">Dokumen PDF Dipilih</span>
+                                                        <span className="text-xs">Dokumen Terlampir</span>
+                                                        <span className="text-[10px] mt-1 text-gray-500">Klik untuk ganti</span>
                                                     </div>
                                                 ) : (
-                                                    <img src={previews.scan_sk} alt="Preview SK" className="w-full h-full object-contain" />
-                                                )}
-                                            </div>
-                                        )}
-                                        <Input type="file" accept="image/*,application/pdf" onChange={e => handleFileInput(e, 'scan_sk')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_sk ? 'border-red-500' : ''}`} />
+                                                    <>
+                                                        <img src={previews.scan_sk} alt="Preview SK" className="w-full h-full object-contain" />
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="text-white text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                                                                <FileText className="w-3 h-3" /> Ganti File
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )
+                                            ) : (
+                                                <div className="flex flex-col items-center text-gray-400 group-hover:text-gray-300">
+                                                    <FileText className="w-8 h-8 mb-2 opacity-50" />
+                                                    <span className="text-sm">Klik untuk upload SK</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Input
+                                            ref={skInputRef}
+                                            type="file"
+                                            accept=".pdf,application/pdf"
+                                            onChange={e => handleFileInput(e, 'scan_sk')}
+                                            className="hidden"
+                                        />
                                         {errors.scan_sk && <p className="text-red-500 text-sm">{errors.scan_sk}</p>}
                                     </div>
                                 </div>

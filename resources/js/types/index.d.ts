@@ -52,6 +52,7 @@ export interface User {
     permissions?: { name: string;[key: string]: any }[];
     detail?: {
         jabatan?: { nama: string };
+        jabatan_role?: { nama: string };
         unit_kerja?: { nama: string };
         nip?: string;
         nik?: string;

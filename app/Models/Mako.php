@@ -8,7 +8,7 @@ class Mako extends Model
 {
     protected $fillable = [
         'code',
-        'city_code',
         'name',
+        'province_code',
     ];
 }

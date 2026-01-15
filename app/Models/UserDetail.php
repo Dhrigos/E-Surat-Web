@@ -41,6 +41,13 @@ class UserDetail extends Model
         'office_province_id',
         'office_city_id',
         'mako_id',
+        'kta_expired_at',
+        'is_kta_lifetime',
+    ];
+
+    protected $casts = [
+        'kta_expired_at' => 'date',
+        'is_kta_lifetime' => 'boolean',
     ];
 
     public function user(): BelongsTo

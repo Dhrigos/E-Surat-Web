@@ -20,6 +20,8 @@ class Staff extends Model
         'nip',
         'nia',
         'jabatan_id',
+        'pangkat_id',
+        'status_keanggotaan_id',
         'tanggal_masuk',
         'role',
         'status',

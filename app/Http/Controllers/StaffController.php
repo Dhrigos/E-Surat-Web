@@ -25,7 +25,10 @@ class StaffController extends Controller implements HasMiddleware
     {
         try {
             \Illuminate\Support\Facades\Log::info('StaffController::index accessed');
-            $query = User::with(['roles', 'detail.jabatan', 'detail.jabatanRole']);
+            $query = User::with(['roles', 'detail.jabatan', 'detail.jabatanRole', 'detail.pangkat'])
+                ->whereDoesntHave('roles', function ($q) {
+                    $q->where('name', 'super-admin');
+                });
 
             // Search
             if ($request->has('search')) {
@@ -57,7 +60,23 @@ class StaffController extends Controller implements HasMiddleware
                     'nip' => $user->nip_nik ?? '-',
                     'nik' => $detail?->nik ?? '-',
                     'nia' => $detail?->nia_nrp ?? '-',
+                    'nia' => $detail?->nia_nrp ?? '-',
                     'position' => $detail?->jabatanRole?->nama ?? '-',
+                    'pangkat' => $detail?->pangkat?->nama ?? '-',
+                    'detail' => $detail ? [
+                        'tempat_lahir' => $detail->tempat_lahir,
+                        'tanggal_lahir' => $detail->tanggal_lahir,
+                        'jenis_kelamin' => $detail->jenis_kelamin,
+                        'alamat' => $detail->alamat_domisili_lengkap,
+                        'nomor_kta' => $detail->nomor_kta,
+                        'kta_expired_at' => $detail->kta_expired_at?->format('Y-m-d'),
+                        'is_kta_lifetime' => $detail->is_kta_lifetime,
+                        'foto_profil' => $detail->foto_profil ? \Illuminate\Support\Facades\Storage::url($detail->foto_profil) : null,
+                        'scan_ktp' => $detail->scan_ktp ? \Illuminate\Support\Facades\Storage::url($detail->scan_ktp) : null,
+                        'scan_kta' => $detail->scan_kta ? \Illuminate\Support\Facades\Storage::url($detail->scan_kta) : null,
+                        'scan_sk' => $detail->scan_sk ? \Illuminate\Support\Facades\Storage::url($detail->scan_sk) : null,
+                        'tanda_tangan' => $detail->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($detail->tanda_tangan) : null,
+                    ] : null,
                     'jabatan' => [
                         'id' => $detail?->jabatan_id ?? 0,
                         'nama' => $detail?->jabatan?->nama ?? '-',
@@ -173,10 +192,19 @@ class StaffController extends Controller implements HasMiddleware
         // So let's toggle 'verifikasi' here to match expectations if this button is used.
 
         $newStatus = $staff->verifikasi == '1' ? '0' : '1';
-        $staff->update([
+        
+        $updateData = [
             'verifikasi' => $newStatus,
-            'is_active' => $newStatus == '1' ? true : false, // Sync is_active too
-        ]);
+            'is_active' => $newStatus == '1' ? true : false,
+        ];
+
+        if ($newStatus == '1') {
+             $updateData['verified_at'] = now();
+             $updateData['verified_by'] = auth()->id();
+             $updateData['verification_duration'] = $staff->created_at ? $staff->created_at->diffInSeconds(now()) : 0;
+        }
+
+        $staff->update($updateData);
 
         return back()->with('success', 'Status user berhasil diperbarui.');
     }

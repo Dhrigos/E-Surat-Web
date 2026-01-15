@@ -60,6 +60,31 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
         }
     };
 
+    const formatActivity = (action: string, description: string) => {
+        // Map common actions to friendly Indonesian text
+        const map: Record<string, string> = {
+            'auth.login': 'Login Berhasil',
+            'auth.logout': 'Logout Berhasil',
+            'model.created': 'Data Ditambahkan',
+            'model.updated': 'Data Diperbarui',
+            'model.deleted': 'Data Dihapus',
+            'create': 'Item Dibuat',
+            'update': 'Item Diubah',
+            'delete': 'Item Dihapus',
+            'approve': 'Persetujuan',
+        };
+
+        const title = map[action] || action;
+        let desc = description;
+
+        // Try to translate common english descriptions if possible, simplistic approach
+        if (description.includes('User Super Admin logged in')) desc = 'Anda berhasil masuk ke sistem';
+        if (description.includes('User updated')) desc = 'Data pengguna telah diperbarui';
+        if (description.includes('Updated User')) desc = 'Data pengguna telah diperbarui';
+
+        return { title, desc };
+    };
+
     return (
         <AppLayout className="min-h-full">
             <DashboardBackground />
@@ -67,16 +92,12 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
 
             <div className="flex flex-col gap-4 md:gap-6 p-4 md:p-6">
                 {/* Welcome Banner */}
-                {/* Welcome Banner */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4 bg-transparent border-transparent rounded-xl md:rounded-2xl p-3 md:p-6 text-foreground shadow-sm relative overflow-hidden">
                     <div className="relative z-10 space-y-1">
                         <h2 className="text-xl md:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Selamat Datang, {auth.user.name}! 👋</h2>
                         <p className="text-sm md:text-base text-gray-500 dark:text-zinc-400">
                             Berikut adalah ringkasan aktivitas surat Anda hari ini, {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
                         </p>
-                    </div>
-                    <div className="relative z-10">
-
                     </div>
 
                     {/* Decorative Background Elements */}
@@ -261,24 +282,27 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                                     </div>
                                 ) : (
                                     <div className="relative pl-4 border-l border-border space-y-8 my-2">
-                                        {activities.map((activity) => (
-                                            <div key={activity.id} className="relative group">
-                                                <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-blue-500 ring-2 ring-muted group-hover:scale-110 transition-transform" />
-                                                <div className="flex flex-col gap-1.5 -mt-0.5 ml-2">
-                                                    <div className="flex items-center justify-between">
-                                                        <p className="text-sm font-medium leading-none group-hover:text-primary transition-colors">
-                                                            {activity.action}
+                                        {activities.map((activity) => {
+                                            const { title, desc } = formatActivity(activity.action, activity.description);
+                                            return (
+                                                <div key={activity.id} className="relative group">
+                                                    <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-blue-500 ring-2 ring-muted group-hover:scale-110 transition-transform" />
+                                                    <div className="flex flex-col gap-1.5 -mt-0.5 ml-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="text-sm font-medium leading-none group-hover:text-primary transition-colors">
+                                                                {title}
+                                                            </p>
+                                                            <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
+                                                                {new Date(activity.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground line-clamp-2">
+                                                            {desc}
                                                         </p>
-                                                        <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
-                                                            {new Date(activity.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground line-clamp-2">
-                                                        {activity.description}
-                                                    </p>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>

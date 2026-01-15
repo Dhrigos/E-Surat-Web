@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { ChevronRight, CheckCircle2, Circle, Undo2, ArrowLeft, Building2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { CascadingJabatanRoleSelector } from '@/components/CascadingJabatanRoleSelector';
 
 interface Jabatan {
     id: number;
@@ -17,6 +18,7 @@ interface Jabatan {
 interface JabatanRole {
     id: number;
     nama: string;
+    parent_id?: number | null;
 }
 
 interface Props {
@@ -94,6 +96,9 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
 
     const handleJumpToLevel = (index: number) => {
         setPath(path.slice(0, index + 1));
+        // Reset selection when navigating via breadcrumbs to show list view again
+        setSelectedUnit(null);
+        setSelectedRoleId('');
     };
 
     const handleReset = () => {
@@ -111,29 +116,57 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
     const roleOptions = useMemo(() => {
         if (!selectedUnit) return [];
 
-        // Normalize checking values
-        const unitName = selectedUnit.nama?.toUpperCase() || '';
-        const unitCategory = selectedUnit.kategori?.toUpperCase() || '';
+        // Smart Mapping: Filter roles based on Selected Unit Name
+        // Example: Unit "Subdirektorat X" -> Show Role Root "Subdirektorat" + Children
+        // Example: Unit "Direktorat Y" -> Show Role Root "Direktorat" + Children
 
-        // Define all possible roles mapping (add DB values here: "Direktur", "Kepala", "Staf")
-        const commonRoles = ['ANGGOTA', 'KETUA', 'WAKIL KETUA', 'SEKRETARIS', 'STAFF', 'WAKIL', 'DIREKTUR', 'KEPALA', 'STAF'];
+        // Strategy: Check if any Root Role name is contained in the Unit Name
+        // We only look at Top Level roles (parent_id === null) from the provided list
+        // actually existing list 'jabatanRoles' is flat. We need to identify roots.
 
-        let allowedNames = [...commonRoles];
+        // Let's first identify potential root matches.
+        const unitNameUpper = selectedUnit.nama.toUpperCase();
 
-        if (unitName === 'ANGGOTA' && selectedUnit.level === 1) {
-            allowedNames = ['ANGGOTA', 'STAF', 'STAFF'];
+        // Find a root role that matches the start of the unit name
+        // e.g. Role "DIREKTORAT" matches "DIREKTORAT JENDERAL..." ? careful. "Direktorat Jenderal" is separate role.
+        // We should try to find the Longest Matching Root Role Name?
+
+        const rootRoles = jabatanRoles.filter(r => !r.parent_id);
+        let bestMatch: JabatanRole | null = null;
+
+        for (const root of rootRoles) {
+            const roleNameUpper = root.nama.toUpperCase();
+            if (unitNameUpper.includes(roleNameUpper)) {
+                // If we have a match, check if it's better (longer) than previous
+                if (!bestMatch || roleNameUpper.length > bestMatch.nama.length) {
+                    bestMatch = root;
+                }
+            }
         }
-        else if (unitCategory === 'FUNGSIONAL') {
-            allowedNames = ['STAFF AHLI', 'STAFF KHUSUS', 'ANGGOTA', 'STAF', 'STAFF'];
-        }
-        else if (unitCategory === 'STRUKTURAL') {
-            allowedNames = ['KETUA', 'WAKIL KETUA', 'SEKRETARIS', 'ANGGOTA', 'STAFF', 'KEPALA', 'DIREKTUR', 'WAKIL', 'STAF'];
+
+        if (bestMatch) {
+            // If match found, return ONLY this root and its descendants (if we can find them in the flat list)
+            // The flat list 'jabatanRoles' contains all roles.
+            // We need to filter recursively? 
+            // Actually, we can just filter where id == bestMatch.id OR parent_id == bestMatch.id (and grandchildren?).
+            // The list is flat. If we only return the relevant subset, the Selector will hide others.
+
+            // Helper to find all descendants
+            const getDescendants = (parentId: number): JabatanRole[] => {
+                const children = jabatanRoles.filter(r => r.parent_id === parentId);
+                let descendants = [...children];
+                children.forEach(child => {
+                    descendants = [...descendants, ...getDescendants(child.id)];
+                });
+                return descendants;
+            };
+
+            const descendants = getDescendants(bestMatch.id);
+            return [bestMatch, ...descendants];
         }
 
-        // Filter valid roles from master data (case-insensitive)
-        return jabatanRoles.filter(r =>
-            allowedNames.some(allowed => allowed.toUpperCase() === r.nama.toUpperCase())
-        );
+        // Default: Return all roles if no specific match
+        return jabatanRoles;
     }, [selectedUnit, jabatanRoles]);
 
     const handleConfirm = () => {
@@ -146,8 +179,8 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-[#1a1a1a] border-[#333] text-white p-0 gap-0">
+                {/* ... Header & Breadcrumbs ... (unchanged) */}
 
-                {/* ... Header & Breadcrumbs ... */}
                 <div className="p-4 border-b border-white/10 bg-zinc-900/50">
                     <DialogTitle className="text-xl mb-3">Pilih Jabatan & Struktur</DialogTitle>
 
@@ -195,7 +228,45 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                 <div className="flex-1 overflow-y-auto p-4 min-h-[400px]">
 
                     {/* VIEW: ROLE SELECTION (Final Step) */}
-                    {selectedUnit ? (
+                    {selectedUnit && selectedUnit.nama.toUpperCase().includes('ANGGOTA') ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                            <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center border-2 border-red-600">
+                                <CheckCircle2 className="w-8 h-8 text-red-500" />
+                            </div>
+
+                            <div className="text-center space-y-1 mb-4">
+                                <h3 className="text-xl font-bold">Anggota</h3>
+                                <p className="text-gray-400">Anda akan bergabung sebagai Anggota.</p>
+                            </div>
+
+                            {/* Auto-select logic happens on confirm usually, but we need the ID. 
+                                We find the 'Anggota' role ID from props. */}
+
+                            <div className="flex gap-3 mt-4">
+                                <Button variant="outline" onClick={() => setSelectedUnit(null)} className="border-white/10 hover:bg-zinc-800 text-gray-300">
+                                    <Undo2 className="w-4 h-4 mr-2" />
+                                    Ganti Unit
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        // Find 'Anggota' role
+                                        const anggotaRole = jabatanRoles.find(r => r.nama.toUpperCase() === 'ANGGOTA');
+                                        if (anggotaRole) {
+                                            onConfirm(selectedUnit.id.toString(), anggotaRole.id.toString());
+                                            onOpenChange(false);
+                                        } else {
+                                            // Fallback or error if role not found (shouldn't happen with correct seeder)
+                                            console.error("Role 'Anggota' not found in system.");
+                                            // Maybe alert user?
+                                        }
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700 text-white min-w-[150px]"
+                                >
+                                    Konfirmasi
+                                </Button>
+                            </div>
+                        </div>
+                    ) : selectedUnit ? (
                         <div className="flex flex-col items-center justify-center py-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
                             <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center border-2 border-red-600">
                                 <CheckCircle2 className="w-8 h-8 text-red-500" />
@@ -206,16 +277,14 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                             </div>
 
                             <div className="w-full max-w-sm space-y-3">
-                                <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                                    <SelectTrigger className="bg-zinc-900 border-white/10 h-12 text-lg [&>span]:w-full [&>span]:text-center">
-                                        <SelectValue placeholder="Pilih Posisi..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {roleOptions.map(role => (
-                                            <SelectItem key={role.id} value={role.id.toString()}>{role.nama}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="w-full max-w-sm space-y-3">
+                                    <CascadingJabatanRoleSelector
+                                        roles={roleOptions}
+                                        value={selectedRoleId}
+                                        onChange={setSelectedRoleId}
+                                        placeholder="Pilih Posisi..."
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex gap-3 mt-4">
@@ -292,7 +361,7 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                                                         <div className="mt-1.5 flex items-center gap-2">
                                                             {hasSubChildren && (
                                                                 <Badge variant="outline" className="text-[10px] px-2 h-5 border-white/10 text-gray-500 bg-black/20 font-normal">
-                                                                    {childrenMap[child.id].length} Sub-Unit
+                                                                    {childrenMap[child.id].length} Unit Bawahan
                                                                 </Badge>
                                                             )}
                                                             {!hasSubChildren && (
@@ -304,33 +373,7 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                                                     </div>
                                                 </div>
 
-                                                {/* Right Side: Actions */}
-                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                    {/* Select Button (Only if not restricted) */}
-                                                    {!isRestricted && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="secondary" // Changed to secondary/outline style
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedUnit(child);
-                                                            }}
-                                                            className="h-9 px-4 bg-white/5 hover:bg-red-600 hover:text-white border-white/10 text-xs font-medium transition-all"
-                                                        >
-                                                            Pilih
-                                                        </Button>
-                                                    )}
 
-                                                    {/* Navigation Indicator (Chevron) */}
-                                                    {hasSubChildren && (
-                                                        <div
-                                                            onClick={() => handleNavigateDown(child)}
-                                                            className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center cursor-pointer text-gray-500 hover:text-white transition-colors"
-                                                        >
-                                                            <ChevronRight className="w-5 h-5" />
-                                                        </div>
-                                                    )}
-                                                </div>
                                             </div>
                                         );
                                     })

@@ -10,11 +10,23 @@ class JabatanRoleController extends Controller
     public function index()
     {
         $roles = \App\Models\JabatanRole::query()
+            ->with(['children' => function ($query) {
+                $query->orderBy('level', 'asc'); // Order children by hierarchy/rank
+            }, 'children.children']) // Load up to 2 levels deep for now, or use recursion if supported/needed
+            ->whereNull('parent_id')
             ->when(request('search'), function ($query, $search) {
+                // If searching, we might want to ignore hierarchy or search within it.
+                // For simplicity, if searching, we might show flat list OR filter parents?
+                // Lay's approach: If search exists, show all matching regardless of hierarchy?
+                // The user asked for "drill", implying hierarchy is the goal.
+                // Let's keep strict hierarchy for now, search only filters roots or we disable search for sub-items?
+                // Let's start with basic hierarchy: Roots only.
+                // If search is present, we might want to return flat list to find items easily.
                 $query->where('nama', 'like', "%{$search}%");
             })
-            ->orderByLevel()
-            ->paginate(50) // Increased pagination for DnD convenience
+            ->orderBy('level', 'asc')
+            // ->orderByLevel() // Or keep level if that's the primary sort
+            ->paginate(50)
             ->withQueryString();
 
         return \Inertia\Inertia::render('DataMaster/JabatanRole/Index', [

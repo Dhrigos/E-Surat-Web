@@ -75,6 +75,8 @@ class MasterDataController extends Controller
             $query->where('kategori', request('kategori'));
         }
 
+
+
         // Eager load parent to ensure 'nama_lengkap' accessor works correctly without N+1
         return response()->json($query
             ->with('parent:id,nama') // Optimize: only select needed columns from parent
@@ -102,6 +104,7 @@ class MasterDataController extends Controller
                   'rank' => $user->detail?->pangkat?->nama,
                   'unit' => $user->staff?->jabatan?->parent?->nama,
                   'position_name' => $user->staff?->jabatan?->nama,
+                  'signature_url' => $user->detail?->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($user->detail->tanda_tangan) : null,
               ];
           });
 
@@ -187,6 +190,7 @@ class MasterDataController extends Controller
                                 'unit' => $manager->staff?->jabatan?->parent?->nama,
                                 'position_name' => $manager->staff?->jabatan?->nama,
                                 'role_level' => $manager->detail?->jabatanRole?->level,
+                                'signature_url' => $manager->detail?->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($manager->detail->tanda_tangan) : null,
                             ]
                         ]
                     ]);
@@ -273,6 +277,7 @@ class MasterDataController extends Controller
                   'unit' => $user->staff?->jabatan?->parent?->nama,
                   'position_name' => $user->staff?->jabatan?->nama,
                   'role_level' => $user->detail?->jabatanRole?->level,
+                  'signature_url' => $user->detail?->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($user->detail->tanda_tangan) : null,
               ];
           });
 

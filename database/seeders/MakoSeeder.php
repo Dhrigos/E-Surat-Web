@@ -1,0 +1,143 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Mako;
+use Illuminate\Database\Seeder;
+
+class MakoSeeder extends Seeder
+{
+    public function run()
+    {
+        $data = [
+            ['code' => '1101', 'province_code' => '11', 'name' => 'Kodam Iskandar Muda'],
+            ['code' => '1201', 'province_code' => '12', 'name' => 'Kodam I/Bukit Barisan'],
+            ['code' => '1301', 'province_code' => '13', 'name' => 'Kodam I/Bukit Barisan'],
+            ['code' => '1401', 'province_code' => '14', 'name' => 'Kodam I/Bukit Barisan'],
+            ['code' => '2101', 'province_code' => '21', 'name' => 'Kodam I/Bukit Barisan'],
+            ['code' => '1501', 'province_code' => '15', 'name' => 'Kodam II/Sriwijaya'],
+            ['code' => '1601', 'province_code' => '16', 'name' => 'Kodam II/Sriwijaya'],
+            ['code' => '1701', 'province_code' => '17', 'name' => 'Kodam II/Sriwijaya'],
+            ['code' => '1801', 'province_code' => '18', 'name' => 'Kodam II/Sriwijaya'],
+            ['code' => '1901', 'province_code' => '19', 'name' => 'Kodam II/Sriwijaya'],
+            ['code' => '3101', 'province_code' => '31', 'name' => 'Kodam Jaya/Jayakarta'],
+            ['code' => '3201', 'province_code' => '32', 'name' => 'Kodam III/Siliwangi'],
+            ['code' => '3601', 'province_code' => '36', 'name' => 'Kodam III/Siliwangi'],
+            ['code' => '3301', 'province_code' => '33', 'name' => 'Kodam IV/Diponegoro'],
+            ['code' => '3401', 'province_code' => '34', 'name' => 'Kodam IV/Diponegoro'],
+            ['code' => '3501', 'province_code' => '35', 'name' => 'Kodam V/Brawijaya'],
+            ['code' => '5101', 'province_code' => '51', 'name' => 'Kodam IX/Udayana'],
+            ['code' => '5201', 'province_code' => '52', 'name' => 'Kodam IX/Udayana'],
+            ['code' => '5301', 'province_code' => '53', 'name' => 'Kodam IX/Udayana'],
+            ['code' => '6101', 'province_code' => '61', 'name' => 'Kodam XII/Tanjungpura'],
+            ['code' => '6201', 'province_code' => '62', 'name' => 'Kodam XII/Tanjungpura'],
+            ['code' => '6301', 'province_code' => '63', 'name' => 'Kodam VI/Mulawarman'],
+            ['code' => '6401', 'province_code' => '64', 'name' => 'Kodam VI/Mulawarman'],
+            ['code' => '6501', 'province_code' => '65', 'name' => 'Kodam VI/Mulawarman'],
+            ['code' => '7101', 'province_code' => '71', 'name' => 'Kodam XIII/Merdeka'],
+            ['code' => '7501', 'province_code' => '75', 'name' => 'Kodam XIII/Merdeka'],
+            ['code' => '7201', 'province_code' => '72', 'name' => 'Kodam XIII/Merdeka'],
+            ['code' => '7301', 'province_code' => '73', 'name' => 'Kodam XIV/Hasanuddin'],
+            ['code' => '7601', 'province_code' => '76', 'name' => 'Kodam XIV/Hasanuddin'],
+            ['code' => '7401', 'province_code' => '74', 'name' => 'Kodam XIV/Hasanuddin'],
+            ['code' => '8101', 'province_code' => '81', 'name' => 'Kodam Pattimura'],
+            ['code' => '8201', 'province_code' => '82', 'name' => 'Kodam Pattimura'],
+            ['code' => '9101', 'province_code' => '91', 'name' => 'Kodam XVII/Cenderawasih'],
+            ['code' => '9201', 'province_code' => '92', 'name' => 'Kodam XVIII/Kasuari'],
+            ['code' => '9301', 'province_code' => '93', 'name' => 'Kodam XVII/Cenderawasih'],
+            ['code' => '9401', 'province_code' => '94', 'name' => 'Kodam XVII/Cenderawasih'],
+            ['code' => '9501', 'province_code' => '95', 'name' => 'Kodam XVII/Cenderawasih'],
+            ['code' => '9601', 'province_code' => '96', 'name' => 'Kodam XVIII/Kasuari'],
+            
+            // Lantamal
+            ['code' => '1102', 'province_code' => '11', 'name' => 'Lantamal I Belawan'],
+            ['code' => '1202', 'province_code' => '12', 'name' => 'Lantamal I Belawan'],
+            ['code' => '1302', 'province_code' => '13', 'name' => 'Lantamal II Padang'],
+            ['code' => '1402', 'province_code' => '14', 'name' => 'Lantamal IV Tanjungpinang'],
+            ['code' => '2102', 'province_code' => '21', 'name' => 'Lantamal IV Tanjungpinang'],
+            ['code' => '1502', 'province_code' => '15', 'name' => 'Lantamal II Padang'],
+            ['code' => '1602', 'province_code' => '16', 'name' => 'Lantamal II Padang'],
+            ['code' => '1702', 'province_code' => '17', 'name' => 'Lantamal II Padang'],
+            ['code' => '1802', 'province_code' => '18', 'name' => 'Lantamal III Jakarta'],
+            ['code' => '1902', 'province_code' => '19', 'name' => 'Lantamal II Padang'],
+            ['code' => '3102', 'province_code' => '31', 'name' => 'Lantamal III Jakarta'],
+            ['code' => '3202', 'province_code' => '32', 'name' => 'Lantamal III Jakarta'],
+            ['code' => '3602', 'province_code' => '36', 'name' => 'Lantamal III Jakarta'],
+            ['code' => '3302', 'province_code' => '33', 'name' => 'Lantamal V Surabaya'],
+            ['code' => '3402', 'province_code' => '34', 'name' => 'Lantamal V Surabaya'],
+            ['code' => '3502', 'province_code' => '35', 'name' => 'Lantamal V Surabaya'],
+            ['code' => '5102', 'province_code' => '51', 'name' => 'Lantamal IX Ambon'],
+            ['code' => '5202', 'province_code' => '52', 'name' => 'Lantamal IX Ambon'],
+            ['code' => '5302', 'province_code' => '53', 'name' => 'Lantamal VII Kupang'],
+            ['code' => '6102', 'province_code' => '61', 'name' => 'Lantamal XII Pontianak'],
+            ['code' => '6202', 'province_code' => '62', 'name' => 'Lantamal XII Pontianak'],
+            ['code' => '6302', 'province_code' => '63', 'name' => 'Lantamal VI Makassar'],
+            ['code' => '6402', 'province_code' => '64', 'name' => 'Lantamal VI Makassar'],
+            ['code' => '6502', 'province_code' => '65', 'name' => 'Lantamal XIII Tarakan'],
+            ['code' => '7102', 'province_code' => '71', 'name' => 'Lantamal VIII Manado'],
+            ['code' => '7502', 'province_code' => '75', 'name' => 'Lantamal VIII Manado'],
+            ['code' => '7202', 'province_code' => '72', 'name' => 'Lantamal VIII Manado'],
+            ['code' => '7302', 'province_code' => '73', 'name' => 'Lantamal VI Makassar'],
+            ['code' => '7602', 'province_code' => '76', 'name' => 'Lantamal VI Makassar'],
+            ['code' => '7402', 'province_code' => '74', 'name' => 'Lantamal VI Makassar'],
+            ['code' => '8102', 'province_code' => '81', 'name' => 'Lantamal IX Ambon'],
+            ['code' => '8202', 'province_code' => '82', 'name' => 'Lantamal IX Ambon'],
+            ['code' => '9102', 'province_code' => '91', 'name' => 'Lantamal X Jayapura'],
+            ['code' => '9202', 'province_code' => '92', 'name' => 'Lantamal XIV Sorong'],
+            ['code' => '9302', 'province_code' => '93', 'name' => 'Lantamal XI Merauke'],
+            ['code' => '9402', 'province_code' => '94', 'name' => 'Lantamal X Jayapura'],
+            ['code' => '9502', 'province_code' => '95', 'name' => 'Lantamal X Jayapura'],
+            ['code' => '9602', 'province_code' => '96', 'name' => 'Lantamal XIV Sorong'],
+
+             // Lanud
+            ['code' => '1103', 'province_code' => '11', 'name' => 'Lanud Maimun Saleh'],
+            ['code' => '1203', 'province_code' => '12', 'name' => 'Lanud Soewondo'],
+            ['code' => '1303', 'province_code' => '13', 'name' => 'Lanud Roesmin Nurjadin'],
+            ['code' => '1403', 'province_code' => '14', 'name' => 'Lanud Roesmin Nurjadin'],
+            ['code' => '2103', 'province_code' => '21', 'name' => 'Lanud Raja Haji Fisabilillah'],
+            ['code' => '1503', 'province_code' => '15', 'name' => 'Lanud Sri Mulyono Herlambang'],
+            ['code' => '1603', 'province_code' => '16', 'name' => 'Lanud Sri Mulyono Herlambang'],
+            ['code' => '1703', 'province_code' => '17', 'name' => 'Lanud Sri Mulyono Herlambang'],
+            ['code' => '1803', 'province_code' => '18', 'name' => 'Lanud Sri Mulyono Herlambang'],
+            ['code' => '1903', 'province_code' => '19', 'name' => 'Lanud Sri Mulyono Herlambang'],
+            ['code' => '3103', 'province_code' => '31', 'name' => 'Lanud Halim Perdanakusuma'],
+            ['code' => '3203', 'province_code' => '32', 'name' => 'Lanud Husein Sastranegara'],
+            ['code' => '3603', 'province_code' => '36', 'name' => 'Lanud Halim Perdanakusuma'],
+            ['code' => '3303', 'province_code' => '33', 'name' => 'Lanud Ahmad Yani'],
+            ['code' => '3403', 'province_code' => '34', 'name' => 'Lanud Adisutjipto'],
+            ['code' => '3503', 'province_code' => '35', 'name' => 'Lanud Iswahjudi'],
+            ['code' => '5103', 'province_code' => '51', 'name' => 'Lanud I Gusti Ngurah Rai'],
+            ['code' => '5203', 'province_code' => '52', 'name' => 'Lanud Zainuddin Abdul Madjid'],
+            ['code' => '5303', 'province_code' => '53', 'name' => 'Lanud El Tari'],
+            ['code' => '6103', 'province_code' => '61', 'name' => 'Lanud Supadio'],
+            ['code' => '6203', 'province_code' => '62', 'name' => 'Lanud Supadio'],
+            ['code' => '6303', 'province_code' => '63', 'name' => 'Lanud Syamsuddin Noor'],
+            ['code' => '6403', 'province_code' => '64', 'name' => 'Lanud Dhomber'],
+            ['code' => '6503', 'province_code' => '65', 'name' => 'Lanud Dhomber'],
+            ['code' => '7103', 'province_code' => '71', 'name' => 'Lanud Sam Ratulangi'],
+            ['code' => '7503', 'province_code' => '75', 'name' => 'Lanud Sam Ratulangi'],
+            ['code' => '7203', 'province_code' => '72', 'name' => 'Lanud Sam Ratulangi'],
+            ['code' => '7303', 'province_code' => '73', 'name' => 'Lanud Sultan Hasanuddin'],
+            ['code' => '7603', 'province_code' => '76', 'name' => 'Lanud Sultan Hasanuddin'],
+            ['code' => '7403', 'province_code' => '74', 'name' => 'Lanud Haluoleo'],
+            ['code' => '8103', 'province_code' => '81', 'name' => 'Lanud Pattimura'],
+            ['code' => '8203', 'province_code' => '82', 'name' => 'Lanud Leo Wattimena'],
+            ['code' => '9103', 'province_code' => '91', 'name' => 'Lanud Silas Papare'],
+            ['code' => '9203', 'province_code' => '92', 'name' => 'Lanud Silas Papare'],
+            ['code' => '9303', 'province_code' => '93', 'name' => 'Lanud J.A. Dimara'],
+            ['code' => '9403', 'province_code' => '94', 'name' => 'Lanud Yohanis Kapiyau'],
+            ['code' => '9503', 'province_code' => '95', 'name' => 'Lanud Yohanis Kapiyau'],
+            ['code' => '9603', 'province_code' => '96', 'name' => 'Lanud Dominicus Dumatubun'],
+        ];
+
+        foreach ($data as $item) {
+            Mako::updateOrCreate(
+                ['code' => $item['code']],
+                [
+                    'name' => $item['name'],
+                    'province_code' => $item['province_code']
+                ]
+            );
+        }
+    }
+}

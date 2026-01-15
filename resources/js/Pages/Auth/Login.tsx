@@ -99,6 +99,17 @@ export default function Login() {
                         {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
                     </div>
 
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="checkbox"
+                            id="remember"
+                            className="rounded border-gray-600 bg-black/50 text-red-600 shadow-sm focus:ring-red-600"
+                            checked={data.remember}
+                            onChange={(e) => setData('remember', e.target.checked)}
+                        />
+                        <Label htmlFor="remember" className="text-gray-300 font-medium cursor-pointer">Ingat Saya</Label>
+                    </div>
+
                     <Button
                         type="submit"
                         className="w-full h-14 bg-red-600 hover:bg-red-700 text-white text-lg font-bold shadow-lg"

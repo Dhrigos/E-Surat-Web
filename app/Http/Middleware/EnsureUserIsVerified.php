@@ -28,18 +28,23 @@ class EnsureUserIsVerified
             $user = $request->user()->fresh(['detail']);
 
             // 1. Check E-KYC first (Priority 1)
-            // If E-KYC is not verified, redirect to E-KYC page
-            if (! $user->ekyc_verified_at) {
+            // If E-KYC is not verified (timestamp is null), redirect to E-KYC page
+            if (empty($user->ekyc_verified_at)) {
                 return redirect()->route('verification.ekyc');
             }
 
             // 2. Check Profile Details (Priority 2)
             // If E-KYC is verified but profile is incomplete, redirect to profile completion
-            if (! $user->detail || ! $user->detail->nik) {
+            if (!$user->detail || empty($user->detail->nik) || empty($user->detail->nia_nrp)) {
                 return redirect()->route('complete-profile.create');
             }
 
-            // 3. If both are done but admin verification (verifikasi column) is false
+            // 3. If rejected, redirect to profile completion to fix data
+            if ($user->rejection_reason) {
+                return redirect()->route('complete-profile.create');
+            }
+
+            // 4. If both are done but admin verification (verifikasi column) is false
             return redirect()->route('verification.pending');
         }
 

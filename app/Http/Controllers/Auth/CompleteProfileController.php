@@ -48,8 +48,9 @@ class CompleteProfileController extends Controller
 
             // Office address fields (nullable)
             'office_province_id' => 'nullable|string',
-            'office_city_id' => 'nullable|string',
             'mako_id' => 'nullable|exists:makos,id',
+            'is_kta_lifetime' => 'required|boolean',
+            'kta_expired_at' => 'required_if:is_kta_lifetime,false|nullable|date',
         ];
 
         // Make files optional if updating and they already exist (logic handled in frontend/backend check)
@@ -71,6 +72,7 @@ class CompleteProfileController extends Controller
             'nik.unique' => 'NIK sudah terdaftar.',
             'nomor_kta.unique' => 'Nomor KTA sudah terdaftar.',
             'pangkat_id.required' => 'Pangkat wajib dipilih.',
+            'kta_expired_at.required_if' => 'Tanggal berakhir KTA wajib diisi jika tidak seumur hidup.',
         ];
 
         $request->validate($rules, $messages);
@@ -113,6 +115,17 @@ class CompleteProfileController extends Controller
                 $data['tanggal_pengangkatan'] = \Carbon\Carbon::parse($data['tanggal_pengangkatan'])->format('Y-m-d');
             } catch (\Exception $e) {
             }
+        }
+        if (!empty($data['kta_expired_at'])) {
+             try {
+                $data['kta_expired_at'] = \Carbon\Carbon::parse($data['kta_expired_at'])->format('Y-m-d');
+            } catch (\Exception $e) {
+            }
+        }
+        
+        // Handle logic if lifetime is true, force expired_at to null
+        if ($request->is_kta_lifetime) {
+            $data['kta_expired_at'] = null;
         }
 
         UserDetail::updateOrCreate(

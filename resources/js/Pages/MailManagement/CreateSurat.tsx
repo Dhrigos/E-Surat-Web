@@ -22,6 +22,7 @@ interface User {
     rank?: string;
     unit?: string;
     position_name?: string;
+    signature_url?: string | null;
 }
 
 interface LetterType {
@@ -100,7 +101,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
 
     const [customApprovers, setCustomApprovers] = useState<Record<string, string>>({}); // step_id -> user_id
     const [customApproverNames, setCustomApproverNames] = useState<Record<string, string>>({}); // step_id -> user_name
-    const [customApproverDetails, setCustomApproverDetails] = useState<Record<string, { rank?: string, unit?: string, position_name?: string }>>({}); // step_id -> { rank, unit, position_name }
+    const [customApproverDetails, setCustomApproverDetails] = useState<Record<string, { rank?: string, unit?: string, position_name?: string, signature_url?: string | null }>>({}); // step_id -> { rank, unit, position_name, signature_url }
     const [openStepId, setOpenStepId] = useState<number | null>(null);
     const [stepUsers, setStepUsers] = useState<User[]>([]);
     const [loadingStepUsers, setLoadingStepUsers] = useState(false);
@@ -553,6 +554,19 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                         current_holder: { name: auth.user.name }
                     };
 
+                    // Allow sender signature to be found
+                    if (currentUser?.signature_url) {
+                        setCustomApproverDetails(prev => ({
+                            ...prev,
+                            [senderStep.id]: {
+                                rank: currentUser.rank,
+                                unit: currentUser.unit,
+                                position_name: currentUser.position_name,
+                                signature_url: currentUser.signature_url
+                            }
+                        }));
+                    }
+
                     setWorkflowSteps([senderStep, ...fetchedSteps]);
                 })
                 .catch(error => {
@@ -593,7 +607,8 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
             [stepId]: {
                 rank: user.rank,
                 unit: user.unit,
-                position_name: user.position_name // Store specific position name
+                position_name: user.position_name, // Store specific position name
+                signature_url: user.signature_url
             }
         }));
         setOpenStepId(null);
@@ -872,7 +887,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
 
                                     {/* Smart Add Approver Modal */}
                                     <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                                        <DialogContent>
+                                        <DialogContent className="sm:max-w-[425px]">
                                             <DialogHeader>
                                                 <DialogTitle>Tambah Approval Manual</DialogTitle>
                                                 <DialogDescription>
@@ -1362,7 +1377,22 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                                 {(step.approver_type === 'user' && step.approver_user?.unit) || (customApproverDetails[step.id]?.unit) ? (
                                                                     <p className="text-[10px] font-semibold uppercase">{step.approver_user?.unit || customApproverDetails[step.id]?.unit}</p>
                                                                 ) : null}
-                                                                <div className="h-12"></div>
+
+                                                                <div className="h-16 flex items-center justify-center my-1">
+                                                                    {customApproverDetails[parseInt(stepId)]?.signature_url ? (
+                                                                        <img
+                                                                            src={customApproverDetails[parseInt(stepId)]?.signature_url!}
+                                                                            alt="Signature"
+                                                                            className="max-h-full max-w-full object-contain"
+                                                                            draggable={false}
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="h-full w-full flex items-center justify-center border border-dashed border-gray-300 rounded bg-gray-50 text-[10px] text-gray-400">
+                                                                            No Signature
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
                                                                 <p className="text-xs font-bold underline">{name}</p>
                                                                 {(step.approver_type === 'user' && step.approver_user?.rank) || (customApproverDetails[step.id]?.rank) ? (
                                                                     <p className="text-[10px]">{step.approver_user?.rank || customApproverDetails[step.id]?.rank}</p>

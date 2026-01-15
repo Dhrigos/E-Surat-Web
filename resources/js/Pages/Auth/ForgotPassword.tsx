@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { User, Phone, Shield, LoaderCircle } from 'lucide-react';
+import { User, Phone, Shield, LoaderCircle, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import GuestLayout from '@/layouts/GuestLayout';
@@ -108,8 +108,23 @@ export default function ForgotPassword() {
     const handleResetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!passwords.password || passwords.password.length < 6) {
-            toast.error('Password baru minimal 6 karakter');
+        if (passwords.password.length < 8) {
+            toast.error('Password baru minimal 8 karakter');
+            return;
+        }
+
+        if (!/[A-Z]/.test(passwords.password)) {
+            toast.error('Password harus memiliki huruf besar');
+            return;
+        }
+
+        if (!/[0-9]/.test(passwords.password)) {
+            toast.error('Password harus memiliki angka');
+            return;
+        }
+
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(passwords.password)) {
+            toast.error('Password harus memiliki karakter spesial');
             return;
         }
 
@@ -233,12 +248,28 @@ export default function ForgotPassword() {
                                     <Input
                                         id="password"
                                         type="password"
-                                        placeholder="Minimal 6 karakter"
+                                        placeholder="Minimal 8 karakter"
                                         value={passwords.password}
                                         onChange={(e) => setPasswords(prev => ({ ...prev, password: e.target.value }))}
                                         className="pl-3 bg-black/50 border-white/10 text-white placeholder:text-gray-500 focus:border-red-600 h-11"
                                         required
                                     />
+                                </div>
+                                <div className="mt-2 space-y-1 bg-white/5 p-3 rounded-lg border border-white/10">
+                                    <p className="text-xs text-gray-400 font-bold mb-2">Syarat Kata Sandi:</p>
+                                    {[
+                                        { label: 'Minimal 8 karakter', valid: passwords.password.length >= 8 },
+                                        { label: 'Huruf besar (A-Z)', valid: /[A-Z]/.test(passwords.password) },
+                                        { label: 'Angka (0-9)', valid: /[0-9]/.test(passwords.password) },
+                                        { label: 'Karakter spesial (!@#$...)', valid: /[!@#$%^&*(),.?":{}|<>]/.test(passwords.password) },
+                                    ].map((req, index) => (
+                                        <div key={index} className="flex items-center gap-2 text-xs">
+                                            <div className={`h-4 w-4 rounded-full flex items-center justify-center ${req.valid ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'}`}>
+                                                {req.valid ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                                            </div>
+                                            <span className={req.valid ? 'text-green-500 font-medium' : 'text-gray-500'}>{req.label}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 

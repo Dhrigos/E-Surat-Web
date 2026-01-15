@@ -14,20 +14,52 @@ return new class extends Migration
         Schema::disableForeignKeyConstraints();
 
         Schema::table('user_details', function (Blueprint $table) {
-            $table->dropForeign(['unit_kerja_id']);
-            $table->dropForeign(['subunit_id']);
-            $table->dropForeign(['pangkat_id']);
-            $table->dropForeign(['status_keanggotaan_id']);
-            $table->dropColumn(['unit_kerja_id', 'subunit_id', 'pangkat_id', 'status_keanggotaan_id']);
+
+            // if (Schema::hasColumn('user_details', 'unit_kerja_id')) {
+            //     try {
+            //         $table->dropForeign(['unit_kerja_id']);
+            //     } catch (\Exception $e) {}
+            //     $table->dropColumn('unit_kerja_id');
+            // }
+            // if (Schema::hasColumn('user_details', 'subunit_id')) {
+            //     try {
+            //         $table->dropForeign(['subunit_id']);
+            //     } catch (\Exception $e) {}
+            //     $table->dropColumn('subunit_id');
+            // }
+            //  if (Schema::hasColumn('user_details', 'pangkat_id')) {
+            //     try {
+            //         $table->dropForeign(['pangkat_id']);
+            //     } catch (\Exception $e) {}
+            //     $table->dropColumn('pangkat_id');
+            // }
+            //  if (Schema::hasColumn('user_details', 'status_keanggotaan_id')) {
+            //      try {
+            //         $table->dropForeign(['status_keanggotaan_id']);
+            //     } catch (\Exception $e) {}
+            //     $table->dropColumn('status_keanggotaan_id');
+            // }
         });
 
         Schema::table('staff', function (Blueprint $table) {
-            // Check if exists first or just try drop.
-            // Staff table structure might vary but usually follows user_details
-            $table->dropForeign(['unit_kerja_id']);
-            $table->dropForeign(['pangkat_id']);
-            $table->dropForeign(['status_keanggotaan_id']);
-            $table->dropColumn(['unit_kerja_id', 'pangkat_id', 'status_keanggotaan_id']);
+             // if (Schema::hasColumn('staff', 'unit_kerja_id')) {
+             //    try {
+             //        $table->dropForeign(['unit_kerja_id']);
+             //    } catch (\Exception $e) {}
+             //    $table->dropColumn('unit_kerja_id');
+            // }
+            // if (Schema::hasColumn('staff', 'pangkat_id')) {
+            //     try {
+            //         $table->dropForeign(['pangkat_id']);
+            //     } catch (\Exception $e) {}
+            //     $table->dropColumn('pangkat_id');
+            // }
+            // if (Schema::hasColumn('staff', 'status_keanggotaan_id')) {
+            //     try {
+            //         $table->dropForeign(['status_keanggotaan_id']);
+            //     } catch (\Exception $e) {}
+            //     $table->dropColumn('status_keanggotaan_id');
+            // }
         });
 
         Schema::dropIfExists('jabatan_unit_kerja');

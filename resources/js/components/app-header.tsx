@@ -277,9 +277,13 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                     <p className="text-sm text-muted-foreground">{getGreeting()}</p>
                     <p className="font-semibold text-lg xl:text-xl">{user.name}</p>
                     <p className="text-xs xl:text-sm text-muted-foreground">
-                        {user.roles?.some((r: any) => r.name === 'super-admin') ? 'Super Admin' :
-                            user.roles?.some((r: any) => r.name === 'admin') ? 'Admin' :
-                                (user.detail?.jabatan?.nama || 'Staff')}
+                        {user.detail?.jabatan_role?.nama ? (
+                            user.detail?.jabatan?.nama ? `${user.detail.jabatan_role.nama} (${user.detail.jabatan.nama})` : user.detail.jabatan_role.nama
+                        ) : (
+                            user.detail?.jabatan?.nama ||
+                            (user.roles?.some((r: any) => r.name === 'super-admin') ? 'Super Admin' :
+                                user.roles?.some((r: any) => r.name === 'admin') ? 'Admin' : 'Staff')
+                        )}
                     </p>
                 </div>
 
@@ -325,7 +329,7 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                                 <div className="min-w-0 flex-1">
                                     <p className="text-base font-bold leading-none truncate text-foreground">{user.name}</p>
                                     <p className="text-sm leading-none text-muted-foreground mt-1 truncate">
-                                        NIP: {user.nip_nik || '-'}
+                                        {user.detail?.nia_nrp ? `NRP: ${user.detail.nia_nrp}` : `NIP: ${user.nip_nik || '-'}`}
                                     </p>
                                     <p className="text-sm leading-none text-muted-foreground mt-1 truncate">
                                         NIK: {user.detail?.nik || '-'}
@@ -340,11 +344,11 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                                 </div>
                                 <div>
                                     <p className="text-xs text-muted-foreground mb-0.5">Jabatan:</p>
-                                    <p className="text-sm font-semibold text-foreground truncate">{user.detail?.jabatan?.nama || '-'}</p>
+                                    <p className="text-sm font-semibold text-foreground truncate">{user.detail?.jabatan_role?.nama || '-'}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-muted-foreground mb-0.5">Unit Kerja:</p>
-                                    <p className="text-sm font-semibold text-foreground truncate">{user.detail?.unit_kerja?.nama || '-'}</p>
+                                    <p className="text-sm font-semibold text-foreground truncate">{user.detail?.jabatan?.nama || '-'}</p>
                                 </div>
 
                             </div>

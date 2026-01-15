@@ -169,8 +169,8 @@ export default function MailDetail({ open, onOpenChange, mail, hideTimeline = fa
             email: staff.email || '-',
             role: staff.role || 'user',
             unit: staff.unit || 'Unknown Unit',
-            jabatan: staff.jabatan || 'Unknown Position',
-            pangkat: staff.pangkat || '-',
+            jabatan: staff.role || staff.position || 'Unknown Position',
+            pangkat: staff.pangkat || staff.rank || '-',
             nip: staff.nip || '-',
             nik: staff.nik || '-',
             join_date: staff.join_date || '-',
@@ -278,8 +278,7 @@ export default function MailDetail({ open, onOpenChange, mail, hideTimeline = fa
                             <div className="flex-1 flex items-center gap-5">
                                 {mail.sender ? (
                                     <div
-                                        className="flex items-center gap-5 cursor-pointer hover:opacity-80 transition-opacity"
-                                        onClick={() => handleStaffClick(mail.sender)}
+                                        className="flex items-center gap-5"
                                     >
                                         <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-900/20 overflow-hidden">
                                             {mail.sender.profile_photo_url ? (
@@ -412,10 +411,7 @@ export default function MailDetail({ open, onOpenChange, mail, hideTimeline = fa
 
                                             <div className="flex-1 min-w-0 -mt-1.5">
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                                    <div
-                                                        className="cursor-pointer hover:opacity-80 transition-opacity"
-                                                        onClick={() => handleStaffClick(approver)}
-                                                    >
+                                                    <div>
                                                         <p className="text-base font-semibold text-zinc-200 capitalize">
                                                             {approver.position.replace(/-/g, ' ')}
                                                         </p>

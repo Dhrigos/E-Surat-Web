@@ -19,6 +19,7 @@ class VerificationQueueController extends Controller
             ->whereHas('detail') // Only users who have completed their profile
             ->with([
                 'detail.jabatan',
+                'detail.jabatanRole',
                 'locker',
             ])
             ->orderBy('updated_at', 'asc') // FIFO
@@ -34,7 +35,9 @@ class VerificationQueueController extends Controller
     {
         $user->update([
             'verifikasi' => true,
-            'verification_duration' => $user->verification_locked_at ? $user->verification_locked_at->diffInSeconds(now()) : null,
+            'verification_duration' => $user->verification_locked_at 
+                ? $user->verification_locked_at->diffInSeconds(now()) 
+                : ($user->created_at ? $user->created_at->diffInSeconds(now()) : 0),
             'verification_locked_at' => null,
             'verification_locked_by' => null,
             'rejection_reason' => null, // Clear any previous rejection
@@ -57,6 +60,8 @@ class VerificationQueueController extends Controller
                     'nip' => $detail->nik,
                     'nia' => $detail->nia_nrp,
                     'jabatan_id' => $detail->jabatan_id,
+                    'pangkat_id' => $detail->pangkat_id, // Add this
+                    'status_keanggotaan_id' => $detail->status_keanggotaan_id, // Add this just in case
                     'tanggal_masuk' => $detail->tanggal_pengangkatan ?? now(),
                     'role' => 'staff',
                     'status' => 'active',
@@ -107,7 +112,9 @@ class VerificationQueueController extends Controller
         ]);
 
         $user->update([
-            'verification_duration' => $user->verification_locked_at ? $user->verification_locked_at->diffInSeconds(now()) : null,
+            'verification_duration' => $user->verification_locked_at 
+                ? $user->verification_locked_at->diffInSeconds(now()) 
+                : ($user->created_at ? $user->created_at->diffInSeconds(now()) : 0),
             'verification_locked_at' => null,
             'verification_locked_by' => null,
             'rejection_reason' => $request->reason,

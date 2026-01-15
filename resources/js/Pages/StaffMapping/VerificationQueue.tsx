@@ -20,6 +20,7 @@ interface UserDetail {
     unit_kerja?: { id: number; nama: string; kode: string | null; };
     subunit?: { id: number; nama: string; kode: string | null; };
     jabatan?: { id: number; nama: string; };
+    jabatan_role?: { id: number; nama: string };
     status_keanggotaan?: { id: number; nama: string; };
     pangkat?: { id: number; nama: string; kode: string | null; };
     scan_ktp: string;
@@ -131,6 +132,38 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
         return `/storage/${path}`;
     };
 
+    const FilePreview = ({ path, alt }: { path: string, alt: string }) => {
+        const url = getFileUrl(path);
+        if (!url) return null;
+
+        const isPdf = path.toLowerCase().endsWith('.pdf');
+
+        if (isPdf) {
+            return (
+                <div className="w-full h-full relative group">
+                    <iframe src={url} className="w-full h-full bg-white" title={alt}></iframe>
+                    <div
+                        className="absolute inset-0 bg-transparent hover:bg-black/5 transition-colors cursor-pointer flex items-center justify-center"
+                        onClick={() => window.open(url, '_blank')}
+                    >
+                        <div className="bg-black/50 text-white px-3 py-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            Klik untuk Buka PDF
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <img
+                src={url}
+                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                onClick={() => window.open(url, '_blank')}
+                alt={alt}
+            />
+        );
+    };
+
     return (
         <AppLayout>
             <Head title="Antrian Verifikasi E-KYC" />
@@ -233,7 +266,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                                             disabled={isLocked && !isLockedByMe}
                                                         >
                                                             <Eye className="w-4 h-4 mr-2" />
-                                                            {isLockedByMe ? "Lanjutkan Review" : "Review E-KYC"}
+                                                            {isLockedByMe ? "Lanjutkan Review" : "Review Data"}
                                                         </Button>
                                                     </TableCell>
                                                 </TableRow>
@@ -251,7 +284,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
             <Dialog open={isReviewOpen} onOpenChange={(open) => !open && handleCloseReview()}>
                 <DialogContent className="!max-w-5xl !w-full h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background border-border sm:rounded-xl">
                     <DialogHeader className="p-6 border-b shrink-0 bg-background">
-                        <DialogTitle>Verifikasi Data E-KYC</DialogTitle>
+                        <DialogTitle>Verifikasi Data</DialogTitle>
                     </DialogHeader>
 
                     <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
@@ -264,7 +297,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                     </h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-sm font-medium text-muted-foreground text-center">Scan E-KTP</p>
+                                            <p className="text-sm font-medium text-muted-foreground text-center">E-KTP</p>
                                             <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
                                                 {selectedUser?.detail?.scan_ktp ? (
                                                     <img
@@ -279,7 +312,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-medium text-muted-foreground text-center">Selfie E-KYC</p>
+                                            <p className="text-sm font-medium text-muted-foreground text-center">Selfie </p>
                                             <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
                                                 {selectedUser?.detail?.scan_selfie ? (
                                                     <img
@@ -300,30 +333,20 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                     <h3 className="font-semibold mb-4 text-foreground">Dokumen Pendukung</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-sm font-medium text-muted-foreground text-center">Scan KTA</p>
+                                            <p className="text-sm font-medium text-muted-foreground text-center">KTA</p>
                                             <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
                                                 {selectedUser?.detail?.scan_kta ? (
-                                                    <img
-                                                        src={getFileUrl(selectedUser.detail.scan_kta)!}
-                                                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-                                                        onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_kta)!, '_blank')}
-                                                        alt="KTA"
-                                                    />
+                                                    <FilePreview path={selectedUser.detail.scan_kta} alt="KTA" />
                                                 ) : (
                                                     <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada</div>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm font-medium text-muted-foreground text-center">Scan SK</p>
+                                            <p className="text-sm font-medium text-muted-foreground text-center">SK</p>
                                             <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
                                                 {selectedUser?.detail?.scan_sk ? (
-                                                    <img
-                                                        src={getFileUrl(selectedUser.detail.scan_sk)!}
-                                                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-                                                        onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_sk)!, '_blank')}
-                                                        alt="SK"
-                                                    />
+                                                    <FilePreview path={selectedUser.detail.scan_sk} alt="SK" />
                                                 ) : (
                                                     <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada</div>
                                                 )}
@@ -363,7 +386,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
                                         <span className="text-muted-foreground">Jabatan</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.jabatan?.nama || '-'}</span>
+                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.jabatan_role?.nama || ' '}{' - '}{selectedUser?.detail?.jabatan?.nama || ' '}</span>
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
                                         <span className="text-muted-foreground">Tanggal Pengangkatan</span>
@@ -402,7 +425,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
 
             {/* Rejection Dialog */}
             <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Tolak Verifikasi User</DialogTitle>
                     </DialogHeader>
@@ -427,7 +450,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
 
             {/* Approval Confirmation Dialog */}
             <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Konfirmasi Verifikasi</DialogTitle>
                     </DialogHeader>

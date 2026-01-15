@@ -84,12 +84,12 @@
         <!-- Letterhead (Kop Surat) -->
         <div class="header">
             <!-- Placeholder Logo -->
-            <!-- <img src="{{ public_path('images/logo.png') }}" class="logo" alt="Logo"> -->
+            <img src="{{ public_path('images/BADAN-CADANGAN-NASIONAL.png') }}" class="logo" alt="Logo">
             
             <h1 class="instansi-name">BADAN CADANGAN NASIONAL</h1>
             <p class="instansi-address">
                 Jl. Merdeka Barat No. 12, Jakarta Pusat, DKI Jakarta 10110<br>
-                Telp: (021) 12345678 | Email: info@bcn.go.id | Website: www.bcn.go.id
+                Telp: (021) 12345678 | Email: info@bcn.go.id | Website: www.bacadnas.go.id
             </p>
         </div>
 
