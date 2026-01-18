@@ -268,102 +268,187 @@ export default function UnitTab({ jabatan, filters, currentParent, breadcrumbs }
 
             {/* Table View */}
             <div className="flex-1 overflow-auto">
-                <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-muted-foreground uppercase bg-transparent border-b border-zinc-100 dark:border-zinc-800 sticky top-0 backdrop-blur-sm z-10">
-                        <tr>
-                            <th className="px-6 py-3 font-medium">Nama Unit</th>
-                            <th className="px-6 py-3 font-medium">Kategori</th>
-                            <th className="px-6 py-3 font-medium text-center">Sub-Unit</th>
-                            <th className="px-6 py-3 font-medium text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                        {jabatan.data.length === 0 ? (
+                <div className="hidden md:block">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-muted-foreground uppercase bg-transparent border-b border-zinc-100 dark:border-zinc-800 sticky top-0 backdrop-blur-sm z-10">
                             <tr>
-                                <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
-                                    <div className="flex flex-col items-center justify-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                                            <Building2 className="h-6 w-6 text-muted-foreground/50" />
-                                        </div>
-                                        <p>Tidak ada unit ditemukan</p>
-                                    </div>
-                                </td>
+                                <th className="px-6 py-3 font-medium">Nama Unit</th>
+                                <th className="px-6 py-3 font-medium">Kategori</th>
+                                <th className="px-6 py-3 font-medium text-center">Sub-Unit</th>
+                                <th className="px-6 py-3 font-medium text-right">Aksi</th>
                             </tr>
-                        ) : (
-                            jabatan.data.map((item) => {
-                                const isAnggota = item.kategori.toLowerCase() === 'anggota';
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            {jabatan.data.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center justify-center gap-3">
+                                            <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                                <Building2 className="h-6 w-6 text-muted-foreground/50" />
+                                            </div>
+                                            <p>Tidak ada unit ditemukan</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                jabatan.data.map((item) => {
+                                    const isAnggota = item.kategori.toLowerCase() === 'anggota';
 
-                                return (
-                                    <tr
-                                        key={item.id}
-                                        className={`group transition-colors ${isAnggota ? 'cursor-default' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer'}`}
-                                        onClick={() => !isAnggota && handleNavigate(item.id)}
-                                    >
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                                                    {(item.children_count || 0) > 0 ? (
-                                                        <Building2 className="h-5 w-5 fill-current" />
-                                                    ) : (
-                                                        <Briefcase className="h-5 w-5" />
+                                    return (
+                                        <tr
+                                            key={item.id}
+                                            className={`group transition-colors ${isAnggota ? 'cursor-default' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer'}`}
+                                            onClick={() => !isAnggota && handleNavigate(item.id)}
+                                        >
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                                        {(item.children_count || 0) > 0 ? (
+                                                            <Building2 className="h-5 w-5 fill-current" />
+                                                        ) : (
+                                                            <Briefcase className="h-5 w-5" />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div className={`font-medium transition-colors ${!isAnggota ? 'text-foreground group-hover:text-indigo-600' : 'text-muted-foreground'}`}>{item.nama}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <Badge variant="outline" className={`capitalize border shadow-none font-normal ${getKategoriColor(item.kategori)}`}>
+                                                    {item.kategori}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                {(item.children_count || 0) > 0 ? (
+                                                    <Badge variant="secondary" className="rounded-full px-2.5">
+                                                        {item.children_count}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-xs">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-indigo-600 hover:shadow-sm rounded-full transition-all"
+                                                        onClick={(e) => handleEdit(item, e)}
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-red-600 hover:shadow-sm rounded-full transition-all"
+                                                        onClick={(e) => handleDelete(item.id, e)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-foreground hover:shadow-sm rounded-full transition-all"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleNavigate(item.id);
+                                                        }}
+                                                    >
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4 p-4">
+                    {jabatan.data.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                    <Building2 className="h-6 w-6 text-muted-foreground/50" />
+                                </div>
+                                <p>Tidak ada unit ditemukan</p>
+                            </div>
+                        </div>
+                    ) : (
+                        jabatan.data.map((item) => {
+                            const isAnggota = item.kategori.toLowerCase() === 'anggota';
+
+                            return (
+                                <div
+                                    key={item.id}
+                                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm space-y-3"
+                                    onClick={() => !isAnggota && handleNavigate(item.id)}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                                {(item.children_count || 0) > 0 ? (
+                                                    <Building2 className="h-5 w-5 fill-current" />
+                                                ) : (
+                                                    <Briefcase className="h-5 w-5" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-foreground">{item.nama}</div>
+                                                <div className="mt-1 flex gap-2">
+                                                    <Badge variant="outline" className={`capitalize border shadow-none font-normal text-xs ${getKategoriColor(item.kategori)}`}>
+                                                        {item.kategori}
+                                                    </Badge>
+                                                    {(item.children_count || 0) > 0 && (
+                                                        <Badge variant="secondary" className="rounded-full px-2 text-xs h-5">
+                                                            {item.children_count} Sub-unit
+                                                        </Badge>
                                                     )}
                                                 </div>
-                                                <div>
-                                                    <div className={`font-medium transition-colors ${!isAnggota ? 'text-foreground group-hover:text-indigo-600' : 'text-muted-foreground'}`}>{item.nama}</div>
-                                                </div>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <Badge variant="outline" className={`capitalize border shadow-none font-normal ${getKategoriColor(item.kategori)}`}>
-                                                {item.kategori}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {(item.children_count || 0) > 0 ? (
-                                                <Badge variant="secondary" className="rounded-full px-2.5">
-                                                    {item.children_count}
-                                                </Badge>
-                                            ) : (
-                                                <span className="text-muted-foreground text-xs">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-indigo-600 hover:shadow-sm rounded-full transition-all"
-                                                    onClick={(e) => handleEdit(item, e)}
-                                                >
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-red-600 hover:shadow-sm rounded-full transition-all"
-                                                    onClick={(e) => handleDelete(item.id, e)}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-foreground hover:shadow-sm rounded-full transition-all"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleNavigate(item.id);
-                                                    }}
-                                                >
-                                                    <ChevronRight className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )
-                            })
-                        )}
-                    </tbody>
-                </table>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-indigo-600"
+                                            onClick={(e) => handleEdit(item, e)}
+                                        >
+                                            <Pencil className="h-3 w-3 mr-1.5" /> Edit
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-red-600"
+                                            onClick={(e) => handleDelete(item.id, e)}
+                                        >
+                                            <Trash2 className="h-3 w-3 mr-1.5" /> Hapus
+                                        </Button>
+                                        {!isAnggota && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleNavigate(item.id);
+                                                }}
+                                            >
+                                                Buka <ChevronRight className="h-3 w-3 ml-1" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </div>
 
             {/* Pagination */}

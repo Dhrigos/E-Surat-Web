@@ -90,6 +90,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
         office_province_id: auth.user?.detail?.office_province_id || '',
         mako_id: auth.user?.detail?.mako_id || '',
+        kta_start_date: auth.user?.detail?.kta_start_date ? new Date(auth.user.detail.kta_start_date) : undefined,
         kta_expired_at: auth.user?.detail?.kta_expired_at ? new Date(auth.user.detail.kta_expired_at) : undefined,
         is_kta_lifetime: auth.user?.detail?.is_kta_lifetime === (true as any || 1 as any),
     });
@@ -237,12 +238,12 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
         setData(field as any, finalFile);
         clearErrors(field as any);
 
-        // Check if image for preview
-        if (finalFile.type.startsWith('image/')) {
+        // Check if image or PDF for preview
+        if (finalFile.type.startsWith('image/') || finalFile.type === 'application/pdf') {
             const objectUrl = URL.createObjectURL(finalFile);
             setPreviews(prev => ({ ...prev, [field]: objectUrl }));
         } else {
-            // For PDF or other docs, use a marker
+            // For other docs, use a marker
             setPreviews(prev => ({ ...prev, [field]: 'DOC_FILE' }));
         }
     }
@@ -558,9 +559,15 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                 hasError = true;
             }
 
-            if (!data.is_kta_lifetime && !data.kta_expired_at) {
-                setError('kta_expired_at', 'Wajib diisi');
-                hasError = true;
+            if (!data.is_kta_lifetime) {
+                if (!data.kta_start_date) {
+                    setError('kta_start_date' as any, 'Wajib diisi');
+                    hasError = true;
+                }
+                if (!data.kta_expired_at) {
+                    setError('kta_expired_at', 'Wajib diisi');
+                    hasError = true;
+                }
             }
 
             if (hasError) {
@@ -595,7 +602,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                         </div>
 
                         {/* Center: Title */}
-                        <CardTitle className="text-[10px] md:text-2xl lg:text-3xl font-black text-[#AC0021] tracking-tight animate-in fade-in duration-700 delay-200 text-center flex-1 mx-0 md:mx-4 leading-tight md:leading-normal">
+                        <CardTitle className="text-md md:text-2xl lg:text-3xl font-black text-[#AC0021] tracking-tight animate-in fade-in duration-700 delay-200 text-center flex-1 mx-0 md:mx-4 leading-tight md:leading-normal">
                             Sistem Informasi <br></br> Badan Cadangan Nasional
                         </CardTitle>
 
@@ -942,26 +949,38 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                                     {data.is_kta_lifetime && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                                                 </div>
                                                 <span className={`text-sm font-medium transition-colors ${data.is_kta_lifetime ? 'text-[#FEFCF8]' : 'text-gray-400 group-hover:text-gray-300'}`}>
-                                                    Sampai Dilengserkan
+                                                    Waktu Tidak Ditentukan
                                                 </span>
                                             </div>
                                         </div>
 
                                         {!data.is_kta_lifetime && (
-                                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <DateSelect
-                                                    value={data.kta_expired_at ? format(data.kta_expired_at, 'yyyy-MM-dd') : ''}
-                                                    onChange={(val) => setData('kta_expired_at', val ? new Date(val) : undefined)}
-                                                    error={!!errors.kta_expired_at}
-                                                />
-                                                {errors.kta_expired_at && <p className="text-red-500 text-sm mt-1">{errors.kta_expired_at}</p>}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="space-y-2">
+                                                    <Label className="text-[#FEFCF8] text-xs font-normal">Tanggal Mulai</Label>
+                                                    <DateSelect
+                                                        value={data.kta_start_date ? format(data.kta_start_date, 'yyyy-MM-dd') : ''}
+                                                        onChange={(val) => setData('kta_start_date' as any, val ? new Date(val) : undefined)}
+                                                        error={!!errors.kta_start_date}
+                                                    />
+                                                    {errors.kta_start_date && <p className="text-red-500 text-sm mt-1">{errors.kta_start_date}</p>}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-[#FEFCF8] text-xs font-normal">Tanggal Selesai</Label>
+                                                    <DateSelect
+                                                        value={data.kta_expired_at ? format(data.kta_expired_at, 'yyyy-MM-dd') : ''}
+                                                        onChange={(val) => setData('kta_expired_at', val ? new Date(val) : undefined)}
+                                                        error={!!errors.kta_expired_at}
+                                                    />
+                                                    {errors.kta_expired_at && <p className="text-red-500 text-sm mt-1">{errors.kta_expired_at}</p>}
+                                                </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Office Address Section */}
-                                <div className="col-span-1 md:col-span-2 space-y-2 pt-4 border-t border-white/10">
+                                <div className="col-span-1 md:col-span-2 space-y-2 pt-4 -mt-4">
                                     <Label className="text-[#FEFCF8] font-medium text-base">Alamat Kantor</Label>
 
                                 </div>
@@ -1069,10 +1088,13 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         <Label className="text-[#FEFCF8] font-medium">Upload KTP</Label>
                                         {previews.scan_ktp && (
                                             <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
-                                                {previews.scan_ktp === 'PDF_FILE' || previews.scan_ktp === 'PDF_EXISTING' ? (
-                                                    <div className="flex flex-col items-center text-gray-400">
-                                                        <FileText className="w-12 h-12 mb-2" />
-                                                        <span className="text-xs">Dokumen PDF Terlampir</span>
+                                                {(previews.scan_ktp.toLowerCase().endsWith('.pdf') || previews.scan_ktp.startsWith('blob:')) && (previews.scan_ktp.includes('.pdf') || (data.scan_ktp?.type === 'application/pdf')) ? (
+                                                    <div className="w-full h-full relative group">
+                                                        <iframe
+                                                            src={`${previews.scan_ktp}#page=1&toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+                                                            className="w-full h-full bg-white pointer-events-none"
+                                                            title="Preview KTP"
+                                                        ></iframe>
                                                     </div>
                                                 ) : (
                                                     <>
@@ -1095,11 +1117,18 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                             className={`relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border-2 border-dashed ${errors.scan_kta ? 'border-red-500' : 'border-gray-600 hover:border-gray-400'} cursor-pointer flex items-center justify-center transition-colors group`}
                                         >
                                             {previews.scan_kta ? (
-                                                previews.scan_kta === 'PDF_FILE' || previews.scan_kta === 'DOC_FILE' ? (
-                                                    <div className="flex flex-col items-center text-gray-400">
-                                                        <FileText className="w-12 h-12 mb-2" />
-                                                        <span className="text-xs">Dokumen Terlampir</span>
-                                                        <span className="text-[10px] mt-1 text-gray-500">Klik untuk ganti</span>
+                                                (previews.scan_kta.toLowerCase().endsWith('.pdf') || (data.scan_kta?.type === 'application/pdf')) ? (
+                                                    <div className="w-full h-full relative group">
+                                                        <iframe
+                                                            src={`${previews.scan_kta}#page=1&toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+                                                            className="w-full h-full bg-white pointer-events-none"
+                                                            title="Preview KTA"
+                                                        ></iframe>
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.stopPropagation(); ktaInputRef.current?.click(); }}>
+                                                            <div className="text-[#FEFCF8] text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                                                                <FileText className="w-3 h-3" /> Ganti File
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <>
@@ -1121,7 +1150,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         <Input
                                             ref={ktaInputRef}
                                             type="file"
-                                            accept="image/*"
+                                            accept="image/*,application/pdf"
                                             onChange={e => handleFileInput(e, 'scan_kta')}
                                             className="hidden"
                                         />
@@ -1135,11 +1164,18 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                             className={`relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border-2 border-dashed ${errors.scan_sk ? 'border-red-500' : 'border-gray-600 hover:border-gray-400'} cursor-pointer flex items-center justify-center transition-colors group`}
                                         >
                                             {previews.scan_sk ? (
-                                                previews.scan_sk === 'PDF_FILE' || previews.scan_sk === 'DOC_FILE' ? (
-                                                    <div className="flex flex-col items-center text-gray-400">
-                                                        <FileText className="w-12 h-12 mb-2" />
-                                                        <span className="text-xs">Dokumen Terlampir</span>
-                                                        <span className="text-[10px] mt-1 text-gray-500">Klik untuk ganti</span>
+                                                (previews.scan_sk.toLowerCase().endsWith('.pdf') || (data.scan_sk?.type === 'application/pdf')) ? (
+                                                    <div className="w-full h-full relative group">
+                                                        <iframe
+                                                            src={`${previews.scan_sk}#page=1&toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+                                                            className="w-full h-full bg-white pointer-events-none"
+                                                            title="Preview SK"
+                                                        ></iframe>
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.stopPropagation(); skInputRef.current?.click(); }}>
+                                                            <div className="text-[#FEFCF8] text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                                                                <FileText className="w-3 h-3" /> Ganti File
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <>
@@ -1154,14 +1190,14 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                             ) : (
                                                 <div className="flex flex-col items-center text-gray-400 group-hover:text-gray-300">
                                                     <FileText className="w-8 h-8 mb-2 opacity-50" />
-                                                    <span className="text-sm">Klik untuk upload SK</span>
+                                                    <span className="text-sm">Klik untuk upload SK (PDF/Doc)</span>
                                                 </div>
                                             )}
                                         </div>
                                         <Input
                                             ref={skInputRef}
                                             type="file"
-                                            accept=".pdf,application/pdf"
+                                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                             onChange={e => handleFileInput(e, 'scan_sk')}
                                             className="hidden"
                                         />

@@ -130,7 +130,7 @@ export default function Index({ activeTab, stats, data, filters }: Props) {
                                         )}
                                     >
                                         <tab.icon className={cn("w-4 h-4", isActive ? "text-white" : "")} />
-                                        {tab.label}
+                                        <span className="hidden md:inline">{tab.label}</span>
                                     </button>
                                 );
                             })}

@@ -191,132 +191,238 @@ export default function RankTab({ data: { golongans, pangkats }, filters }: Prop
                 <div className="flex-1 overflow-auto">
                     {/* Golongan Table */}
                     <TabsContent value="golongan" className="m-0 h-full">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-muted-foreground uppercase bg-transparent border-b border-zinc-100 dark:border-zinc-800 sticky top-0 backdrop-blur-sm z-10">
-                                <tr>
-                                    <th className="px-6 py-3 font-medium">Nama Golongan</th>
-                                    <th className="px-6 py-3 font-medium">Keterangan</th>
-                                    <th className="px-6 py-3 font-medium text-right">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                {golongans.filter(g => !search || g.nama.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
-                                    golongans.filter(g => !search || g.nama.toLowerCase().includes(search.toLowerCase())).map((item) => (
-                                        <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                                                        <Layers className="h-5 w-5" />
+                        <div className="hidden md:block">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-muted-foreground uppercase bg-transparent border-b border-zinc-100 dark:border-zinc-800 sticky top-0 backdrop-blur-sm z-10">
+                                    <tr>
+                                        <th className="px-6 py-3 font-medium">Nama Golongan</th>
+                                        <th className="px-6 py-3 font-medium">Keterangan</th>
+                                        <th className="px-6 py-3 font-medium text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                    {golongans.filter(g => !search || g.nama.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
+                                        golongans.filter(g => !search || g.nama.toLowerCase().includes(search.toLowerCase())).map((item) => (
+                                            <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                                            <Layers className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="font-medium text-foreground">{item.nama}</div>
                                                     </div>
-                                                    <div className="font-medium text-foreground">{item.nama}</div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-muted-foreground">
-                                                {item.keterangan || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-indigo-600 hover:shadow-sm rounded-full transition-all"
-                                                        onClick={() => openEditGolongan(item)}
-                                                    >
-                                                        <Pencil className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-red-600 hover:shadow-sm rounded-full transition-all"
-                                                        onClick={() => deleteGolongan(item.id)}
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
+                                                </td>
+                                                <td className="px-6 py-4 text-muted-foreground">
+                                                    {item.keterangan || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-indigo-600 hover:shadow-sm rounded-full transition-all"
+                                                            onClick={() => openEditGolongan(item)}
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-red-600 hover:shadow-sm rounded-full transition-all"
+                                                            onClick={() => deleteGolongan(item.id)}
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} className="px-6 py-12 text-center text-muted-foreground">
+                                                <div className="flex flex-col items-center justify-center gap-3">
+                                                    <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                                        <Layers className="h-6 w-6 text-muted-foreground/50" />
+                                                    </div>
+                                                    <p>Tidak ada data golongan ditemukan</p>
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={3} className="px-6 py-12 text-center text-muted-foreground">
-                                            <div className="flex flex-col items-center justify-center gap-3">
-                                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                                                    <Layers className="h-6 w-6 text-muted-foreground/50" />
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden space-y-4 p-4">
+                            {golongans.filter(g => !search || g.nama.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
+                                golongans.filter(g => !search || g.nama.toLowerCase().includes(search.toLowerCase())).map((item) => (
+                                    <div key={item.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                                    <Layers className="h-5 w-5" />
                                                 </div>
-                                                <p>Tidak ada data golongan ditemukan</p>
+                                                <div>
+                                                    <div className="font-medium text-foreground">{item.nama}</div>
+                                                    <div className="text-sm text-muted-foreground">{item.keterangan || '-'}</div>
+                                                </div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-indigo-600"
+                                                onClick={() => openEditGolongan(item)}
+                                            >
+                                                <Pencil className="h-3 w-3 mr-1.5" /> Edit
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-red-600"
+                                                onClick={() => deleteGolongan(item.id)}
+                                            >
+                                                <Trash2 className="h-3 w-3 mr-1.5" /> Hapus
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <div className="flex flex-col items-center justify-center gap-3">
+                                        <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                            <Layers className="h-6 w-6 text-muted-foreground/50" />
+                                        </div>
+                                        <p>Tidak ada data golongan ditemukan</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </TabsContent>
 
                     {/* Pangkat Table */}
                     <TabsContent value="pangkat" className="m-0 h-full">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-muted-foreground uppercase bg-transparent border-b border-zinc-100 dark:border-zinc-800 sticky top-0 backdrop-blur-sm z-10">
-                                <tr>
-                                    <th className="px-6 py-3 font-medium">Nama Pangkat</th>
-                                    <th className="px-6 py-3 font-medium">Golongan</th>
-                                    <th className="px-6 py-3 font-medium text-right">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                {pangkats.filter(p => !search || p.nama.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
-                                    pangkats.filter(p => !search || p.nama.toLowerCase().includes(search.toLowerCase())).map((item) => (
-                                        <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                                                        <Award className="h-5 w-5" />
+                        <div className="hidden md:block">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-muted-foreground uppercase bg-transparent border-b border-zinc-100 dark:border-zinc-800 sticky top-0 backdrop-blur-sm z-10">
+                                    <tr>
+                                        <th className="px-6 py-3 font-medium">Nama Pangkat</th>
+                                        <th className="px-6 py-3 font-medium">Golongan</th>
+                                        <th className="px-6 py-3 font-medium text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                    {pangkats.filter(p => !search || p.nama.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
+                                        pangkats.filter(p => !search || p.nama.toLowerCase().includes(search.toLowerCase())).map((item) => (
+                                            <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                                                            <Award className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="font-medium text-foreground">{item.nama}</div>
                                                     </div>
-                                                    <div className="font-medium text-foreground">{item.nama}</div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {item.golongan ? (
-                                                    <Badge variant="outline" className="bg-zinc-50 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 shadow-none font-medium">
-                                                        {item.golongan.nama}
-                                                    </Badge>
-                                                ) : <span className="text-zinc-400">-</span>}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-indigo-600 hover:shadow-sm rounded-full transition-all"
-                                                        onClick={() => openEditPangkat(item)}
-                                                    >
-                                                        <Pencil className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-red-600 hover:shadow-sm rounded-full transition-all"
-                                                        onClick={() => deletePangkat(item.id)}
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {item.golongan ? (
+                                                        <Badge variant="outline" className="bg-zinc-50 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 shadow-none font-medium">
+                                                            {item.golongan.nama}
+                                                        </Badge>
+                                                    ) : <span className="text-zinc-400">-</span>}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-indigo-600 hover:shadow-sm rounded-full transition-all"
+                                                            onClick={() => openEditPangkat(item)}
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-red-600 hover:shadow-sm rounded-full transition-all"
+                                                            onClick={() => deletePangkat(item.id)}
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} className="px-6 py-12 text-center text-muted-foreground">
+                                                <div className="flex flex-col items-center justify-center gap-3">
+                                                    <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                                        <Award className="h-6 w-6 text-muted-foreground/50" />
+                                                    </div>
+                                                    <p>Tidak ada data pangkat ditemukan</p>
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={3} className="px-6 py-12 text-center text-muted-foreground">
-                                            <div className="flex flex-col items-center justify-center gap-3">
-                                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                                                    <Award className="h-6 w-6 text-muted-foreground/50" />
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden space-y-4 p-4">
+                            {pangkats.filter(p => !search || p.nama.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
+                                pangkats.filter(p => !search || p.nama.toLowerCase().includes(search.toLowerCase())).map((item) => (
+                                    <div key={item.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                                                    <Award className="h-5 w-5" />
                                                 </div>
-                                                <p>Tidak ada data pangkat ditemukan</p>
+                                                <div>
+                                                    <div className="font-medium text-foreground">{item.nama}</div>
+                                                    <div className="mt-1">
+                                                        {item.golongan ? (
+                                                            <Badge variant="outline" className="bg-zinc-50 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 shadow-none font-medium text-xs">
+                                                                {item.golongan.nama}
+                                                            </Badge>
+                                                        ) : <span className="text-zinc-400 text-sm">-</span>}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-indigo-600"
+                                                onClick={() => openEditPangkat(item)}
+                                            >
+                                                <Pencil className="h-3 w-3 mr-1.5" /> Edit
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-red-600"
+                                                onClick={() => deletePangkat(item.id)}
+                                            >
+                                                <Trash2 className="h-3 w-3 mr-1.5" /> Hapus
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <div className="flex flex-col items-center justify-center gap-3">
+                                        <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                            <Award className="h-6 w-6 text-muted-foreground/50" />
+                                        </div>
+                                        <p>Tidak ada data pangkat ditemukan</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </TabsContent>
                 </div>
             </div>

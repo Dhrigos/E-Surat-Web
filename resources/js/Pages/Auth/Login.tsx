@@ -25,8 +25,12 @@ export default function Login() {
             onFinish: () => {
                 setLoading(false);
             },
-            onError: () => {
-                toast.error('Email atau kata sandi salah');
+            onError: (errors: any) => {
+                if (errors.login_error) {
+                    toast.error(errors.login_error);
+                } else {
+                    toast.error('Email atau kata sandi salah');
+                }
                 setLoading(false);
             }
         });
@@ -52,64 +56,61 @@ export default function Login() {
             </div>
 
             {/* Section 1: Hero / Landing */}
-            <div className="relative z-10 h-screen w-full snap-start flex flex-col justify-between px-6 py-8 md:px-12 md:py-12">
+            <div className="relative z-10 min-h-[100dvh] w-full snap-start hidden md:flex flex-col justify-between px-4 py-6 md:px-12 md:py-12 overflow-hidden">
                 {/* Header Logos */}
-                <div className="flex justify-center items-center w-full gap-0 md:gap-0">
+                <div className="flex justify-center items-center w-full gap-4 md:gap-0 mt-4 md:mt-0">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="h-28 w-28 md:h-40 md:w-40 flex items-center justify-center">
+                        <div className="h-20 w-20 sm:h-40 sm:w-40 md:h-40 md:w-40 flex items-center justify-center transition-all duration-300">
                             <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Logo Kemhan" className="h-full w-full object-contain drop-shadow-2xl" />
                         </div>
-                        {/* <span className="text-[8px] md:text-[10px] font-bold tracking-widest text-shadow uppercase whitespace-nowrap text-center text-white drop-shadow-md">KEMENTERIAN PERTAHANAN</span> */}
                     </div>
                     <div className="flex flex-col items-center gap-2">
-                        <div className="h-28 w-28 md:h-40 md:w-40 flex items-center justify-center">
-                            <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Bacan" className="h-20 w-auto md:h-28 md:w-auto object-contain drop-shadow-2xl" />
+                        <div className="h-20 w-20 sm:h-28 sm:w-28 md:h-24 md:w-24 flex items-center justify-center transition-all duration-300">
+                            <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Bacan" className="h-full w-full object-contain drop-shadow-2xl scale-125" />
                         </div>
-                        {/* <span className="text-[8px] md:text-[10px] font-bold tracking-widest text-shadow uppercase whitespace-nowrap text-center text-white drop-shadow-md">BADAN CADANGAN NASIONAL</span> */}
                     </div>
                 </div>
 
                 {/* Center Content */}
-                <div className="flex flex-col items-center justify-center text-center -mt-30">
+                <div className="flex flex-col items-center justify-center text-center -mt-10 sm:-mt-20 md:-mt-32">
                     {/* Badge */}
-                    <div className="mb-8 px-6 py-2 rounded-full border border-white/30 bg-black/20 backdrop-blur-md flex items-center gap-3 shadow-lg">
-                        <span className="text-[#AC0021] font-bold text-xl">🏛️</span>
-                        <span className="text-xs md:text-sm font-bold tracking-widest uppercase text-[#FEFCF8] drop-shadow">Republik Indonesia</span>
+                    <div className="mb-6 md:mb-8 px-4 py-1.5 md:px-6 md:py-2 rounded-full border border-white/30 bg-black/20 backdrop-blur-md flex items-center gap-2 md:gap-3 shadow-lg scale-90 md:scale-100 origin-center">
+                        <span className="text-[#AC0021] font-bold text-lg md:text-xl">🏛️</span>
+                        <span className="text-[10px] md:text-sm font-bold tracking-widest uppercase text-[#FEFCF8] drop-shadow">Republik Indonesia</span>
                     </div>
 
                     {/* Big Title */}
-                    <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] uppercase drop-shadow-2xl text-[#FEFCF8]">
+                    <h1 className="text-4xl sm:text-5xl md:text-8xl font-black tracking-tighter leading-[0.95] md:leading-[0.9] uppercase drop-shadow-2xl text-[#FEFCF8] max-w-[95%] sm:max-w-[85%] mx-auto md:max-w-none transition-all duration-300">
                         KEMENTERIAN <br /> PERTAHANAN
                     </h1>
 
                     {/* Subtitle */}
-                    <div className="flex items-center gap-4 mt-6 mb-4 w-full justify-center opacity-90">
-                        <div className="h-[2px] w-16 md:w-32 bg-[#AC0021] shadow-[0_0_10px_#AC0021]"></div>
-                        <span className="text-[#AC0021] font-bold tracking-[0.3em] text-sm md:text-xl drop-shadow-lg uppercase text-center whitespace-nowrap">
+                    <div className="flex items-center gap-3 md:gap-4 mt-5 md:mt-6 mb-3 md:mb-4 w-full justify-center opacity-90 scale-90 md:scale-100 origin-center">
+                        <div className="h-[2px] w-8 md:w-32 bg-[#AC0021] shadow-[0_0_10px_#AC0021]"></div>
+                        <span className="text-[#AC0021] font-bold tracking-[0.3em] text-[10px] md:text-xl drop-shadow-lg uppercase text-center whitespace-nowrap bg-[#AC0021]/10 px-3 py-1 rounded-full border border-[#AC0021]/30 shadow-[0_0_15px_rgba(172,0,33,0.4)]">
                             REPUBLIK INDONESIA
                         </span>
-                        <div className="h-[2px] w-16 md:w-32 bg-[#AC0021] shadow-[0_0_10px_#AC0021]"></div>
+                        <div className="h-[2px] w-8 md:w-32 bg-[#AC0021] shadow-[0_0_10px_#AC0021]"></div>
                     </div>
 
-                    <p className="text-gray-300 font-medium text-sm md:text-lg tracking-[0.2em] uppercase mt-2 drop-shadow-md">
+                    <p className="text-gray-300 font-medium text-xs md:text-lg tracking-[0.2em] uppercase mt-1 md:mt-2 drop-shadow-md px-4">
                         Portal Sistem Manajemen Dokumen
                     </p>
                 </div>
 
                 {/* Bottom Button */}
-                {/* Bottom Button */}
-                <div className="flex justify-center pb-10 ">
+                <div className="flex justify-center pb-8 md:pb-10">
                     <button
                         type="button"
                         onClick={scrollToLogin}
                         onMouseEnter={() => setIsHovered(true)}
                         onMouseLeave={() => setIsHovered(false)}
-                        className="group flex items-center gap-3 px-8 py-4 bg-[#262626]/80 backdrop-blur-md border border-[#AC0021] rounded-full hover:bg-[#AC0021] transition-all duration-500 shadow-2xl hover:shadow-[0_0_30px_rgba(172,53,0,0.5)] cursor-pointer"
+                        className="group flex items-center gap-3 px-6 py-3 md:px-8 md:py-4 bg-[#262626]/80 backdrop-blur-md border border-[#AC0021] rounded-full hover:bg-[#AC0021] transition-all duration-500 shadow-2xl hover:shadow-[0_0_30px_rgba(172,53,0,0.5)] cursor-pointer scale-90 md:scale-100 origin-bottom"
                     >
                         <span className="text-[#AC0021] group-hover:text-[#FEFCF8] transition-colors duration-300">
                             {isHovered ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
                         </span>
-                        <span className="font-extrabold tracking-widest text-lg text-[#FEFCF8] group-hover:text-[#FEFCF8] transition-colors duration-300">
+                        <span className="font-extrabold tracking-widest text-sm md:text-lg text-[#FEFCF8] group-hover:text-[#FEFCF8] transition-colors duration-300">
                             {isHovered ? 'AKSES LANJUT' : 'AKSES RESMI'}
                         </span>
                     </button>
@@ -117,18 +118,18 @@ export default function Login() {
             </div>
 
             {/* Section 2: Login Form */}
-            <div ref={loginSectionRef} className="relative z-10 h-screen w-full snap-start flex flex-col items-center justify-center px-4">
+            <div ref={loginSectionRef} className="relative z-10 min-h-[100dvh] w-full snap-start flex flex-col items-center justify-center px-4 py-12">
                 <div className="bg-[#252525]/90 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-10 shadow-2xl w-full max-w-lg relative overflow-hidden group">
 
                     {/* Logos Top Card */}
                     <div className="flex justify-center items-center gap-8 mb-1 -mt-8 transform group-hover:scale-105 transition-transform duration-700">
                         <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
-                        <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-28 w-28 object-contain drop-shadow-2xl" />
+                        <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-20 w-auto md:h-28 md:w-28 object-contain drop-shadow-2xl" />
                     </div>
 
                     {/* Title Card */}
                     <div className="text-center mb-10 -mt-2">
-                        <h2 className="text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Sistem Informasi<br />Badan Cadangan Nasional</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Sistem Informasi<br />Badan Cadangan Nasional</h2>
                         <p className="text-gray-400 text-xs font-medium tracking-wide">Sistem ini hanya diperuntukkan bagi personel BACADNAS</p>
                     </div>
 

@@ -179,7 +179,7 @@ export default function ForgotPassword() {
     if (step === 2) {
         return (
             <GuestLayout title="Verifikasi OTP" hideHeader={true}>
-                <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-[#FEFCF8] shadow-2xl">
+                <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-0 text-[#FEFCF8] shadow-2xl">
                     <CardHeader className="text-center">
                         <div className="flex items-center justify-center mb-6 px-2">
                             <div className="flex-shrink-0 flex gap-4 items-center">
@@ -202,12 +202,12 @@ export default function ForgotPassword() {
                         <form onSubmit={handleCheckOTP} className="space-y-6">
                             <div className="flex justify-center">
                                 <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                                    <InputOTPGroup className="gap-6">
+                                    <InputOTPGroup className="gap-2 md:gap-6">
                                         {[0, 1, 2, 3, 4, 5].map((index) => (
                                             <InputOTPSlot
                                                 key={index}
                                                 index={index}
-                                                className="h-14 w-12 border-0 border-b-2 border-white/20 bg-transparent text-[#FEFCF8] text-3xl font-bold rounded-none shadow-none transition-all duration-300 focus:border-0 focus:border-b-4 focus:border-[#AC0021] focus:ring-0 outline-none hover:bg-white/5 active:bg-transparent first:border-l-0 first:rounded-none last:rounded-none"
+                                                className="h-10 w-9 sm:w-10 md:h-14 md:w-12 border-0 border-b-2 border-white/20 bg-transparent text-[#FEFCF8] text-xl md:text-3xl font-bold rounded-none shadow-none transition-all duration-300 focus:border-0 focus:border-b-4 focus:border-[#AC0021] focus:ring-0 outline-none hover:bg-white/5 active:bg-transparent first:border-l-0 first:rounded-none last:rounded-none"
                                             />
                                         ))}
                                     </InputOTPGroup>
@@ -252,14 +252,14 @@ export default function ForgotPassword() {
                         display: none;
                     }
                 `}</style>
-                <Card className="w-full max-w-md relative z-10 bg-[#1a1a1a]/95 backdrop-blur-xl border-2 border-white/10 text-[#FEFCF8] shadow-2xl">
+                <Card className="w-full max-w-md relative z-10 bg-[#1a1a1a]/95 backdrop-blur-xl border-0 text-[#FEFCF8] shadow-2xl">
                     <CardHeader className="text-center">
-                        <div className="flex justify-center items-center gap-2 mb-2 transform group-hover:scale-105 transition-transform duration-700">
+                        <div className="flex justify-center items-center gap-8 mb-1 -mt-8 transform group-hover:scale-105 transition-transform duration-700">
                             <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
-                            <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-28 w-28 object-contain drop-shadow-2xl" />
+                            <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-20 w-auto md:h-28 md:w-28 object-contain drop-shadow-2xl" />
                         </div>
 
-                        <div className="text-center mb-1 -mt-9">
+                        <div className="text-center mb-1 -mt-7">
                             <h2 className="text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Password Baru</h2>
                             <p className="text-gray-400 text-xs font-medium tracking-wide mb-4">Buat kata sandi baru untuk mengamankan akun Anda</p>
 
@@ -405,14 +405,18 @@ export default function ForgotPassword() {
     // Step 1: Default Form
     return (
         <GuestLayout title="Atur Ulang Kata Sandi" hideHeader={true}>
-            <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-[#FEFCF8] shadow-2xl">
+            <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-0 text-[#FEFCF8] shadow-2xl">
                 <CardHeader className="text-center">
-                    <div className="flex justify-center items-center gap-2 mb-2 transform group-hover:scale-105 transition-transform duration-700">
+                    {/* <div className="flex justify-center items-center gap-2 mb-2 transform group-hover:scale-105 transition-transform duration-700">
                         <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
                         <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-28 w-28 object-contain drop-shadow-2xl" />
+                    </div> */}
+                    <div className="flex justify-center items-center gap-8 mb-1 -mt-8 transform group-hover:scale-105 transition-transform duration-700">
+                        <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
+                        <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-20 w-auto md:h-28 md:w-28 object-contain drop-shadow-2xl" />
                     </div>
 
-                    <div className="text-center mb-1 -mt-9">
+                    <div className="text-center mb-1 -mt-7">
                         <h2 className="text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Reset Password</h2>
                         <p className="text-gray-400 text-xs font-medium tracking-wide mb-4">Masukkan username atau email dan nomor telepon yang terdaftar</p>
 

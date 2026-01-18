@@ -183,7 +183,8 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                     </div>
                 </div>
                 {/* Messages - Desktop */}
-                <div className="hidden md:block">
+
+                {/* <div className="hidden md:block">
                     <div className="hidden md:block">
                         <Button
                             variant="ghost"
@@ -194,7 +195,7 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                             <MessageSquare className="h-5 w-5 md:h-6 md:w-6" />
                         </Button>
                     </div>
-                </div>
+                </div> */}
 
                 {/* Notifications */}
                 <div className="md:hidden">

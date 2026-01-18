@@ -41,11 +41,13 @@ class UserDetail extends Model
         'office_province_id',
         'office_city_id',
         'mako_id',
+        'kta_start_date',
         'kta_expired_at',
         'is_kta_lifetime',
     ];
 
     protected $casts = [
+        'kta_start_date' => 'date',
         'kta_expired_at' => 'date',
         'is_kta_lifetime' => 'boolean',
     ];

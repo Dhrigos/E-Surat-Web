@@ -90,7 +90,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value = '', onChange, o
                 content_style: (
                     isDark
                         ? [
-                            'body { font-family:Helvetica,Arial,sans-serif; font-size:14px;background:#18181b; color:#e5e7eb; }',
+                            'body { font-family:Helvetica,Arial,sans-serif; font-size:14px;background:#262626; color:#e5e7eb; }',
                             'a { color:#60a5fa; }',
                             'table { color: inherit; }',
                             // Placeholder styles for dark mode
@@ -267,7 +267,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value = '', onChange, o
                             const toolbars = container.querySelectorAll('.tox-editor-header, .tox-toolbar, .tox-toolbar__primary');
                             toolbars.forEach((toolbar: Element) => {
                                 if (isDark) {
-                                    toolbar.setAttribute('style', 'background: #27272a !important; border-bottom: 1px solid #27272a !important;');
+                                    toolbar.setAttribute('style', 'background: #262626 !important; border-bottom: 1px solid #262626 !important;');
                                 } else {
                                     toolbar.setAttribute('style', 'background: #ffffff !important; border-bottom: 1px solid #e5e7eb !important;');
                                 }
@@ -283,22 +283,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value = '', onChange, o
                                     .tox[data-custom-dark="1"] .tox-editor-header,
                                     .tox[data-custom-dark="1"] .tox-toolbar,
                                     .tox[data-custom-dark="1"] .tox-toolbar__primary,
-                                    .tox[data-custom-dark="1"] .tox-toolbar__overflow {
+                                    .tox[data-custom-dark="1"] .tox-toolbar__overflow,
+                                    .tox[data-custom-dark="1"] .tox-toolbar__group {
                                         background: #262626 !important;
                                         border-bottom: 1px solid #262626 !important;
+                                        border-color: #262626 !important;
+                                        box-shadow: none !important;
                                     }
                                     /* Make all borders blend with background */
                                     .tox[data-custom-dark="1"],
                                     .tox[data-custom-dark="1"] .tox-tinymce,
                                     .tox[data-custom-dark="1"] .tox-editor-container,
                                     .tox[data-custom-dark="1"] .tox-toolbar-overlord,
-                                    .tox[data-custom-dark="1"] .tox-toolbar__group,
                                     .tox[data-custom-dark="1"] .tox-toolbar__group:not(:last-child) {
                                         border-color: #262626 !important;
-                                        box-shadow: none !important;
-                                    }
-                                    .tox[data-custom-dark="1"] .tox-toolbar__group {
-                                        background: #262626 !important;
                                         box-shadow: none !important;
                                     }
                                     .tox[data-custom-dark="1"] .tox-tbtn {
@@ -411,10 +409,108 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value = '', onChange, o
                                     html.dark .tox-silver-sink .tox-collection__item-label h4,
                                     html.dark .tox-silver-sink .tox-collection__item-label h5,
                                     html.dark .tox-silver-sink .tox-collection__item-label h6,
-                                    html.dark .tox-silver-sink .tox-collection__item-label p {
+                                    html.dark .tox-silver-sink .tox-collection__item-label p,
+                                    html.dark .tox-silver-sink .tox-collection__item-label span {
                                         text-shadow: none !important;
+                                        box-shadow: none !important;
                                         color: #e5e7eb !important;
+                                        background: transparent !important;
                                         -webkit-font-smoothing: antialiased;
+                                        font-weight: normal !important; /* Optional: might want to keep headings bold, but this resets the artifacts */
+                                    }
+                                    /* Restore bold for headings if desired, but cleanly */
+                                    html.dark .tox-silver-sink .tox-collection__item-label h1,
+                                    html.dark .tox-silver-sink .tox-collection__item-label h2,
+                                    html.dark .tox-silver-sink .tox-collection__item-label h3,
+                                    html.dark .tox-silver-sink .tox-collection__item-label h4,
+                                    html.dark .tox-silver-sink .tox-collection__item-label b,
+                                    html.dark .tox-silver-sink .tox-collection__item-label strong {
+                                        font-weight: 700 !important;
+                                    }
+                                    /* Force toolbar bottom border and any other separators to specific color */
+                                    .tox[data-custom-dark="1"] .tox-toolbar__primary {
+                                        border-bottom: 1px solid #262626 !important;
+                                        background: #262626 !important;
+                                    }
+                                    .tox[data-custom-dark="1"] .tox-anchorbar {
+                                        background: #262626 !important;
+                                        border-bottom: 1px solid #262626 !important;
+                                    }
+                                    /* Ensure the edit area border is also matching or removed */
+                                    .tox[data-custom-dark="1"] .tox-edit-area__iframe,
+                                    .tox[data-custom-dark="1"] .tox-edit-area {
+                                        background: #262626 !important;
+                                        border: none !important;
+                                    }
+                                    /* Handle StatusBar (even if hidden, sometimes container remains) */
+                                    .tox[data-custom-dark="1"] .tox-statusbar {
+                                        background-color: #262626 !important;
+                                        border-top: 1px solid #262626 !important;
+                                        color: #e5e7eb !important;
+                                    }
+                                    .tox[data-custom-dark="1"] .tox-statusbar__text,
+                                    .tox[data-custom-dark="1"] .tox-statusbar__path-item,
+                                    .tox[data-custom-dark="1"] .tox-statusbar__wordcount {
+                                        color: #e5e7eb !important;
+                                    }
+                                    .tox[data-custom-dark="1"] .tox-statusbar__resize-handle svg {
+                                        fill: #e5e7eb !important;
+                                    }
+                                    /* Aggressively target SVG fills for icons */
+                                    .tox[data-custom-dark="1"] .tox-tbtn svg,
+                                    .tox[data-custom-dark="1"] .tox-tbtn svg * {
+                                        fill: #e5e7eb !important;
+                                        color: #e5e7eb !important;
+                                    }
+                                    
+                                    /* Blanket rule for all backgrounds and borders in dark mode to be #262626 */
+                                    .tox[data-custom-dark="1"] .tox-sidebar-wrap,
+                                    .tox[data-custom-dark="1"] .tox-edit-area__iframe,
+                                    .tox[data-custom-dark="1"] .tox-menubar,
+                                    .tox[data-custom-dark="1"] .tox-toolbar,
+                                    .tox[data-custom-dark="1"] .tox-toolbar-overlord,
+                                    .tox[data-custom-dark="1"] .tox-toolbar__primary,
+                                    .tox[data-custom-dark="1"] .tox-toolbar__overflow,
+                                    .tox[data-custom-dark="1"] .tox-toolbar__group,
+                                    .tox[data-custom-dark="1"] .tox-statusbar,
+                                    .tox[data-custom-dark="1"] .tox-throbber,
+                                    .tox[data-custom-dark="1"] .tox-editor-container,
+                                    .tox[data-custom-dark="1"] .tox-sidebar-wrap,
+                                    .tox[data-custom-dark="1"] .tox-dialog,
+                                    .tox[data-custom-dark="1"] .tox-dialog__header,
+                                    .tox[data-custom-dark="1"] .tox-dialog__footer,
+                                    .tox[data-custom-dark="1"] .tox-dialog__body {
+                                        background: #262626 !important;
+                                        background-color: #262626;                                        
+                                    }
+                                    
+                                    /* Specific overrides for borders that need to exist but match color (if any) */
+                                    .tox[data-custom-dark="1"] .tox-toolbar__primary {
+                                         background: #262626 !important;
+                                         background-color: #262626 !important;
+                                         background-image: none !important;
+                                         border-bottom: 1px solid #262626 !important;
+                                    }
+                                    
+                                    /* Tooltips must also match */
+                                    .tox[data-custom-dark="1"] .tox-tooltip,
+                                    .tox[data-custom-dark="1"] .tox-tooltip__body {
+                                        background: #262626 !important;
+                                        background-color: #262626 !important;
+                                        color: #e5e7eb !important;
+                                        border: 1px solid #3f3f46 !important; /* Subtle border for visibility */
+                                        box-shadow: none !important;
+                                    }
+                                    .tox[data-custom-dark="1"] .tox-tooltip__arrow {
+                                        border-top-color: #262626 !important;
+                                    }
+                                    
+                                    /* Re-apply hover states which might be overridden by blanket rule */
+                                    .tox[data-custom-dark="1"] .tox-tbtn:hover,
+                                    .tox[data-custom-dark="1"] .tox-tbtn:focus,
+                                    .tox[data-custom-dark="1"] .tox-tbtn--enabled,
+                                    .tox[data-custom-dark="1"] .tox-tbtn--enabled:hover {
+                                        background: #3f3f46 !important;
                                     }
                                     `;
 

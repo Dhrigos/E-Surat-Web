@@ -201,7 +201,7 @@
             </div>
 
             <!-- Content -->
-            <div class="letter-content">{!! nl2br(e($letter->content)) !!}</div>
+            <div class="letter-content">{!! $letter->content !!}</div>
         </div>
 
         <!-- Dynamic Signatures (Absolute to Paper) -->

@@ -180,13 +180,13 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
             <div className="p-6 w-full space-y-6">
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
+                    <div className="hidden md:block">
                         <h1 className="text-2xl font-bold text-white">Arsip Surat</h1>
                         <p className="text-gray-400 text-sm mt-1">Kelola dan cari arsip surat dengan mudah.</p>
                     </div>
                     <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
                         <DialogTrigger asChild>
-                            <Button className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20">
+                            <Button className="hidden md:flex bg-[#AC0021] hover:bg-[#8c001b] text-white shadow-lg shadow-[#AC0021]/20">
                                 <Plus className="w-4 h-4 mr-2" />
                                 Tambah Arsip
                             </Button>
@@ -212,7 +212,7 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                                                 value={data.subject}
                                                 onChange={e => setData('subject', e.target.value)}
                                                 placeholder="Contoh: Surat Penawaran Kerjasama"
-                                                className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-red-500"
+                                                className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
                                             />
                                             {errors.subject && <p className="text-destructive text-xs">{errors.subject}</p>}
                                         </div>
@@ -223,7 +223,7 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                                                 value={data.description}
                                                 onChange={e => setData('description', e.target.value)}
                                                 placeholder="Contoh: PT. Maju Jaya"
-                                                className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-red-500"
+                                                className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
                                             />
                                             {errors.description && <p className="text-destructive text-xs">{errors.description}</p>}
                                         </div>
@@ -255,12 +255,12 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                                     <TabsContent value="text" className="space-y-4 pt-4">
                                         {/* Row 1: Subject */}
                                         <div className="space-y-2">
-                                            <Label className="text-gray-300">Perihal Surat <span className="text-red-500">*</span></Label>
+                                            <Label className="text-gray-300">Perihal Surat <span className="text-[#AC0021]">*</span></Label>
                                             <Input
                                                 value={data.subject}
                                                 onChange={e => setData('subject', e.target.value)}
                                                 placeholder="Masukkan perihal surat"
-                                                className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-red-500"
+                                                className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
                                             />
                                             {errors.subject && <p className="text-destructive text-xs">{errors.subject}</p>}
                                         </div>
@@ -268,12 +268,12 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                                         {/* Row 2: Recipient & Priority */}
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <Label className="text-gray-300">Penerima <span className="text-red-500">*</span></Label>
+                                                <Label className="text-gray-300">Penerima <span className="text-[#AC0021]">*</span></Label>
                                                 <Input
                                                     value={data.recipient}
                                                     onChange={e => setData('recipient', e.target.value)}
                                                     placeholder="Ketik nama atau username..."
-                                                    className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-red-500"
+                                                    className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
                                                 />
                                                 {errors.recipient && <p className="text-destructive text-xs">{errors.recipient}</p>}
                                             </div>
@@ -328,7 +328,7 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                                                 value={data.content}
                                                 onChange={e => setData('content', e.target.value)}
                                                 placeholder="Tulis isi surat di sini..."
-                                                className="resize-y bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-red-500"
+                                                className="resize-y bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
                                             />
                                         </div>
 
@@ -378,20 +378,21 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                 {/* Main Card */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/10 overflow-hidden shadow-2xl">
                     {/* Filters Section */}
-                    <div className="p-4 border-b border-white/10 flex flex-col md:flex-row gap-4 items-center justify-between bg-white/5 relative z-20 shadow-md">
-                        <div className="relative w-full md:w-96">
+                    <div className="p-4 border-b border-white/10 flex flex-row gap-4 items-center justify-between bg-white/5 relative overflow-x-auto no-scrollbar">
+                        <div className="relative flex-1 md:w-96 min-w-0">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                             <Input
-                                placeholder="Cari berdasarkan nomor surat, perihal,..."
-                                className="pl-9 bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-red-500/50"
+                                placeholder="Cari surat..."
+                                className="pl-9 bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]/50"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                        <div className="flex flex-row gap-3 w-auto shrink-0">
                             <Select value={selectedLetterType} onValueChange={(val) => handleFilterChange('letter_type', val)}>
-                                <SelectTrigger className="w-full md:w-40 bg-[#2a2a2a] border-white/10 text-white">
-                                    <SelectValue placeholder="Semua Jenis" />
+                                <SelectTrigger className="w-10 md:w-40 px-0 md:px-3 justify-center md:justify-between bg-[#2a2a2a] border-white/10 text-white [&>svg:last-child]:hidden md:[&>svg:last-child]:block">
+                                    <span className="md:hidden"><FileText className="h-4 w-4" /></span>
+                                    <span className="hidden md:inline text-sm truncate"><SelectValue placeholder="Semua Jenis" /></span>
                                 </SelectTrigger>
                                 <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
                                     <SelectItem value="all">Semua Jenis</SelectItem>
@@ -402,8 +403,9 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                             </Select>
 
                             <Select value={selectedCategory} onValueChange={(val) => handleFilterChange('category', val)}>
-                                <SelectTrigger className="w-full md:w-40 bg-[#2a2a2a] border-white/10 text-white">
-                                    <SelectValue placeholder="Semua Kategori" />
+                                <SelectTrigger className="w-10 md:w-40 px-0 md:px-3 justify-center md:justify-between bg-[#2a2a2a] border-white/10 text-white [&>svg:last-child]:hidden md:[&>svg:last-child]:block">
+                                    <span className="md:hidden"><Filter className="h-4 w-4" /></span>
+                                    <span className="hidden md:inline text-sm truncate"><SelectValue placeholder="Semua Kategori" /></span>
                                 </SelectTrigger>
                                 <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
                                     <SelectItem value="all">Semua Kategori</SelectItem>
@@ -413,7 +415,7 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                                 </SelectContent>
                             </Select>
 
-                            <div className="flex items-center px-4 py-2 bg-[#2a2a2a] border border-white/10 rounded-md text-sm text-gray-400 whitespace-nowrap">
+                            <div className="hidden md:flex items-center px-4 py-2 bg-[#2a2a2a] border border-white/10 rounded-md text-sm text-gray-400 whitespace-nowrap">
                                 Total: {archivedMails.total}
                             </div>
                         </div>
@@ -486,7 +488,7 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                                             <TableCell className="text-right py-4 pr-4 md:pr-6">
                                                 <Button
                                                     size="sm"
-                                                    className="bg-red-600 hover:bg-red-700 text-white h-8 w-8 p-0 rounded-lg shadow-lg shadow-red-900/20 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-2 md:group-hover:translate-x-0"
+                                                    className="bg-[#AC0021] hover:bg-[#8c001b] text-white h-8 w-8 p-0 rounded-lg shadow-lg shadow-[#AC0021]/20 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-2 md:group-hover:translate-x-0"
                                                     onClick={() => handleViewDetail(mail)}
                                                 >
                                                     <Eye className="w-4 h-4" />
@@ -499,6 +501,196 @@ export default function ArchivedMails({ archivedMails, filters, letterTypes }: P
                         </Table>
                     </div>
                 </div>
+
+                {/* Mobile Floating Action Button */}
+                <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                    <DialogTrigger asChild>
+                        <Button
+                            className="md:hidden fixed bottom-24 right-6 h-14 w-14 rounded-full bg-[#AC0021] hover:bg-[#8c001b] text-white shadow-xl shadow-[#AC0021]/30 z-50 flex items-center justify-center"
+                        >
+                            <Plus className="w-6 h-6" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-[#1a1a1a] border border-white/10 text-white sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Tambah Arsip Eksternal</DialogTitle>
+                            <DialogDescription className="text-gray-400">
+                                Tambahkan surat manual ke arsip (Upload Gambar/PDF atau Ketik Ulang).
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <form onSubmit={handleExternalSubmit} className="space-y-4 mt-2">
+                            <Tabs defaultValue="upload" className="w-full">
+                                <TabsList className="grid w-full grid-cols-2 bg-[#2a2a2a]">
+                                    <TabsTrigger value="upload" className="gap-2 data-[state=active]:bg-[#3a3a3a] data-[state=active]:text-white"><Upload className="w-4 h-4" /> Upload File</TabsTrigger>
+                                    <TabsTrigger value="text" className="gap-2 data-[state=active]:bg-[#3a3a3a] data-[state=active]:text-white"><Type className="w-4 h-4" /> Ketik Ulang</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="upload" className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-300">Perihal / Judul Surat</Label>
+                                        <Input
+                                            value={data.subject}
+                                            onChange={e => setData('subject', e.target.value)}
+                                            placeholder="Contoh: Surat Penawaran Kerjasama"
+                                            className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
+                                        />
+                                        {errors.subject && <p className="text-destructive text-xs">{errors.subject}</p>}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-300">Pengirim / Keterangan</Label>
+                                        <Input
+                                            value={data.description}
+                                            onChange={e => setData('description', e.target.value)}
+                                            placeholder="Contoh: PT. Maju Jaya"
+                                            className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
+                                        />
+                                        {errors.description && <p className="text-destructive text-xs">{errors.description}</p>}
+                                    </div>
+                                    <div className="border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-white/5 transition-colors">
+                                        <div className="p-4 bg-white/5 rounded-full mb-3">
+                                            <Upload className="h-6 w-6 text-gray-400" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Input
+                                                type="file"
+                                                id="file-upload-mobile"
+                                                className="hidden"
+                                                onChange={e => setData('attachment', e.target.files?.[0] || null)}
+                                                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                            />
+                                            <Label htmlFor="file-upload-mobile" className="block text-sm font-medium text-blue-400 hover:text-blue-300 cursor-pointer">
+                                                Klik untuk upload file
+                                            </Label>
+                                            <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 10MB)</p>
+                                            {data.attachment && (
+                                                <div className="mt-2 text-sm font-medium text-emerald-500 flex items-center justify-center gap-1">
+                                                    <FileText className="w-3 h-3" />
+                                                    {data.attachment.name}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </TabsContent>
+                                <TabsContent value="text" className="space-y-4 pt-4">
+                                    {/* Row 1: Subject */}
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-300">Perihal Surat <span className="text-[#AC0021]">*</span></Label>
+                                        <Input
+                                            value={data.subject}
+                                            onChange={e => setData('subject', e.target.value)}
+                                            placeholder="Masukkan perihal surat"
+                                            className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
+                                        />
+                                        {errors.subject && <p className="text-destructive text-xs">{errors.subject}</p>}
+                                    </div>
+
+                                    {/* Row 2: Recipient & Priority */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-gray-300">Penerima <span className="text-[#AC0021]">*</span></Label>
+                                            <Input
+                                                value={data.recipient}
+                                                onChange={e => setData('recipient', e.target.value)}
+                                                placeholder="Ketik nama atau username..."
+                                                className="bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
+                                            />
+                                            {errors.recipient && <p className="text-destructive text-xs">{errors.recipient}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-gray-300">Prioritas</Label>
+                                            <Select value={data.priority} onValueChange={val => setData('priority', val)}>
+                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-white">
+                                                    <SelectValue placeholder="Pilih Prioritas" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                                                    <SelectItem value="low">Low</SelectItem>
+                                                    <SelectItem value="normal">Normal</SelectItem>
+                                                    <SelectItem value="high">High</SelectItem>
+                                                    <SelectItem value="urgent">Urgent</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: Category & Letter Type */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-gray-300">Kategori</Label>
+                                            <Select value={data.category} onValueChange={val => setData('category', val)}>
+                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-white">
+                                                    <SelectValue placeholder="Pilih Kategori" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                                                    <SelectItem value="internal">Internal</SelectItem>
+                                                    <SelectItem value="external">External</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-gray-300">Jenis Surat (Opsional)</Label>
+                                            <Select onValueChange={val => setData('letter_type_id', val)}>
+                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-white">
+                                                    <SelectValue placeholder="Pilih jenis surat (Opsional)" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                                                    <SelectItem value="placeholder" disabled>Coming Soon</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 4: Content */}
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-300">Isi Surat</Label>
+                                        <Textarea
+                                            rows={6}
+                                            value={data.content}
+                                            onChange={e => setData('content', e.target.value)}
+                                            placeholder="Tulis isi surat di sini..."
+                                            className="resize-y bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 focus:ring-[#AC0021]"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-300">Lampiran (PDF/Word)</Label>
+                                        <div className="border-2 border-dashed border-white/10 bg-white/5 rounded-lg p-8 flex flex-col items-center justify-center text-center relative hover:bg-white/10 transition-colors">
+                                            <Upload className="h-6 w-6 text-gray-400 mb-2" />
+                                            <p className="text-sm font-medium text-gray-300">Drag & drop files atau klik untuk upload</p>
+                                            <p className="text-xs text-gray-500 mt-1">Support: PDF, DOC, DOCX (Max 10MB)</p>
+                                            <Input
+                                                type="file"
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                id="detailed-upload-mobile"
+                                                multiple
+                                                onChange={e => {
+                                                    if (e.target.files) {
+                                                        setData('attachments', Array.from(e.target.files));
+                                                    }
+                                                }}
+                                            />
+                                            {data.attachments && data.attachments.length > 0 && (
+                                                <div className="mt-4 space-y-1 w-full max-w-xs z-10 relative pointer-events-none">
+                                                    {data.attachments.map((file, i) => (
+                                                        <div key={i} className="text-xs text-emerald-500 flex items-center gap-1 justify-center bg-emerald-500/10 py-1 px-2 rounded">
+                                                            <FileText className="w-3 h-3" /> {file.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+
+                            <div className="flex justify-end gap-2 pt-4 border-t border-white/10">
+                                <Button type="button" variant="ghost" onClick={() => setShowUploadDialog(false)} className="text-gray-400 hover:text-white">Batal</Button>
+                                <Button type="submit" disabled={processing} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                    {processing ? 'Menyimpan...' : 'Simpan ke Arsip'}
+                                </Button>
+                            </div>
+                        </form>
+                    </DialogContent>
+                </Dialog>
 
                 <Pagination links={archivedMails.links} />
 

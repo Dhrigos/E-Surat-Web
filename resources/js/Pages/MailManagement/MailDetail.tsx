@@ -454,7 +454,7 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                                 <>
                                     <Button
                                         onClick={() => setViewMode('approval')}
-                                        className="bg-[#AC0021] hover:bg-[#8c001b] text-white gap-2 h-9 px-4 text-sm font-medium shadow-md shadow-red-900/20"
+                                        className="bg-[#AC0021] hover:bg-[#8c001b] text-white gap-2 h-9 px-4 text-sm font-medium shadow-md shadow-[#AC0021]/20"
                                     >
                                         <CheckCircle2 className="h-4 w-4" />
                                         Review & Sign
@@ -462,7 +462,7 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                                     <Button
                                         onClick={() => setApprovalAction('reject')}
                                         variant="outline"
-                                        className="border-red-600/20 bg-red-500/5 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 gap-2 h-9 px-4 text-sm"
+                                        className="border-[#AC0021]/20 bg-[#AC0021]/5 text-[#AC0021] hover:bg-[#AC0021] hover:text-white hover:border-[#AC0021] gap-2 h-9 px-4 text-sm"
                                     >
                                         <XCircle className="h-4 w-4" />
                                         Reject
@@ -513,11 +513,11 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="w-full sm:max-w-6xl max-h-[90vh] flex flex-col overflow-hidden bg-[#262626] border-zinc-800 text-zinc-100 p-0 gap-0">
-                    <div className="shrink-0 z-10 bg-[#262626]/95 backdrop-blur-xl border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <DialogTitle className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                                {mail.subject}
+                <DialogContent className="w-full sm:max-w-6xl max-h-[95dvh] sm:max-h-[90vh] flex flex-col overflow-hidden bg-[#262626] border-zinc-800 text-zinc-100 p-0 gap-0">
+                    <div className="shrink-0 z-10 bg-[#262626]/95 backdrop-blur-xl border-b border-zinc-800 px-4 py-3 sm:px-5 flex items-center justify-between">
+                        <div className="space-y-0.5 min-w-0 flex-1 mr-2">
+                            <DialogTitle className="text-base sm:text-lg font-bold text-zinc-100 flex items-center gap-2 flex-wrap">
+                                <span className="truncate">{mail.subject}</span>
                                 <Badge variant="outline" className={`${getStatusColor(mail.status)} border-0 px-2 py-0 rounded-full text-[10px] font-semibold uppercase tracking-wide`}>
                                     {mail.status}
                                 </Badge>
@@ -541,9 +541,9 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                         </DialogClose>
                     </div>
 
-                    <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
-                        {/* Top Content (Static/Non-scrollable) */}
-                        <div className="shrink-0 px-5 pt-5 space-y-6">
+                    <div className="flex-1 flex flex-col min-h-0 relative overflow-y-auto sm:overflow-hidden">
+                        {/* Top Content (Static/Non-scrollable on Desktop, Scrollable part of body on Mobile) */}
+                        <div className="shrink-0 px-4 sm:px-5 pt-4 sm:pt-5 space-y-4 sm:space-y-6">
                             {/* Sender/Recipient Card */}
                             <div className="flex flex-col md:flex-row gap-4 p-4 rounded-xl bg-[#262626] border border-zinc-800/50 shadow-sm">
                                 <div className="flex-1 flex items-center gap-5">
@@ -581,7 +581,7 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                                     <>
                                         <div className="hidden md:block w-px bg-zinc-800" />
                                         <div className="flex-1">
-                                            <p className="text-sm text-zinc-500 uppercase tracking-wider font-semibold mb-3">
+                                            <p className="text-xs sm:text-sm text-zinc-500 uppercase tracking-wider font-semibold mb-2 sm:mb-3">
                                                 Recipients ({mail.recipients_list.length})
                                             </p>
                                             <div className="flex flex-col gap-3">
@@ -777,12 +777,12 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                             {/* Approvers List */}
                         </div>
 
-                        {/* Timeline Section (Fills remaining space) */}
-                        <div className="flex-1 bg-[#1e1e1e] border-t border-zinc-800 min-h-0 flex flex-col relative z-0">
+                        {/* Timeline Section (Fills remaining space on desktop, stacks on mobile) */}
+                        <div className="flex-1 bg-[#1e1e1e] border-t border-zinc-800 min-h-0 flex flex-col relative z-0 mt-4 sm:mt-0">
                             {!hideTimeline && mail.approvers && mail.approvers.length > 0 && (
                                 <>
                                     {/* Timeline Header (Static) */}
-                                    <div className="shrink-0 p-4 border-b border-zinc-800/50 bg-[#1e1e1e] z-10 box-border">
+                                    <div className="shrink-0 p-4 border-b border-zinc-800/50 bg-[#1e1e1e] z-10 box-border sticky top-0">
                                         <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
                                             <CheckCircle2 className="h-4 w-4 text-blue-500" />
                                             Timeline Approval
@@ -790,8 +790,8 @@ export default function MailDetail({ open, onOpenChange, mail }: MailDetailProps
                                     </div>
 
                                     {/* Scrollable List */}
-                                    <div className="flex-1 overflow-y-auto p-4 pt-4 custom-scrollbar" style={{ contain: 'paint' }}>
-                                        <div className="relative pl-4 space-y-6 pb-24">
+                                    <div className="flex-1 sm:overflow-y-auto p-4 pt-4 custom-scrollbar" style={{ contain: 'paint' }}>
+                                        <div className="relative pl-4 space-y-6 pb-24 sm:pb-0">
                                             <div className="absolute left-[21px] top-3 bottom-0 w-px bg-zinc-800" />
                                             {mail.approvers.map((approver, i) => (
                                                 <div key={i} className="relative flex gap-6 group overflow-hidden">

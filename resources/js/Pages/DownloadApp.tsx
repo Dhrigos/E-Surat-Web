@@ -54,7 +54,7 @@ export default function DownloadApp() {
                     </a>
 
                     {/* Google Play Button */}
-                    <a href="#" className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-[#1a1a1a] to-black border border-white/10 hover:border-white/20 transition-all p-4 flex items-center justify-center sm:justify-start gap-4 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:-translate-y-1">
+                    <a href="https://drive.google.com/file/d/1NM2CrDMGBFh17sHLcdjjIHM5lnfyF7uE/view?usp=sharing" className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-[#1a1a1a] to-black border border-white/10 hover:border-white/20 transition-all p-4 flex items-center justify-center sm:justify-start gap-4 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:-translate-y-1">
                         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                         <svg className="w-8 h-8 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

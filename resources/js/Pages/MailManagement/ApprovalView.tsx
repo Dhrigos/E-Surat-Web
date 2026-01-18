@@ -395,7 +395,7 @@ export default function ApprovalView({
                             </div>
 
                             <div className="whitespace-pre-wrap text-sm leading-relaxed text-justify min-h-[300px]">
-                                {mail.content}
+                                <div dangerouslySetInnerHTML={{ __html: mail.content || '' }} />
                             </div>
                         </div>
 

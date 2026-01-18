@@ -13,6 +13,14 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
+
+use App\Actions\Fortify\LogoutOtherDevices;
+use Laravel\Fortify\Actions\AttemptToAuthenticate;
+use Laravel\Fortify\Actions\CanonicalizeUsername;
+use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
+use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
+use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
+
 class FortifyServiceProvider extends ServiceProvider
 {
     /**
@@ -28,6 +36,17 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Fortify::authenticateThrough(function (Request $request) {
+            return array_filter([
+                config('fortify.limiters.login') ? null : EnsureLoginIsNotThrottled::class,
+                config('fortify.limiters.login') ? null : CanonicalizeUsername::class,
+                Features::enabled(Features::twoFactorAuthentication()) ? RedirectIfTwoFactorAuthenticatable::class : null,
+                AttemptToAuthenticate::class,
+                PrepareAuthenticatedSession::class,
+                LogoutOtherDevices::class,
+            ]);
+        });
+
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();

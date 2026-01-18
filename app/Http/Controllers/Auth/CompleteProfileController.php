@@ -50,6 +50,7 @@ class CompleteProfileController extends Controller
             'office_province_id' => 'nullable|string',
             'mako_id' => 'nullable|exists:makos,id',
             'is_kta_lifetime' => 'required|boolean',
+            'kta_start_date' => 'required_if:is_kta_lifetime,false|nullable|date',
             'kta_expired_at' => 'required_if:is_kta_lifetime,false|nullable|date',
         ];
 
@@ -64,7 +65,7 @@ class CompleteProfileController extends Controller
         $rules['foto_profil'] = "$fileRules|image|max:15360";
         // scan_ktp handled above
         $rules['scan_kta'] = "$fileRules|mimes:jpg,jpeg,png,pdf|max:15360";
-        $rules['scan_sk'] = "$fileRules|mimes:jpg,jpeg,png,pdf|max:15360";
+        $rules['scan_sk'] = "$fileRules|mimes:pdf,doc,docx|max:15360";
         $rules['tanda_tangan'] = "$fileRules|image|max:15360";
 
         $messages = [
@@ -72,6 +73,7 @@ class CompleteProfileController extends Controller
             'nik.unique' => 'NIK sudah terdaftar.',
             'nomor_kta.unique' => 'Nomor KTA sudah terdaftar.',
             'pangkat_id.required' => 'Pangkat wajib dipilih.',
+            'kta_start_date.required_if' => 'Tanggal mulai KTA wajib diisi jika tidak seumur hidup.',
             'kta_expired_at.required_if' => 'Tanggal berakhir KTA wajib diisi jika tidak seumur hidup.',
         ];
 
@@ -122,9 +124,16 @@ class CompleteProfileController extends Controller
             } catch (\Exception $e) {
             }
         }
+        if (!empty($data['kta_start_date'])) {
+             try {
+                $data['kta_start_date'] = \Carbon\Carbon::parse($data['kta_start_date'])->format('Y-m-d');
+            } catch (\Exception $e) {
+            }
+        }
         
         // Handle logic if lifetime is true, force expired_at to null
         if ($request->is_kta_lifetime) {
+            $data['kta_start_date'] = null;
             $data['kta_expired_at'] = null;
         }
 

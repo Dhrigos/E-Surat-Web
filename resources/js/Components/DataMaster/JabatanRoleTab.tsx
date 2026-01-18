@@ -156,6 +156,88 @@ const JabatanRoleRow = ({
     );
 };
 
+// Mobile Role Item Component
+const MobileRoleItem = ({
+    role,
+    level = 0,
+    onEdit,
+    onDelete
+}: {
+    role: JabatanRole,
+    level?: number,
+    onEdit: (role: JabatanRole) => void,
+    onDelete: (id: number) => void
+}) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const hasChildren = role.children && role.children.length > 0;
+
+    return (
+        <div className="space-y-2">
+            <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col gap-3 ${level > 0 ? 'ml-4 border-l-4 border-l-indigo-500' : ''}`}>
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                            <Shield className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <div className="font-medium text-foreground">{role.nama}</div>
+                            {hasChildren && (
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                    {role.children?.length} sub-roles
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    {hasChildren && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                            onClick={() => setIsExpanded(!isExpanded)}
+                        >
+                            {isExpanded ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
+                            {isExpanded ? 'Tutup' : 'Lihat Sub-role'}
+                        </Button>
+                    )}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-indigo-600"
+                        onClick={() => onEdit(role)}
+                    >
+                        <Pencil className="h-3 w-3 mr-1.5" /> Edit
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-red-600"
+                        onClick={() => onDelete(role.id)}
+                    >
+                        <Trash2 className="h-3 w-3 mr-1.5" /> Hapus
+                    </Button>
+                </div>
+            </div>
+
+            {isExpanded && hasChildren && role.children && (
+                <div className="space-y-2 pt-1 border-l-2 border-dashed border-zinc-200 dark:border-zinc-800 ml-4 pl-0">
+                    {role.children.map((child) => (
+                        <MobileRoleItem
+                            key={child.id}
+                            role={child}
+                            level={level + 1}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function JabatanRoleTab({ roles, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
@@ -303,7 +385,7 @@ export default function JabatanRoleTab({ roles, filters }: Props) {
 
             {/* Content Area */}
             <div className="flex-1 overflow-auto">
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <DragDropContext onDragEnd={onDragEnd}>
                         <Table className="w-full text-sm text-left">
                             <TableHeader>
@@ -337,6 +419,29 @@ export default function JabatanRoleTab({ roles, filters }: Props) {
                             </TableBody>
                         </Table>
                     </DragDropContext>
+                </div>
+
+                {/* Mobile ListView */}
+                <div className="md:hidden p-4 space-y-4">
+                    {localRoles.length > 0 ? (
+                        localRoles.map((role) => (
+                            <MobileRoleItem
+                                key={role.id}
+                                role={role}
+                                onEdit={openEditModal}
+                                onDelete={handleDelete}
+                            />
+                        ))
+                    ) : (
+                        <div className="text-center py-12 text-muted-foreground">
+                            <div className="flex flex-col items-center justify-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                    <Shield className="h-6 w-6 text-muted-foreground/50" />
+                                </div>
+                                <p>Tidak ada data role ditemukan.</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

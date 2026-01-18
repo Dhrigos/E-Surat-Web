@@ -45,8 +45,7 @@ class RestrictWebAccess
 
         // IF it IS a mobile device AND NOT an App, redirect to download page
         if ($isMobile && !$isApp) {
-            // return redirect()->route('download-app');
-            // DISABLED BY USER REQUEST
+             return redirect()->route('download-app');
         }
 
         // Otherwise (Desktop, or Mobile in Desktop Mode), allow access

@@ -235,9 +235,13 @@ export default function Register() {
                     <Card className="w-full max-w-lg bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl animate-scale-in">
                         <CardHeader className="text-center animate-fade-in-up delay-100">
                             {/* Logos (Only show on Steps 1 & 2 for cleaner look, or small on Step 3? Let's keep consistent) */}
-                            <div className="flex justify-center items-center gap-3 mb-2 -mt-4 transform group-hover:scale-105 transition-transform duration-700">
+                            {/* <div className="flex justify-center items-center gap-3 mb-2 -mt-4 transform group-hover:scale-105 transition-transform duration-700">
                                 <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-16 w-16 md:h-28 md:w-28 object-contain drop-shadow-2xl" />
                                 <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-16 w-16 md:h-20 md:w-20 object-contain drop-shadow-2xl" />
+                            </div> */}
+                            <div className="flex justify-center items-center gap-8 mb-1 -mt-8 transform group-hover:scale-105 transition-transform duration-700">
+                                <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
+                                <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-20 w-auto md:h-28 md:w-28 object-contain drop-shadow-2xl" />
                             </div>
 
                             <CardTitle className="text-xl md:text-2xl font-black text-[#AC0021] mb-2 -mt-6 tracking-tight whitespace-nowrap">
@@ -540,7 +544,7 @@ export default function Register() {
                                     <div className="space-y-2 flex flex-col items-center">
                                         <div className="flex justify-center w-full">
                                             <InputOTP maxLength={6} value={otpInput} onChange={setOtpInput}>
-                                                <InputOTPGroup className="gap-6">
+                                                <InputOTPGroup className="gap-2">
                                                     {[0, 1, 2, 3, 4, 5].map((index) => (
                                                         <InputOTPSlot
                                                             key={index}

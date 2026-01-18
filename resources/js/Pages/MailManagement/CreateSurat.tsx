@@ -1433,8 +1433,8 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                     </div>
 
                                                     {/* Content */}
-                                                    <div className="whitespace-pre-wrap text-sm leading-relaxed mb-12 min-h-[200px]">
-                                                        {data.content || "Belum ada isi surat..."}
+                                                    <div className="whitespace-pre-wrap text-sm leading-relaxed mb-12 min-h-[200px] font-serif">
+                                                        <div dangerouslySetInnerHTML={{ __html: data.content || "Belum ada isi surat..." }} />
                                                     </div>
 
                                                     {/* Dropped Signatures */}
