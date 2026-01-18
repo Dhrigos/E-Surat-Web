@@ -114,7 +114,7 @@ export default function LocationTracker({
     const toggleTracking = useCallback(() => setIsTracking((prev) => !prev), []);
 
     return (
-        <div className="bg-white dark:bg-black border dark:border-gray-800 rounded-lg shadow p-4">
+        <div className="w-full">
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <div className="flex items-center gap-2">

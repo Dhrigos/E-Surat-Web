@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { User, Phone, Shield, LoaderCircle, Check, X } from 'lucide-react';
+import { User, Phone, Shield, LoaderCircle, Check, X, Eye, EyeOff, Lock, CheckCircle, XCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import GuestLayout from '@/layouts/GuestLayout';
@@ -22,6 +22,21 @@ export default function ForgotPassword() {
         password: '',
         password_confirmation: ''
     });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Calculate password strength
+    const calculateStrength = (pass: string) => {
+        let strength = 0;
+        if (pass.length === 0) return 0;
+        if (pass.length >= 8) strength += 25;
+        if (/[A-Z]/.test(pass)) strength += 25;
+        if (/[0-9]/.test(pass)) strength += 25;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(pass)) strength += 25;
+        return strength;
+    };
+
+    const strength = calculateStrength(passwords.password);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -164,7 +179,7 @@ export default function ForgotPassword() {
     if (step === 2) {
         return (
             <GuestLayout title="Verifikasi OTP" hideHeader={true}>
-                <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">
+                <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-[#FEFCF8] shadow-2xl">
                     <CardHeader className="text-center">
                         <div className="flex items-center justify-center mb-6 px-2">
                             <div className="flex-shrink-0 flex gap-4 items-center">
@@ -172,22 +187,27 @@ export default function ForgotPassword() {
                                 <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Badan Cadangan Nasional" className="h-28 w-28 object-contain drop-shadow-2xl" />
                             </div>
                         </div>
+                        <div className="text-center mb-1 -mt-9">
+                            <h2 className="text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Verifikasi OTP</h2>
+                            <p className="text-gray-400 text-xs font-medium tracking-wide mb-4">Masukkan kode OTP yang dikirim ke email <span className="text-[#FEFCF8] font-bold">{formData.name}</span></p>
 
-                        <CardTitle className="text-2xl md:text-3xl text-red-600">Verifikasi OTP</CardTitle>
-                        <CardDescription className="text-gray-400">
-                            Masukkan kode OTP yang dikirim ke email <span className="text-white font-bold">{formData.name}</span>
-                        </CardDescription>
+                            <div className="flex justify-center gap-2 mb-2">
+                                <div className="h-1.5 w-8 bg-[#AC0021] rounded-full transition-colors duration-500"></div>
+                                <div className="h-1.5 w-8 bg-[#AC0021] rounded-full transition-colors duration-500"></div>
+                                <div className="h-1.5 w-8 bg-gray-600 rounded-full transition-colors duration-500"></div>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleCheckOTP} className="space-y-6">
                             <div className="flex justify-center">
                                 <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                                    <InputOTPGroup className="gap-2">
+                                    <InputOTPGroup className="gap-6">
                                         {[0, 1, 2, 3, 4, 5].map((index) => (
                                             <InputOTPSlot
                                                 key={index}
                                                 index={index}
-                                                className="h-12 w-12 border-2 border-white/20 bg-black/50 text-white text-lg font-bold focus:border-red-600 focus:ring-red-600/20 rounded-md"
+                                                className="h-14 w-12 border-0 border-b-2 border-white/20 bg-transparent text-[#FEFCF8] text-3xl font-bold rounded-none shadow-none transition-all duration-300 focus:border-0 focus:border-b-4 focus:border-[#AC0021] focus:ring-0 outline-none hover:bg-white/5 active:bg-transparent first:border-l-0 first:rounded-none last:rounded-none"
                                             />
                                         ))}
                                     </InputOTPGroup>
@@ -196,7 +216,7 @@ export default function ForgotPassword() {
 
                             <Button
                                 type="submit"
-                                className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg transition-all mt-4"
+                                className="w-full h-12 bg-[#AC0021] hover:bg-[#AC0021]/90 text-[#FEFCF8] font-bold shadow-lg transition-all mt-4"
                                 disabled={loading || otp.length !== 6}
                             >
                                 {loading ? (
@@ -226,72 +246,147 @@ export default function ForgotPassword() {
     if (step === 3) {
         return (
             <GuestLayout title="Password Baru" hideHeader={true}>
-                <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">
+                <style>{`
+                    input[type="password"]::-ms-reveal,
+                    input[type="password"]::-ms-clear {
+                        display: none;
+                    }
+                `}</style>
+                <Card className="w-full max-w-md relative z-10 bg-[#1a1a1a]/95 backdrop-blur-xl border-2 border-white/10 text-[#FEFCF8] shadow-2xl">
                     <CardHeader className="text-center">
-                        <div className="flex items-center justify-center mb-6 px-2">
-                            <div className="flex-shrink-0 flex gap-4 items-center">
-                                <img src={logoImage} alt="Logo Kementerian Pertahanan" className="h-36 w-36 object-contain drop-shadow-2xl" />
-                                <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Badan Cadangan Nasional" className="h-28 w-28 object-contain drop-shadow-2xl" />
-                            </div>
+                        <div className="flex justify-center items-center gap-2 mb-2 transform group-hover:scale-105 transition-transform duration-700">
+                            <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
+                            <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-28 w-28 object-contain drop-shadow-2xl" />
                         </div>
 
-                        <CardTitle className="text-2xl md:text-3xl text-red-600">Password Baru</CardTitle>
-                        <CardDescription className="text-gray-400">
-                            Silakan atur password baru Anda
-                        </CardDescription>
+                        <div className="text-center mb-1 -mt-9">
+                            <h2 className="text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Password Baru</h2>
+                            <p className="text-gray-400 text-xs font-medium tracking-wide mb-4">Buat kata sandi baru untuk mengamankan akun Anda</p>
+
+                            <div className="flex justify-center gap-2 mb-2">
+                                <div className="h-1.5 w-8 bg-[#AC0021] rounded-full transition-colors duration-500"></div>
+                                <div className="h-1.5 w-8 bg-[#AC0021] rounded-full transition-colors duration-500"></div>
+                                <div className="h-1.5 w-8 bg-[#AC0021] rounded-full transition-colors duration-500"></div>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleResetPassword} className="space-y-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Password Baru</Label>
-                                <div className="relative">
-                                    <Input
-                                        id="password"
-                                        type="password"
-                                        placeholder="Minimal 8 karakter"
-                                        value={passwords.password}
-                                        onChange={(e) => setPasswords(prev => ({ ...prev, password: e.target.value }))}
-                                        className="pl-3 bg-black/50 border-white/10 text-white placeholder:text-gray-500 focus:border-red-600 h-11"
-                                        required
-                                    />
-                                </div>
-                                <div className="mt-2 space-y-1 bg-white/5 p-3 rounded-lg border border-white/10">
-                                    <p className="text-xs text-gray-400 font-bold mb-2">Syarat Kata Sandi:</p>
-                                    {[
-                                        { label: 'Minimal 8 karakter', valid: passwords.password.length >= 8 },
-                                        { label: 'Huruf besar (A-Z)', valid: /[A-Z]/.test(passwords.password) },
-                                        { label: 'Angka (0-9)', valid: /[0-9]/.test(passwords.password) },
-                                        { label: 'Karakter spesial (!@#$...)', valid: /[!@#$%^&*(),.?":{}|<>]/.test(passwords.password) },
-                                    ].map((req, index) => (
-                                        <div key={index} className="flex items-center gap-2 text-xs">
-                                            <div className={`h-4 w-4 rounded-full flex items-center justify-center ${req.valid ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-500'}`}>
-                                                {req.valid ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                                            </div>
-                                            <span className={req.valid ? 'text-green-500 font-medium' : 'text-gray-500'}>{req.label}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            <div className="space-y-4">
+                                {/* Password Field */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="password">Kata Sandi <span className="text-[#AC0021]">*</span></Label>
+                                    <div className="relative group">
+                                        <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-500 group-focus-within:text-[#FEFCF8] transition-colors" />
+                                        <Input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            value={passwords.password}
+                                            onChange={(e) => setPasswords(prev => ({ ...prev, password: e.target.value }))}
+                                            className="pl-10 pr-10 bg-[#0f0f0f] border-white/10 text-[#FEFCF8] placeholder:text-gray-600 focus:border-white focus:ring-0 h-12 rounded-lg transition-all"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-3 text-gray-500 hover:text-[#FEFCF8] transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        </button>
+                                    </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="password_confirmation">Konfirmasi Password Baru</Label>
-                                <div className="relative">
-                                    <Input
-                                        id="password_confirmation"
-                                        type="password"
-                                        placeholder="Ulangi password baru"
-                                        value={passwords.password_confirmation}
-                                        onChange={(e) => setPasswords(prev => ({ ...prev, password_confirmation: e.target.value }))}
-                                        className="pl-3 bg-black/50 border-white/10 text-white placeholder:text-gray-500 focus:border-red-600 h-11"
-                                        required
-                                    />
+                                    {/* Password Strength Meter - Only show when typing */}
+                                    {passwords.password.length > 0 && (
+                                        <div className="space-y-1">
+                                            <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full transition-all duration-300 ${strength <= 25 ? 'bg-[#AC0021] w-[25%]' :
+                                                        strength <= 50 ? 'bg-orange-500 w-[50%]' :
+                                                            strength <= 75 ? 'bg-yellow-500 w-[75%]' :
+                                                                'bg-[#659800] w-[100%]'
+                                                        }`}
+                                                ></div>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                <span className={`text-xs font-bold ${strength <= 25 ? 'text-[#AC0021]' :
+                                                    strength <= 50 ? 'text-orange-500' :
+                                                        strength <= 75 ? 'text-yellow-500' :
+                                                            'text-[#659800]'
+                                                    }`}>
+                                                    {strength <= 25 && 'Lemah'}
+                                                    {strength > 25 && strength <= 50 && 'Cukup'}
+                                                    {strength > 50 && strength <= 75 && 'Sedang'}
+                                                    {strength > 75 && 'Kuat'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Validation List */}
+                                    <div className="space-y-1 pt-1">
+                                        {[
+                                            { label: 'Minimal 8 karakter', valid: passwords.password.length >= 8 },
+                                            { label: 'Mengandung huruf besar (A-Z)', valid: /[A-Z]/.test(passwords.password) },
+                                            { label: 'Mengandung angka (0-9)', valid: /[0-9]/.test(passwords.password) },
+                                            { label: 'Mengandung karakter spesial (!@#$%^&*)', valid: /[!@#$%^&*(),.?":{}|<>]/.test(passwords.password) },
+                                        ].map((req, index) => (
+                                            <div key={index} className="flex items-center gap-2 text-xs">
+                                                {req.valid ? (
+                                                    <CheckCircle className="h-3.5 w-3.5 text-[#659800]" />
+                                                ) : (
+                                                    <XCircle className="h-3.5 w-3.5 text-gray-600" />
+                                                )}
+                                                <span className={req.valid ? 'text-[#659800] font-medium' : 'text-gray-500'}>{req.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Confirm Password Field */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="password_confirmation">Konfirmasi Kata Sandi <span className="text-[#AC0021]">*</span></Label>
+                                    <div className="relative group">
+                                        <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-500 group-focus-within:text-[#FEFCF8] transition-colors" />
+                                        <Input
+                                            id="password_confirmation"
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            value={passwords.password_confirmation}
+                                            onChange={(e) => setPasswords(prev => ({ ...prev, password_confirmation: e.target.value }))}
+                                            className={`pl-10 pr-10 bg-[#0f0f0f] border-white/10 text-[#FEFCF8] placeholder:text-gray-600 h-12 rounded-lg transition-all ${passwords.password_confirmation && passwords.password !== passwords.password_confirmation
+                                                ? 'focus:border-[#AC0021] border-[#AC0021]/50'
+                                                : 'focus:border-blue-500' // Blue focus as per screenshot hint
+                                                }`}
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-3 text-gray-500 hover:text-[#FEFCF8] transition-colors"
+                                        >
+                                            {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        </button>
+                                    </div>
+                                    {passwords.password_confirmation && passwords.password !== passwords.password_confirmation && (
+                                        <div className="flex items-center gap-1 text-[#AC0021] text-xs mt-1">
+                                            <XCircle className="h-3.5 w-3.5" />
+                                            <span>Kata sandi tidak cocok</span>
+                                        </div>
+                                    )}
+                                    {passwords.password_confirmation && passwords.password === passwords.password_confirmation && (
+                                        <div className="flex items-center gap-1 text-[#659800] text-xs mt-1">
+                                            <CheckCircle className="h-3.5 w-3.5" />
+                                            <span>Kata sandi cocok</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg transition-all mt-4"
-                                disabled={loading || passwords.password.length < 6 || passwords.password !== passwords.password_confirmation}
+                                className="w-full h-12 bg-[#AC0021] hover:bg-[#AC0021]/90 text-[#FEFCF8] font-bold shadow-lg transition-all mt-6"
+                                disabled={loading || passwords.password.length < 8 || passwords.password !== passwords.password_confirmation}
                             >
                                 {loading ? (
                                     <span className="flex items-center gap-2">
@@ -310,24 +405,28 @@ export default function ForgotPassword() {
     // Step 1: Default Form
     return (
         <GuestLayout title="Atur Ulang Kata Sandi" hideHeader={true}>
-            <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl">
+            <Card className="w-full max-w-md relative z-10 bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-[#FEFCF8] shadow-2xl">
                 <CardHeader className="text-center">
-                    <div className="flex items-center justify-center mb-6 px-2">
-                        <div className="flex-shrink-0 flex gap-4 items-center">
-                            <img src={logoImage} alt="Logo Kementerian Pertahanan" className="h-36 w-36 object-contain drop-shadow-2xl" />
-                            <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Badan Cadangan Nasional" className="h-28 w-28 object-contain drop-shadow-2xl" />
-                        </div>
+                    <div className="flex justify-center items-center gap-2 mb-2 transform group-hover:scale-105 transition-transform duration-700">
+                        <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
+                        <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-28 w-28 object-contain drop-shadow-2xl" />
                     </div>
 
-                    <CardTitle className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight whitespace-nowrap">Badan Cadangan Nasional</CardTitle>
-                    <CardDescription className="text-gray-400 font-bold text-base">
-                        Atur Ulang Kata Sandi
-                    </CardDescription>
+                    <div className="text-center mb-1 -mt-9">
+                        <h2 className="text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Reset Password</h2>
+                        <p className="text-gray-400 text-xs font-medium tracking-wide mb-4">Masukkan username atau email dan nomor telepon yang terdaftar</p>
+
+                        <div className="flex justify-center gap-2 mb-2">
+                            <div className="h-1.5 w-8 bg-[#AC0021] rounded-full"></div>
+                            <div className="h-1.5 w-8 bg-gray-600 rounded-full"></div>
+                            <div className="h-1.5 w-8 bg-gray-600 rounded-full"></div>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmitForm} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name" className="text-white font-bold">Username atau Email</Label>
+                            <Label htmlFor="name" className="text-[#FEFCF8] font-bold">Username atau Email</Label>
                             <div className="relative">
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <Input
@@ -335,7 +434,7 @@ export default function ForgotPassword() {
                                     placeholder="Username atau email terdaftar"
                                     value={formData.name}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
-                                    className="pl-10 bg-black/50 border-white/10 text-white placeholder:text-gray-500 focus:border-red-600 h-11"
+                                    className="pl-10 bg-black/50 border-white/10 text-[#FEFCF8] placeholder:text-gray-500 focus:border-[#AC0021] h-11"
                                     required
                                 />
                             </div>
@@ -376,7 +475,7 @@ export default function ForgotPassword() {
                                         }
                                         handleInputChange('phone', formatted);
                                     }}
-                                    className="pl-10 bg-black/50 border-white/10 text-white placeholder:text-gray-500 focus:border-red-600 h-11"
+                                    className="pl-10 bg-black/50 border-white/10 text-[#FEFCF8] placeholder:text-gray-500 focus:border-[#AC0021] h-11"
                                     required
                                 />
                             </div>
@@ -384,7 +483,7 @@ export default function ForgotPassword() {
 
                         <Button
                             type="submit"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg transition-all mt-4"
+                            className="w-full h-12 bg-[#AC0021] hover:bg-[#AC0021]/90 text-[#FEFCF8] font-bold shadow-lg transition-all mt-4 group"
                             disabled={loading}
                         >
                             {loading ? (
@@ -392,20 +491,23 @@ export default function ForgotPassword() {
                                     <LoaderCircle className="h-5 w-5 animate-spin" />
                                     Mengirim OTP...
                                 </span>
-                            ) : 'Kirim OTP'}
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    Kirim OTP
+                                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                                </span>
+                            )}
                         </Button>
                     </form>
 
-                    <div className="mt-6 text-center">
-                        <div className="text-sm text-gray-400">
-                            Ingat password Anda?{' '}
-                            <Link
-                                href={route('login')}
-                                className="text-red-500 hover:text-red-400 font-bold transition-colors"
-                            >
-                                Masuk sekarang
-                            </Link>
-                        </div>
+                    <div className="mt-8 text-center">
+                        <Link
+                            href={route('login')}
+                            className="inline-flex items-center gap-2 text-gray-400 hover:text-[#FEFCF8] transition-all duration-300 hover:drop-shadow-[0_0_5px_#AC0021]"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            <span>Kembali ke Login</span>
+                        </Link>
                     </div>
                 </CardContent>
             </Card>

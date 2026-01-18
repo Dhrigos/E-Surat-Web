@@ -182,7 +182,7 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                 {/* ... Header & Breadcrumbs ... (unchanged) */}
 
                 <div className="p-4 border-b border-white/10 bg-zinc-900/50">
-                    <DialogTitle className="text-xl mb-3">Pilih Jabatan & Struktur</DialogTitle>
+                    <DialogTitle className="text-xl mb-3">Pilih Unit & Jabatan</DialogTitle>
 
                     {/* Breadcrumbs - Scrollable & Compact */}
                     <div className="flex items-center gap-1.5 text-sm overflow-x-auto scrollbar-hide whitespace-nowrap pb-2 mask-linear">
@@ -193,7 +193,7 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                                 path.length === 0 ? "text-white font-bold bg-white/5" : "text-gray-500 hover:text-white"
                             )}>
                             <Building2 className="w-4 h-4 mr-1.5" />
-                            <span>Utama</span>
+                            <span>Status Personel</span>
                         </div>
 
                         {path.map((item, idx) => (
@@ -215,7 +215,7 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                         {selectedUnit && (
                             <>
                                 <ChevronRight className="w-3 h-3 text-gray-700 flex-shrink-0" />
-                                <Badge variant="secondary" className="bg-red-600/20 text-red-400 hover:bg-red-600/30 border-red-600/50 flex-shrink-0">
+                                <Badge variant="secondary" className="bg-red-600/20 text-[#B0B0B0] hover:bg-red-600/30 border-red-600/50 flex-shrink-0">
                                     <span className="max-w-[200px] truncate block">{selectedUnit.nama}</span>
                                     <span className="ml-1 opacity-70 text-[10px]">(Terpilih)</span>
                                 </Badge>
@@ -268,8 +268,20 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                         </div>
                     ) : selectedUnit ? (
                         <div className="flex flex-col items-center justify-center py-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
-                            <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center border-2 border-red-600">
-                                <CheckCircle2 className="w-8 h-8 text-red-500" />
+                            <style>{`
+                                @keyframes check-pop {
+                                    0% { transform: scale(0); opacity: 0; }
+                                    70% { transform: scale(1.2); }
+                                    100% { transform: scale(1); opacity: 1; }
+                                }
+                                @keyframes ring-pulse {
+                                    0% { box-shadow: 0 0 0 0 rgba(172, 0, 33, 0.4); }
+                                    70% { box-shadow: 0 0 0 10px rgba(172, 0, 33, 0); }
+                                    100% { box-shadow: 0 0 0 0 rgba(172, 0, 33, 0); }
+                                }
+                            `}</style>
+                            <div className="w-16 h-16 bg-[#AC0021]/20 rounded-full flex items-center justify-center border-2 border-[#AC0021] animate-[ring-pulse_2s_infinite]">
+                                <CheckCircle2 className="w-8 h-8 text-[#AC0021] animate-[check-pop_0.5s_ease-out_forwards]" />
                             </div>
 
                             <div className="text-center space-y-1 mb-4">
@@ -295,7 +307,7 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                                 <Button
                                     onClick={handleConfirm}
                                     disabled={!selectedRoleId}
-                                    className="bg-red-600 hover:bg-red-700 text-white min-w-[150px]"
+                                    className="bg-[#AC0021] hover:bg-[#AC0021]/80 text-white min-w-[150px]"
                                 >
                                     Konfirmasi & Simpan
                                 </Button>
@@ -306,24 +318,31 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                         <div className="space-y-4">
                             {/* Option to Select Current Level Parent (if not root) */}
                             {path.length > 0 && !['FUNGSIONAL', 'STRUKTURAL'].includes(path[path.length - 1].nama) && (
-                                <div className="p-4 rounded-xl border border-dashed border-white/20 bg-white/5 flex items-center justify-between mb-6 group hover:border-red-500/50 transition-all">
+                                <div className="p-4 rounded-xl border border-dashed border-white/20 bg-white/5 flex items-center justify-between mb-6 group hover:border-[#AC0021] transition-all">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-red-500/10 rounded-lg text-red-500">
+                                        <div className="p-2 bg-red-500/10 rounded-lg text-[#AC0021]">
                                             <Building2 className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h4 className="font-medium text-red-100">Pilih Unit Ini?</h4>
-                                            <p className="text-xs text-gray-400">Saya bekerja langsung di kantor {path[path.length - 1].nama}</p>
+                                            <h4 className="text-md text-[#FEFCF8]">Saya bekerja di unit <br></br>{path[path.length - 1].nama}</h4>
+                                            {/* <p className="text-xs text-gray-400">Saya bekerja langsung di kantor {path[path.length - 1].nama}</p> */}
                                         </div>
                                     </div>
-                                    <Button size="sm" onClick={() => setSelectedUnit(path[path.length - 1])} variant="secondary" className="hover:bg-red-600 hover:text-white bg-red-600/10 text-red-100 border border-red-500/20">
+                                    <Button size="sm" onClick={() => setSelectedUnit(path[path.length - 1])} variant="secondary" className="hover:bg-[#AC0021] hover:text-white bg-[#AC0021]/10 text-red-100 border border-[#AC0021]/20">
                                         Pilih
                                     </Button>
                                 </div>
                             )}
 
                             {/* Children List - Single Column for clearer hierarchy */}
-                            <div className="flex flex-col gap-2">
+                            <div className={cn("flex flex-col gap-2 relative",
+                                (path.length > 0 && !['FUNGSIONAL', 'STRUKTURAL'].includes(path[path.length - 1].nama)) && "ml-8 pl-8 border-l-2 border-dashed border-white/10"
+                            )}>
+                                {/* Visual styling for the dashed line connection */}
+                                {(path.length > 0 && !['FUNGSIONAL', 'STRUKTURAL'].includes(path[path.length - 1].nama)) && (
+                                    <div className="absolute top-[-24px] left-[-2px] w-[2px] h-[24px] border-l-2 border-dashed border-white/10" />
+                                )}
+
                                 {currentChildren.length > 0 ? (
                                     currentChildren.map(child => {
                                         const hasSubChildren = childrenMap[child.id]?.length > 0;
@@ -332,8 +351,13 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                                         return (
                                             <div
                                                 key={child.id}
-                                                className="group p-3 rounded-xl bg-zinc-900 border border-white/5 hover:border-white/10 hover:bg-zinc-800/80 transition-all relative overflow-hidden flex items-center justify-between gap-3"
+                                                className="group p-3 rounded-xl bg-zinc-900 border border-white/5 hover:border-white/10 hover:bg-zinc-800/80 transition-all relative flex items-center justify-between gap-3"
                                             >
+                                                {/* Connecting line for item */}
+                                                {(path.length > 0 && !['FUNGSIONAL', 'STRUKTURAL'].includes(path[path.length - 1].nama)) && (
+                                                    <div className="absolute top-1/2 left-[-34px] w-[32px] h-[2px] border-t-2 border-dashed border-white/10" />
+                                                )}
+
                                                 {/* Left Side: Navigation / Info */}
                                                 <div
                                                     onClick={() => {
@@ -372,8 +396,6 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                                                         </div>
                                                     </div>
                                                 </div>
-
-
                                             </div>
                                         );
                                     })
@@ -397,7 +419,7 @@ function JabatanSelectionModalBase({ open, onOpenChange, jabatans, jabatanRoles,
                         <Button variant="ghost" onClick={() => path.length > 0 ? handleNavigateUp() : onOpenChange(false)} className="text-gray-400 hover:text-white">
                             {path.length > 0 ? <><ArrowLeft className="w-4 h-4 mr-2" /> Kembali</> : 'Batal'}
                         </Button>
-                        <div className="text-xs text-gray-600 py-2">
+                        <div className="text-xs text-[#B0B0B0] py-2">
                             Pilih struktur organisasi Anda secara bertahap
                         </div>
                     </div>

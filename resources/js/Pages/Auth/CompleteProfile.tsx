@@ -582,41 +582,72 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
             <Head title={rejectionReason?.includes('Terdeteksi login') ? 'Aktifasi Ulang' : 'Lengkapi Profil'} />
 
-            <Card className="w-full max-w-5xl bg-[#1a1a1a]/95 border-white/10 backdrop-blur-xl shadow-2xl relative z-10">
-                <CardHeader className="text-center space-y-2 pb-8 border-b border-white/5">
-                    <div className="flex justify-center items-center gap-4 mb-4">
-                        <img
-                            src="/images/KEMENTERIAN-PERTAHANAN.png"
-                            alt="Logo Kementerian Pertahanan"
-                            className="h-36 w-36 object-contain drop-shadow-2xl"
-                        />
-                        <img
-                            src="/images/BADAN-CADANGAN-NASIONAL.png"
-                            alt="Logo Badan Cadangan Nasional"
-                            className="h-28 w-28 object-contain drop-shadow-2xl"
-                        />
+            <Card className="w-full max-w-5xl bg-[#1a1a1a]/95 border-white/10 backdrop-blur-xl shadow-2xl relative z-10 transition-all duration-300">
+                <CardHeader className="space-y-4 pb-6 -mb-8">
+                    <div className="flex flex-row justify-between items-center gap-0 md:gap-8 border-b border-white/5 pb-6">
+                        {/* Left: Kemhan */}
+                        <div className="flex items-center justify-center md:justify-start shrink-0 px-1">
+                            <img
+                                src="/images/KEMENTERIAN-PERTAHANAN.png"
+                                alt="Logo Kementerian Pertahanan"
+                                className="h-17 w-17 md:h-28 md:w-28 lg:h-30 lg:w-30 object-contain drop-shadow-2xl"
+                            />
+                        </div>
+
+                        {/* Center: Title */}
+                        <CardTitle className="text-[10px] md:text-2xl lg:text-3xl font-black text-[#AC0021] tracking-tight animate-in fade-in duration-700 delay-200 text-center flex-1 mx-0 md:mx-4 leading-tight md:leading-normal">
+                            Sistem Informasi <br></br> Badan Cadangan Nasional
+                        </CardTitle>
+
+                        {/* Right: Bacadnas */}
+                        <div className="flex items-center justify-center md:justify-end shrink-0 px-1">
+                            <img
+                                src="/images/BADAN-CADANGAN-NASIONAL.png"
+                                alt="Logo Badan Cadangan Nasional"
+                                className="h-12 w-12 md:h-20 md:w-auto object-contain drop-shadow-2xl"
+                            />
+                        </div>
                     </div>
-                    <CardTitle className="text-2xl md:text-3xl font-black text-red-600 mb-2 tracking-tight animate-in fade-in duration-700 delay-200 whitespace-nowrap">Sistem Informasi BACADNAS</CardTitle>
 
                     {step > 0 && (
-                        <div className="flex justify-center items-center gap-2 md:gap-4 mb-4">
-                            {[1, 2, 3, 4].map((s) => (
-                                <div key={s} className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm md:text-lg transition-all ${step === s ? 'bg-red-600 text-white ring-4 ring-red-600/30' : step > s ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-400'}`}>
-                                    {step > s ? '✓' : s}
-                                </div>
+                        <div className="flex justify-between items-start w-full mb-8 relative px-0 md:px-12">
+                            {[
+                                { num: 1, label: 'Data Diri' },
+                                { num: 2, label: 'Foto Profil' },
+                                { num: 3, label: 'Kepegawaian' },
+                                { num: 4, label: 'Dokumen' }
+                            ].map((s, index) => (
+                                <React.Fragment key={s.num}>
+                                    <div className="flex flex-col items-center relative z-10 flex-1 min-w-0">
+                                        <div
+                                            className={`w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-xs md:text-base transition-all duration-300 ${step >= s.num
+                                                ? 'bg-[#AC0021] text-[#FEFCF8] ring-2 md:ring-4 ring-[#AC0021]/30 shadow-[0_0_15px_#AC0021]'
+                                                : 'bg-white/10 border-2 border-white/20 text-gray-400'
+                                                }`}
+                                        >
+                                            {s.num}
+                                        </div>
+                                        <span className={`text-[9px] md:text-xs uppercase tracking-wider font-bold mt-2 md:mt-3 text-center transition-colors duration-300 truncate w-full px-1 ${step >= s.num ? 'text-[#AC0021]' : 'text-gray-600'
+                                            }`}>
+                                            {s.label}
+                                        </span>
+                                    </div>
+
+                                    {index < 3 && (
+                                        <div className="h-[2px] w-2 md:w-auto md:flex-1 mx-0 md:mx-2 bg-white/10 mt-4 md:mt-6 relative shrink-0">
+                                            <div
+                                                className={`absolute top-0 left-0 h-full bg-[#AC0021] transition-all duration-500 ${step > s.num ? 'w-full' : 'w-0'
+                                                    }`}
+                                            />
+                                        </div>
+                                    )}
+                                </React.Fragment>
                             ))}
                         </div>
                     )}
-
-                    <CardDescription className="text-gray-400 text-lg">
-                        {step === 1 && "Informasi Data Diri"}
-                        {step === 2 && "Foto Profil"}
-                        {step === 3 && "Informasi Kepegawaian"}
-                        {step === 4 && "Alamat & Dokumen Pendukung"}
-                    </CardDescription>
                 </CardHeader>
 
-                <CardContent className="p-4 md:p-8">
+                <CardContent className="p-4 md:p-8 -mt-8">
                     {rejectionReason && (
                         <Alert variant="destructive" className="mb-6 border-red-500/50 bg-red-500/10 text-red-200">
                             <AlertCircle className="h-4 w-4" />
@@ -633,7 +664,9 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                         {step === 1 && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">NRP</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">
+                                        NRP <span className="text-[#B0B0B0] text-xs font-normal ml-1">(Min. 14 digit)</span>
+                                    </Label>
                                     <FastInput
                                         value={data.nia_nrp}
                                         onBlur={(e) => {
@@ -648,13 +681,15 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         id="nia_nrp_field_no_autofill"
                                         autoComplete="off"
                                         data-lpignore="true"
-                                        className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nia_nrp || niaNrpExists ? 'border-red-500' : ''}`}
+                                        className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-red-600 ${errors.nia_nrp || niaNrpExists ? 'border-red-500' : ''}`}
                                         placeholder="Nomor Registrasi Pokok"
                                     />
                                     {errors.nia_nrp && <p className="text-red-500 text-sm">{errors.nia_nrp}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">NIK</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">
+                                        NIK <span className="text-[#B0B0B0] text-xs font-normal ml-1">(Min. 16 digit)</span>
+                                    </Label>
                                     <FastInput
                                         value={data.nik}
                                         onBlur={(e) => {
@@ -669,13 +704,13 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         id="nik_field_no_autofill"
                                         autoComplete="off"
                                         data-lpignore="true"
-                                        className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nik || nikExists ? 'border-red-500' : ''}`}
+                                        className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-red-600 ${errors.nik || nikExists ? 'border-red-500' : ''}`}
                                         placeholder="Nomor Induk Kependudukan"
                                     />
                                     {errors.nik && <p className="text-red-500 text-sm">{errors.nik}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Tempat Lahir</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">Tempat Lahir</Label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <SearchableSelect
                                             value={data.birthplace_province_id}
@@ -699,7 +734,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     {errors.tempat_lahir && <p className="text-red-500 text-sm">{errors.tempat_lahir}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Tanggal Lahir</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">Tanggal Lahir</Label>
                                     <DateSelect
                                         value={data.tanggal_lahir ? format(data.tanggal_lahir, 'yyyy-MM-dd') : ''}
                                         onChange={(val) => {
@@ -713,14 +748,23 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     {errors.tanggal_lahir && <p className="text-red-500 text-sm">{errors.tanggal_lahir}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Jenis Kelamin</Label>
-                                    <Select value={data.jenis_kelamin} onValueChange={val => { setData('jenis_kelamin', val); clearErrors('jenis_kelamin'); }}>
-                                        <SelectTrigger className={`bg-[#2a2a2a] border-white/10 text-white ${errors.jenis_kelamin ? 'border-red-500' : ''}`}><SelectValue placeholder="Pilih Jenis Kelamin" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Laki-laki">Laki-laki</SelectItem>
-                                            <SelectItem value="Perempuan">Perempuan</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label className="text-[#FEFCF8] font-medium">Jenis Kelamin</Label>
+                                    <div className="flex items-center gap-8 mt-2">
+                                        {['Laki-laki', 'Perempuan'].map((gender) => (
+                                            <div
+                                                key={gender}
+                                                className="flex items-center gap-2 cursor-pointer group"
+                                                onClick={() => { setData('jenis_kelamin', gender); clearErrors('jenis_kelamin'); }}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all duration-200 ${data.jenis_kelamin === gender ? 'border-[#AC0021] bg-[#AC0021]' : 'border-gray-500 group-hover:border-gray-400'}`}>
+                                                    {data.jenis_kelamin === gender && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                                </div>
+                                                <span className={`text-sm font-medium transition-colors ${data.jenis_kelamin === gender ? 'text-[#FEFCF8]' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                                                    {gender}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
                                     {errors.jenis_kelamin && <p className="text-red-500 text-sm">{errors.jenis_kelamin}</p>}
                                 </div>
                             </div>
@@ -736,15 +780,15 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                             {previews.foto_profil ? (
                                                 <img src={previews.foto_profil} alt="Preview" className="w-full h-full object-cover" />
                                             ) : (
-                                                <User className="w-16 h-16 text-gray-500" />
+                                                <User className="w-16 h-16 text-[#B0B0B0]" />
                                             )}
                                         </div>
                                         <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Upload className="w-8 h-8 text-white" />
+                                            <Upload className="w-8 h-8 text-[#FEFCF8]" />
                                         </div>
                                         <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={onFileChange} />
                                     </div>
-                                    <p className="text-gray-400 text-sm">Klik untuk upload foto profil</p>
+                                    <p className="text-[#FEFCF8] text-sm">Klik untuk upload foto profil</p>
                                     {errors.foto_profil && <p className="text-red-500 text-sm">{errors.foto_profil}</p>}
                                 </div>
                             </div>
@@ -755,7 +799,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                 <div className="space-y-6 col-span-1 md:col-span-2">
                                     <div className="flex justify-between items-center">
-                                        <Label className="text-white font-medium">Jabatan *</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Jabatan</Label>
                                         {/* Removed redundant status text since the button shows it */}
                                     </div>
 
@@ -763,7 +807,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         onClick={() => setIsJabatanModalOpen(true)}
                                         className={`flex items-center justify-between w-full rounded-md border text-sm px-3 py-2 cursor-pointer transition-colors bg-[#2a2a2a] border-white/10 hover:border-red-500/50 hover:bg-[#333] ${errors.jabatan_id ? "border-red-500" : ""}`}
                                     >
-                                        <div className={`flex flex-col ${!data.jabatan_id ? "text-muted-foreground" : "text-white"}`}>
+                                        <div className={`flex flex-col ${!data.jabatan_id ? "text-muted-foreground" : "text-[#FEFCF8]"}`}>
                                             <span className="font-medium">{jabatanDisplayText}</span>
                                             {selectedJabatanObj && (
                                                 <span className="text-xs text-muted-foreground mt-0.5">
@@ -790,7 +834,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                 {/* Golongan & Pangkat Selection */}
                                 <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Golongan *</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Golongan</Label>
                                         <SearchableSelect
                                             value={data.golongan_id?.toString() || ""}
                                             onValueChange={(val) => {
@@ -807,7 +851,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Pangkat *</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Pangkat</Label>
                                         <SearchableSelect
                                             value={data.pangkat_id?.toString() || ""}
                                             onValueChange={(val) => setData('pangkat_id', parseInt(val))}
@@ -825,7 +869,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                 </div>
 
                                 <div className="space-y-2 col-span-1 md:col-span-2">
-                                    <Label className="text-white font-medium">Tanggal Pengangkatan</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">Tanggal Pengangkatan</Label>
                                     <DateSelect
                                         value={data.tanggal_pengangkatan ? format(data.tanggal_pengangkatan, 'yyyy-MM-dd') : ''}
                                         onChange={(val) => {
@@ -839,14 +883,14 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     {errors.tanggal_pengangkatan && <p className="text-red-500 text-sm">{errors.tanggal_pengangkatan}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Nomor KTA</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">Nomor KTA</Label>
                                     <FastInput
                                         value={data.nomor_kta}
                                         onBlur={e => {
                                             setData('nomor_kta', e.target.value);
                                             validateKta(e.target.value);
                                         }}
-                                        className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 ${errors.nomor_kta || ktaExists ? 'border-red-500' : ''}`}
+                                        className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-red-600 ${errors.nomor_kta || ktaExists ? 'border-red-500' : ''}`}
                                         placeholder="Nomor Kartu Tanda Anggota"
                                     />
                                     {errors.nomor_kta && <p className="text-red-500 text-sm">{errors.nomor_kta}</p>}
@@ -856,14 +900,14 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
                                 {/* Signature Field - Click to Open Modal */}
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Tanda Tangan Digital *</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">Tanda Tangan Digital</Label>
                                     <div
                                         onClick={() => setIsSignatureModalOpen(true)}
-                                        className={`cursor-pointer bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 flex h-10 w-full rounded-md border px-3 py-2 text-sm items-center gap-2 hover:border-red-600 transition-colors ${errors.tanda_tangan ? 'border-red-500' : ''}`}
+                                        className={`cursor-pointer bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-red-600 flex h-10 w-full rounded-md border px-3 py-2 text-sm items-center gap-2 hover:border-red-600 transition-colors ${errors.tanda_tangan ? 'border-red-500' : ''}`}
                                     >
                                         <PenTool className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                         {signatureDataUrl ? (
-                                            <span className="text-white truncate flex-1">{signatureFilename}</span>
+                                            <span className="text-[#FEFCF8] truncate flex-1">{signatureFilename}</span>
                                         ) : (
                                             <span className="text-gray-400">Tekan untuk membuat tanda tangan</span>
                                         )}
@@ -875,32 +919,31 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                 </div>
 
                                 <div className="space-y-4 col-span-1 md:col-span-2">
-                                    <Label className="text-white font-medium">Masa Berlaku KTA {!data.is_kta_lifetime && <span className="text-red-500">*</span>}</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">Masa Berlaku KTA {!data.is_kta_lifetime && <span className="text-red-500">*</span>}</Label>
                                     <div className="flex flex-col gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="radio"
-                                                    id="kta_lifetime_false"
-                                                    name="is_kta_lifetime"
-                                                    className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
-                                                    checked={!data.is_kta_lifetime}
-                                                    onChange={() => setData('is_kta_lifetime', false)}
-                                                />
-                                                <Label htmlFor="kta_lifetime_false" className="text-gray-300">Waktu Ditentukan</Label>
+                                        <div className="flex items-center gap-8 mt-2">
+                                            <div
+                                                className="flex items-center gap-2 cursor-pointer group"
+                                                onClick={() => setData('is_kta_lifetime', false)}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all duration-200 ${!data.is_kta_lifetime ? 'border-[#AC0021] bg-[#AC0021]' : 'border-gray-500 group-hover:border-gray-400'}`}>
+                                                    {!data.is_kta_lifetime && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                                </div>
+                                                <span className={`text-sm font-medium transition-colors ${!data.is_kta_lifetime ? 'text-[#FEFCF8]' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                                                    Waktu Ditentukan
+                                                </span>
                                             </div>
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="radio"
-                                                    id="kta_lifetime_true"
-                                                    name="is_kta_lifetime"
-                                                    className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
-                                                    checked={data.is_kta_lifetime}
-                                                    onChange={() => {
-                                                        setData(data => ({ ...data, is_kta_lifetime: true, kta_expired_at: undefined }));
-                                                    }}
-                                                />
-                                                <Label htmlFor="kta_lifetime_true" className="text-gray-300">Sampai Dilengserkan</Label>
+
+                                            <div
+                                                className="flex items-center gap-2 cursor-pointer group"
+                                                onClick={() => setData(data => ({ ...data, is_kta_lifetime: true, kta_expired_at: undefined }))}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all duration-200 ${data.is_kta_lifetime ? 'border-[#AC0021] bg-[#AC0021]' : 'border-gray-500 group-hover:border-gray-400'}`}>
+                                                    {data.is_kta_lifetime && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                                </div>
+                                                <span className={`text-sm font-medium transition-colors ${data.is_kta_lifetime ? 'text-[#FEFCF8]' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                                                    Sampai Dilengserkan
+                                                </span>
                                             </div>
                                         </div>
 
@@ -919,12 +962,12 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
                                 {/* Office Address Section */}
                                 <div className="col-span-1 md:col-span-2 space-y-2 pt-4 border-t border-white/10">
-                                    <Label className="text-white font-medium text-base">Alamat Kantor</Label>
+                                    <Label className="text-[#FEFCF8] font-medium text-base">Alamat Kantor</Label>
 
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Provinsi Kantor</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">Provinsi Kantor</Label>
                                     <SearchableSelect
                                         value={data.office_province_id}
                                         onValueChange={fetchOfficeCities}
@@ -937,7 +980,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-white font-medium">Mako</Label>
+                                    <Label className="text-[#FEFCF8] font-medium">Mako</Label>
                                     <SearchableSelect
                                         value={String(data.mako_id)}
                                         onValueChange={val => { setData('mako_id', val); clearErrors('mako_id'); }}
@@ -959,17 +1002,17 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2 md:col-span-2">
-                                        <Label className="text-white font-medium">Jalan / Alamat Saat Ini</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Jalan / Alamat Saat Ini</Label>
                                         <Textarea
                                             value={data.jalan}
                                             onChange={e => { setData('jalan', e.target.value); clearErrors('jalan'); }}
-                                            className={`bg-[#2a2a2a] border-white/10 text-white focus:border-red-600 min-h-[100px] ${errors.jalan ? 'border-red-500' : ''}`}
+                                            className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-red-600 min-h-[100px] ${errors.jalan ? 'border-red-500' : ''}`}
                                             placeholder="Nama Jalan, No. Rumah, RT/RW"
                                         />
                                         {errors.jalan && <p className="text-red-500 text-sm">{errors.jalan}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Provinsi</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Provinsi</Label>
                                         <SearchableSelect
                                             value={data.province_id}
                                             onValueChange={fetchCities}
@@ -981,7 +1024,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         {errors.province_id && <p className="text-red-500 text-sm">{errors.province_id}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Kota/Kabupaten</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Kota/Kabupaten</Label>
                                         <SearchableSelect
                                             value={data.city_id}
                                             onValueChange={fetchDistricts}
@@ -994,7 +1037,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         {errors.city_id && <p className="text-red-500 text-sm">{errors.city_id}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Kecamatan</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Kecamatan</Label>
                                         <SearchableSelect
                                             value={data.district_id}
                                             onValueChange={fetchVillages}
@@ -1007,7 +1050,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                         {errors.district_id && <p className="text-red-500 text-sm">{errors.district_id}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Kelurahan</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Kelurahan</Label>
                                         <SearchableSelect
                                             value={data.village_id}
                                             onValueChange={(val) => { setData('village_id', val); clearErrors('village_id'); }}
@@ -1023,7 +1066,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-white/10">
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Upload KTP</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Upload KTP</Label>
                                         {previews.scan_ktp && (
                                             <div className="relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border border-gray-600 mb-2 group flex items-center justify-center">
                                                 {previews.scan_ktp === 'PDF_FILE' || previews.scan_ktp === 'PDF_EXISTING' ? (
@@ -1035,18 +1078,18 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                                     <>
                                                         <img src={previews.scan_ktp} alt="Preview KTP" className="w-full h-full object-contain" />
                                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <a href={previews.scan_ktp} target="_blank" rel="noreferrer" className="text-white text-xs bg-black/50 px-2 py-1 rounded">Lihat Full</a>
+                                                            <a href={previews.scan_ktp} target="_blank" rel="noreferrer" className="text-[#FEFCF8] text-xs bg-black/50 px-2 py-1 rounded">Lihat Full</a>
                                                         </div>
                                                     </>
                                                 )}
                                             </div>
                                         )}
                                         {/* Input file removed as per request to rely on E-KYC data */}
-                                        {/* <Input type="file" accept="image/*,application/pdf" onChange={e => handleFileInput(e, 'scan_ktp')} className={`bg-[#2a2a2a] border-white/10 text-white ${errors.scan_ktp ? 'border-red-500' : ''}`} /> */}
+                                        {/* <Input type="file" accept="image/*,application/pdf" onChange={e => handleFileInput(e, 'scan_ktp')} className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] ${errors.scan_ktp ? 'border-red-500' : ''}`} /> */}
                                         {errors.scan_ktp && <p className="text-red-500 text-sm">{errors.scan_ktp}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Upload KTA</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Upload KTA</Label>
                                         <div
                                             onClick={() => ktaInputRef.current?.click()}
                                             className={`relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border-2 border-dashed ${errors.scan_kta ? 'border-red-500' : 'border-gray-600 hover:border-gray-400'} cursor-pointer flex items-center justify-center transition-colors group`}
@@ -1062,7 +1105,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                                     <>
                                                         <img src={previews.scan_kta} alt="Preview KTA" className="w-full h-full object-contain" />
                                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <div className="text-white text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                                                            <div className="text-[#FEFCF8] text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
                                                                 <FileText className="w-3 h-3" /> Ganti File
                                                             </div>
                                                         </div>
@@ -1086,7 +1129,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label className="text-white font-medium">Upload SK</Label>
+                                        <Label className="text-[#FEFCF8] font-medium">Upload SK</Label>
                                         <div
                                             onClick={() => skInputRef.current?.click()}
                                             className={`relative w-full h-40 bg-gray-800 rounded-lg overflow-hidden border-2 border-dashed ${errors.scan_sk ? 'border-red-500' : 'border-gray-600 hover:border-gray-400'} cursor-pointer flex items-center justify-center transition-colors group`}
@@ -1102,7 +1145,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                                     <>
                                                         <img src={previews.scan_sk} alt="Preview SK" className="w-full h-full object-contain" />
                                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <div className="text-white text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                                                            <div className="text-[#FEFCF8] text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
                                                                 <FileText className="w-3 h-3" /> Ganti File
                                                             </div>
                                                         </div>
@@ -1135,7 +1178,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                         onClick={prevStep}
                         disabled={step === 1}
                         variant="outline"
-                        className="bg-white/5 text-white hover:bg-white/20 hover:text-gray-100 border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white/20"
+                        className="bg-white/5 text-[#FEFCF8] hover:bg-white/20 hover:text-gray-100 border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white/20"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" /> Sebelumnya
                     </Button>
@@ -1143,7 +1186,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                     {step < 4 ? (
                         <Button
                             onClick={nextStep}
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-[#AC0021] hover:bg-[#AC0021]/80 text-[#FEFCF8]"
                         >
                             Selanjutnya <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
@@ -1151,7 +1194,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                         <Button
                             onClick={handleSubmit}
                             disabled={processing}
-                            className="bg-green-600 hover:bg-green-700 text-white shadow-[0_0_20px_rgba(22,163,74,0.5)]"
+                            className="bg-[#659800] hover:bg-[#659800] text-[#FEFCF8] shadow-[0_0_20px_rgba(22,163,74,0.5)]"
                         >
                             {processing ? 'Menyimpan...' : 'Simpan Data'}
                         </Button>
@@ -1164,7 +1207,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                     href={route('logout')}
                     method="post"
                     as="button"
-                    className="text-white/60 hover:text-white transition-colors text-sm font-medium flex items-center gap-2"
+                    className="text-[#FEFCF8]/60 hover:text-[#FEFCF8] transition-colors text-sm font-medium flex items-center gap-2"
                 >
                     Logout <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -1172,26 +1215,26 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
 
             {/* Signature Modal */}
             <Dialog open={isSignatureModalOpen} onOpenChange={setIsSignatureModalOpen}>
-                <DialogContent className="bg-[#1a1a1a] border-white/20 text-white w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+                <DialogContent className="bg-[#1a1a1a] border-white/20 text-[#FEFCF8] w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-red-600 flex items-center gap-2">
+                        <DialogTitle className="text-xl font-bold text-[#AC0021] flex items-center gap-2">
                             <PenTool className="w-5 h-5" />
                             Buat Tanda Tangan Digital
                         </DialogTitle>
-                        <DialogDescription className="text-gray-400">
+                        <DialogDescription className="text-[#B0B0B0]">
                             Buat tanda tangan Anda di area putih di bawah ini
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 mt-4">
                         {/* Canvas Area */}
-                        <div className="bg-white rounded-lg overflow-hidden border-2 border-gray-300">
+                        <div className="bg-[#FEFCF8] rounded-lg overflow-hidden border-2 border-gray-300">
                             <SignatureCanvas
                                 ref={signatureRef}
                                 canvasProps={{
                                     className: 'w-full h-48 md:h-64 cursor-crosshair',
                                 }}
-                                backgroundColor="white"
+                                backgroundColor="#FEFCF8"
                                 penColor="black"
                             />
                         </div>
@@ -1202,7 +1245,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                                 type="button"
                                 onClick={handleClearSignature}
                                 variant="outline"
-                                className="bg-white/5 text-white hover:bg-white/20 border-white/20 h-12"
+                                className="bg-white/5 text-[#FEFCF8] hover:bg-white/20 border-white/20 h-12"
                             >
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Reset
@@ -1210,7 +1253,7 @@ export default function CompleteProfile({ auth, jabatans, jabatanRoles = [], gol
                             <Button
                                 type="button"
                                 onClick={handleSaveSignature}
-                                className="bg-red-600 hover:bg-red-700 text-white h-12"
+                                className="bg-[#AC0021] hover:bg-[#AC0021]/80 text-[#FEFCF8] h-12"
                             >
                                 <BadgeCheck className="w-4 h-4 mr-2" />
                                 Simpan

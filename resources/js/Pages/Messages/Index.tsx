@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head, usePage, router } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { Send, Image as ImageIcon, Search, MoreVertical, Smile, Plus, Check, CheckCheck, FileText, X, Paperclip, ArrowLeft } from 'lucide-react';
+import { Send, Image as ImageIcon, Search, MoreVertical, Smile, Plus, Check, CheckCheck, FileText, X, Paperclip, ArrowLeft, MessageSquare } from 'lucide-react';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet } from '@/components/ui/sheet';
 import {
@@ -249,23 +249,30 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                 {/* Sidebar */}
                 <div className={`w-full md:w-80 border-r flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 h-16 flex items-center justify-between shrink-0">
-                        <h2 className="font-semibold text-lg">Messages</h2>
-                        <Button size="icon" variant="ghost" onClick={() => setNewChatOpen(true)}>
-                            <Plus className="h-5 w-5" />
+                        <h2 className="font-bold text-xl">Pesan</h2>
+                        <Button size="icon" variant="ghost" onClick={() => router.visit(route('dashboard'))} className="text-muted-foreground hover:text-foreground">
+                            <X className="h-5 w-5" />
                         </Button>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="px-4 pb-4 border-b">
+                    {/* Search Bar & New Chat Button */}
+                    <div className="px-4 pb-4 space-y-3 border-b">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search messages..."
-                                className="pl-9 bg-background"
+                                placeholder="Cari pesan..."
+                                className="pl-9 bg-background border-zinc-700/50 focus-visible:ring-zinc-700"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
+                        <Button
+                            className="w-full bg-[#d04438] hover:bg-[#b9382e] text-white flex items-center justify-center gap-2"
+                            onClick={() => setNewChatOpen(true)}
+                        >
+                            <Plus className="h-4 w-4" />
+                            Pesan Baru
+                        </Button>
                     </div>
 
                     {/* Sidebar List - Using native scroll for consistency */}
@@ -277,7 +284,7 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                     <button
                                         key={conversation.id}
                                         onClick={() => handleSelectConversation(conversation)}
-                                        className={`flex items-center gap-3 p-4 hover:bg-accent/50 text-left transition-colors border-b ${selectedConversation?.id === conversation.id ? 'bg-accent' : ''}`}
+                                        className={`flex items-center gap-3 p-4 hover:bg-accent/50 text-left transition-colors border-b border-border/50 ${selectedConversation?.id === conversation.id ? 'bg-accent' : ''}`}
                                     >
                                         <Avatar>
                                             <AvatarImage src={getConversationAvatar(conversation) || undefined} />
@@ -298,16 +305,24 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                             </div>
                                             {conversation.last_message && (
                                                 <p className="text-sm text-muted-foreground truncate">
-                                                    {conversation.last_message.sender?.id === auth.user.id ? 'You: ' : ''}
-                                                    {conversation.last_message.body || 'Sent a file'}
+                                                    {conversation.last_message.sender?.id === auth.user.id ? 'Anda: ' : ''}
+                                                    {conversation.last_message.body || 'Mengirim file'}
                                                 </p>
                                             )}
                                         </div>
                                     </button>
                                 ))}
                             {conversations.length === 0 && (
-                                <div className="p-8 text-center text-muted-foreground text-sm">
-                                    No conversations yet. Start a new chat!
+                                <div className="flex flex-col items-center justify-center h-full p-8 text-center mt-20">
+                                    <div className="w-16 h-16 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4">
+                                        <div className="relative">
+                                            <MessageSquare className="h-8 w-8 text-zinc-400" />
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-zinc-200 mb-2">Belum ada pesan</h3>
+                                    <p className="text-sm text-zinc-500 max-w-[200px]">
+                                        Mulai percakapan dengan mengklik tombol Pesan Baru
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -327,7 +342,7 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                         </Button>
                                         <Input
                                             autoFocus
-                                            placeholder="Search in conversation..."
+                                            placeholder="Cari dalam percakapan..."
                                             className="bg-transparent border-none focus-visible:ring-0 px-0 h-9"
                                             value={messageSearchTerm}
                                             onChange={(e) => setMessageSearchTerm(e.target.value)}
@@ -349,7 +364,7 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                                 <h3 className="font-semibold truncate">{getConversationName(selectedConversation)}</h3>
                                                 {selectedConversation.is_group && (
                                                     <p className="text-xs text-muted-foreground">
-                                                        {selectedConversation.participants.length} members
+                                                        {selectedConversation.participants.length} anggota
                                                     </p>
                                                 )}
                                             </div>
@@ -368,10 +383,10 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem onClick={() => setInfoOpen(true)}>
-                                                            Contact Info
+                                                            Info Kontak
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => setIsSearchingMessage(true)}>
-                                                            Search Messages
+                                                            Cari Pesan
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -385,7 +400,7 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                                 <div className="flex flex-col">
                                     {loadingMessages ? (
-                                        <div className="text-center p-4">Loading messages...</div>
+                                        <div className="text-center p-4">Memuat pesan...</div>
                                     ) : (
                                         messages
                                             .filter(msg => {
@@ -514,13 +529,13 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                                     <form onSubmit={handleSendMessage} className="flex-1">
                                         <input
                                             className="w-full bg-transparent border-none focus:outline-none text-sm placeholder:text-muted-foreground"
-                                            placeholder="Message..."
+                                            placeholder="Ketik pesan..."
                                             value={newMessage}
                                             onChange={e => setNewMessage(e.target.value)}
                                         />
                                     </form>
                                     {newMessage || selectedFile ? (
-                                        <button onClick={handleSendMessage} className="text-blue-500 font-semibold text-sm">Send</button>
+                                        <button onClick={handleSendMessage} className="text-blue-500 font-semibold text-sm">Kirim</button>
                                     ) : (
                                         <>
                                             <Paperclip
@@ -542,7 +557,7 @@ export default function MessagesIndex({ conversations, initialConversationId }: 
                             <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
                                 <Send className="h-8 w-8 text-muted-foreground" />
                             </div>
-                            <p className="text-lg font-medium">Select a conversation to start chatting</p>
+                            <p className="text-lg font-medium">Pilih percakapan untuk memulai chat</p>
                         </div>
                     )}
                 </div>

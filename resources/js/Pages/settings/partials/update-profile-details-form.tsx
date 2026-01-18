@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { CascadingJabatanSelector } from '@/components/CascadingJabatanSelector';
 import { JabatanSelectionModal } from '@/components/JabatanSelectionModal';
 import { Edit2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Props {
     userDetail: any;
@@ -48,6 +49,11 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
         scan_sk: null as File | null,
         tanda_tangan: null as File | null,
     });
+
+    const formattedJabatans = jabatans.map((jabatan) => ({
+        value: jabatan.id.toString(),
+        label: jabatan.name,
+    }));
 
 
 
@@ -176,7 +182,7 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
 
     const SubmitButton = () => (
         <div className="flex justify-end border-t bg-muted/10 p-4">
-            <Button size="sm" disabled={processing} className="w-full md:w-auto shadow-sm hover:shadow-red-500/20 rounded-lg px-6 bg-red-600 hover:bg-red-700 text-sm font-medium transition-all duration-200">
+            <Button size="sm" disabled={processing} className="w-full md:w-auto shadow-sm hover:shadow-red-500/20 rounded-lg px-6 bg-[#AC0021] hover:bg-[#8a2b00] text-sm font-medium transition-all duration-200 text-white">
                 {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
             </Button>
@@ -184,7 +190,7 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
     );
 
     const CardContainer = ({ children, className, hideSubmit = false }: { children: React.ReactNode; className?: string; hideSubmit?: boolean }) => (
-        <Card className={cn("border border-border/40 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ring-1 ring-border/40", className)}>
+        <Card className={cn("border border-zinc-800 shadow-lg bg-[#262626] text-white transition-all duration-300 overflow-hidden", className)}>
             {children}
             {!hideSubmit && <SubmitButton />}
         </Card>
@@ -259,46 +265,46 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
 
             <div className="grid grid-cols-1 gap-6">
                 {/* 1. Personal Information */}
-                <CardContainer hideSubmit={true}>
-                    <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                <Card className="border-0 shadow-[0_0_20px_rgba(0,0,0,0.3)] bg-[#262626] text-white rounded-t-xl rounded-b-xl">
+                    <CardHeader className="bg-transparent pb-6 border-b border-zinc-800">
                         <div className="flex items-center gap-4">
-                            <GradientIcon icon={User} colorClass="bg-gradient-to-br from-indigo-500 to-violet-600" />
+                            <GradientIcon icon={User} colorClass="bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-none" />
                             <div>
-                                <CardTitle className="text-base">Identitas Pribadi</CardTitle>
-                                <CardDescription>Data diri sesuai KTP</CardDescription>
+                                <CardTitle className="text-lg font-bold text-white">Identitas Pribadi</CardTitle>
+                                <CardDescription className="text-zinc-400">Data diri sesuai KTP</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>NRP</Label>
-                                <Input value={data.nia_nrp} readOnly className="cursor-not-allowed bg-muted" />
+                                <Label className="text-zinc-300 font-medium">NRP</Label>
+                                <Input value={data.nia_nrp} readOnly className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80" />
                                 <InputError message={errors.nia_nrp} />
                             </div>
                             <div className="space-y-2">
-                                <Label>NIK</Label>
-                                <Input value={data.nik} readOnly className="cursor-not-allowed bg-muted" />
+                                <Label className="text-zinc-300 font-medium">NIK</Label>
+                                <Input value={data.nik} readOnly className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80" />
                                 <InputError message={errors.nik} />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Tempat Lahir</Label>
-                                <Input value={data.tempat_lahir} readOnly className="cursor-not-allowed bg-muted" />
+                                <Label className="text-zinc-300 font-medium">Tempat Lahir</Label>
+                                <Input value={data.tempat_lahir} readOnly className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80" />
                                 <InputError message={errors.tempat_lahir} />
                             </div>
                             <div className="space-y-2">
-                                <Label>Tanggal Lahir</Label>
-                                <Input type="date" value={data.tanggal_lahir} readOnly className="cursor-not-allowed bg-muted" />
+                                <Label className="text-zinc-300 font-medium">Tanggal Lahir</Label>
+                                <Input type="date" value={data.tanggal_lahir} readOnly className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80" />
                                 <InputError message={errors.tanggal_lahir} />
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label>Jenis Kelamin</Label>
+                            <Label className="text-zinc-300 font-medium">Jenis Kelamin</Label>
                             <Select value={data.jenis_kelamin} disabled>
-                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Pilih Jenis Kelamin" /></SelectTrigger>
-                                <SelectContent>
+                                <SelectTrigger className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80"><SelectValue placeholder="Pilih Jenis Kelamin" /></SelectTrigger>
+                                <SelectContent className="bg-[#262626] border-zinc-600 text-zinc-200">
                                     <SelectItem value="Laki-laki">Laki-laki</SelectItem>
                                     <SelectItem value="Perempuan">Perempuan</SelectItem>
                                 </SelectContent>
@@ -306,12 +312,12 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                             <InputError message={errors.jenis_kelamin} />
                         </div>
                     </CardContent>
-                </CardContainer>
+                </Card>
 
                 {/* 2. Employment Information */}
                 {false && (
                     <CardContainer hideSubmit={true}>
-                        <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                        <CardHeader className="bg-transparent pb-4 border-b border-border/40">
                             <div className="flex items-center gap-4">
                                 <GradientIcon icon={Briefcase} colorClass="bg-gradient-to-br from-blue-500 to-cyan-600" />
                                 <div>
@@ -375,7 +381,7 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
 
             {/* 3. Address Information */}
             <CardContainer hideSubmit={true}>
-                <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
+                <CardHeader className="bg-transparent pb-6 border-b border-zinc-700/50">
                     <div className="flex items-center gap-4">
                         <GradientIcon icon={MapPin} colorClass="bg-gradient-to-br from-orange-500 to-red-600" />
                         <div>
@@ -387,37 +393,37 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                 <CardContent className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="space-y-2">
-                            <Label>Provinsi</Label>
+                            <Label className="text-zinc-300 font-medium">Provinsi</Label>
                             <Select value={data.province_id} disabled>
-                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Provinsi" /></SelectTrigger>
-                                <SelectContent>
+                                <SelectTrigger className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80"><SelectValue placeholder="Provinsi" /></SelectTrigger>
+                                <SelectContent className="bg-[#262626] border-zinc-700 text-zinc-200">
                                     {provinces.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Kota/Kab</Label>
+                            <Label className="text-zinc-300 font-medium">Kota/Kab</Label>
                             <Select value={data.city_id} disabled>
-                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Kota/Kab" /></SelectTrigger>
-                                <SelectContent>
+                                <SelectTrigger className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80"><SelectValue placeholder="Kota/Kab" /></SelectTrigger>
+                                <SelectContent className="bg-[#262626] border-zinc-700 text-zinc-200">
                                     {cities.map(c => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Kecamatan</Label>
+                            <Label className="text-zinc-300 font-medium">Kecamatan</Label>
                             <Select value={data.district_id} disabled>
-                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Kecamatan" /></SelectTrigger>
-                                <SelectContent>
+                                <SelectTrigger className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80"><SelectValue placeholder="Kecamatan" /></SelectTrigger>
+                                <SelectContent className="bg-[#262626] border-zinc-700 text-zinc-200">
                                     {districts.map(d => <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Kelurahan</Label>
+                            <Label className="text-zinc-300 font-medium">Kelurahan</Label>
                             <Select value={data.village_id} disabled>
-                                <SelectTrigger className="cursor-not-allowed bg-muted"><SelectValue placeholder="Kelurahan" /></SelectTrigger>
-                                <SelectContent>
+                                <SelectTrigger className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80"><SelectValue placeholder="Kelurahan" /></SelectTrigger>
+                                <SelectContent className="bg-[#262626] border-zinc-700 text-zinc-200">
                                     {villages.map(v => <SelectItem key={v.code} value={v.code}>{v.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -425,8 +431,8 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                     </div>
                     <div className="mt-4">
                         <div className="space-y-2">
-                            <Label>Alamat Lengkap (Jalan, RT/RW)</Label>
-                            <Input value={data.alamat_domisili_lengkap} readOnly className="cursor-not-allowed bg-muted" />
+                            <Label className="text-zinc-300 font-medium">Alamat Lengkap (Jalan, RT/RW)</Label>
+                            <Input value={data.alamat_domisili_lengkap} readOnly className="cursor-not-allowed bg-[#18181b] border-zinc-500/50 text-zinc-400 opacity-80" />
                         </div>
                     </div>
                 </CardContent>
@@ -454,37 +460,65 @@ export default function UpdateProfileDetailsForm({ userDetail, jabatans }: Props
                             />
 
                             {/* Signature Field - Click to Open Modal */}
-                            <div className="space-y-3 group">
-                                <Label className="text-base font-medium group-hover:text-primary transition-colors">Tanda Tangan Digital</Label>
-                                <div
-                                    onClick={() => setIsSignatureModalOpen(true)}
-                                    className={cn(
-                                        "cursor-pointer relative border border-dashed border-input hover:border-primary/50 hover:bg-primary/5 rounded-xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center h-40"
-                                    )}
-                                >
-                                    <div className="p-3 bg-background rounded-full shadow-sm ring-1 ring-border group-hover:scale-110 transition-transform duration-300 mb-3">
-                                        <PenTool className="w-5 h-5 text-primary" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        {signatureDataUrl ? (
-                                            <>
-                                                <p className="text-sm font-medium text-green-600 flex items-center gap-1 justify-center">
-                                                    <BadgeCheck className="w-4 h-4" />
-                                                    Tanda tangan tersedia
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">Klik untuk ubah</p>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p className="text-sm font-medium text-foreground">Buat tanda tangan</p>
-                                                <p className="text-xs text-muted-foreground px-4">Klik untuk menggambar</p>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                                <InputError message={errors.tanda_tangan} />
+                            <div className="space-y-2">
+                                <Label htmlFor="nip" className="text-zinc-300 font-medium">Nomor Induk Pegawai (NIP)</Label>
+                                <Input
+                                    id="nip"
+                                    defaultValue={userDetail?.nip || ''}
+                                    name="nip"
+                                    placeholder="Masukkan NIP Anda"
+                                    className="bg-[#18181b] border-zinc-500 text-zinc-100 focus:bg-[#18181b] focus:border-[#AC0021] focus:ring-1 focus:ring-[#AC0021]"
+                                />
                             </div>
 
+                            <div className="space-y-2">
+                                <Label htmlFor="jabatan_id" className="text-zinc-300 font-medium">Jabatan</Label>
+                                <Select name="jabatan_id" defaultValue={userDetail?.jabatan_id?.toString()}>
+                                    <SelectTrigger className="bg-[#18181b] border-zinc-500 text-zinc-100 focus:ring-[#AC0021]">
+                                        <SelectValue placeholder="Pilih Jabatan" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-[#262626] border-zinc-700 text-zinc-200">
+                                        {formattedJabatans.map((jabatan) => (
+                                            <SelectItem key={jabatan.value} value={jabatan.value} className="focus:bg-zinc-800 focus:text-white">
+                                                {jabatan.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="unit_kerja" className="text-zinc-300 font-medium">Unit Kerja</Label>
+                                <Input
+                                    id="unit_kerja"
+                                    defaultValue={userDetail?.unit_kerja || ''}
+                                    name="unit_kerja"
+                                    placeholder="Masukkan Unit Kerja"
+                                    className="bg-[#18181b] border-zinc-500 text-zinc-100 focus:bg-[#18181b] focus:border-[#AC0021] focus:ring-1 focus:ring-[#AC0021]"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="alamat" className="text-zinc-300 font-medium">Alamat</Label>
+                                <Textarea
+                                    id="alamat"
+                                    defaultValue={userDetail?.alamat || ''}
+                                    name="alamat"
+                                    placeholder="Masukkan Alamat Lengkap"
+                                    className="min-h-[100px] bg-[#18181b] border-zinc-500 text-zinc-100 focus:bg-[#18181b] focus:border-[#AC0021] focus:ring-1 focus:ring-[#AC0021]"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="no_hp" className="text-zinc-300 font-medium">Nomor HP / WhatsApp</Label>
+                                <Input
+                                    id="no_hp"
+                                    defaultValue={userDetail?.no_hp || ''}
+                                    name="no_hp"
+                                    placeholder="Contoh: 081234567890"
+                                    className="bg-[#18181b] border-zinc-500 text-zinc-100 focus:bg-[#18181b] focus:border-[#AC0021] focus:ring-1 focus:ring-[#AC0021]"
+                                />
+                            </div>
                             <FileUploadCard
                                 label="Scan KTP"
                                 field="scan_ktp"

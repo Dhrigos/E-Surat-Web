@@ -2,7 +2,7 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import AppearanceTabs from '@/components/appearance-tabs';
 import { send } from '@/routes/verification';
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import { type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage, router } from '@inertiajs/react';
 import { useRef, useState, type ChangeEvent } from 'react';
@@ -17,19 +17,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, FileText, Lock, Palette, CheckCircle2, Camera, Activity, Shield, AlertTriangle } from 'lucide-react';
+import { User, FileText, Lock, Palette, CheckCircle2, Camera, Activity, AlertTriangle } from 'lucide-react';
 import ActivityTimeline from '@/Pages/settings/partials/activity-timeline';
 import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/profile';
 import UpdateProfileDetailsForm from './partials/update-profile-details-form';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Profile settings',
-        href: edit().url,
-    },
-];
 
 export default function Profile({
     mustVerifyEmail,
@@ -55,354 +47,332 @@ export default function Profile({
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title="Profile settings" />
 
-            <SettingsLayout>
-                <div className="space-y-6">
-                    <div>
-                        <HeadingSmall
-                            title="Pengaturan Akun"
-                            description="Pusat pengaturan profil, keamanan, dan preferensi aplikasi Anda."
-                        />
-                    </div>
+            <div className="flex flex-col gap-6 p-4 md:p-8 max-w-[1600px] mx-auto w-full">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Pengaturan Akun</h1>
+                    <p className="text-muted-foreground mt-1">
+                        Pusat pengaturan profil, keamanan, dan preferensi aplikasi Anda.
+                    </p>
+                </div>
 
-                    <Tabs defaultValue="account" className="flex flex-col lg:flex-row gap-8 w-full">
-                        <TabsList className="grid grid-cols-5 lg:flex lg:flex-col w-full lg:w-64 h-auto bg-transparent p-0 gap-2 lg:space-y-2 lg:sticky lg:top-6 self-start">
+                <Tabs defaultValue="account" className="flex flex-col gap-0">
+                    {/* Tabs Navigation */}
+                    <div className="bg-white dark:bg-[#262626] border-t border-x border-zinc-200 dark:border-zinc-800 rounded-none mb-0 overflow-visible z-10 relative">
+                        <TabsList className="flex w-full justify-start h-auto p-0 bg-transparent rounded-none border-b border-zinc-200 dark:border-zinc-700">
                             <TabsTrigger
                                 value="account"
-                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="relative inline-flex items-center justify-center py-3 px-6 text-sm font-semibold transition-all duration-200 whitespace-nowrap gap-2 -mb-px rounded-t-lg rounded-b-none border border-transparent data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 data-[state=active]:border-b-white dark:data-[state=active]:border-b-[#262626] data-[state=active]:bg-white dark:data-[state=active]:bg-[#262626] data-[state=active]:text-[#ac3500] text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 data-[state=active]:z-10"
                             >
-                                <User className="w-5 h-5 lg:w-4 lg:h-4" />
-                                <span className="hidden lg:inline">Akun</span>
+                                <User className="w-4 h-4" />
+                                <span className="hidden md:inline">Akun</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="details"
-                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="relative inline-flex items-center justify-center py-3 px-6 text-sm font-semibold transition-all duration-200 whitespace-nowrap gap-2 -mb-px rounded-t-lg rounded-b-none border border-transparent data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 data-[state=active]:border-b-white dark:data-[state=active]:border-b-[#262626] data-[state=active]:bg-white dark:data-[state=active]:bg-[#262626] data-[state=active]:text-[#ac3500] text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 data-[state=active]:z-10"
                             >
-                                <Shield className="w-5 h-5 lg:w-4 lg:h-4" />
-                                <span className="hidden lg:inline">Detail Profil</span>
+                                <FileText className="w-4 h-4" />
+                                <span className="hidden md:inline">Detail Profil</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="password"
-                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="relative inline-flex items-center justify-center py-3 px-6 text-sm font-semibold transition-all duration-200 whitespace-nowrap gap-2 -mb-px rounded-t-lg rounded-b-none border border-transparent data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 data-[state=active]:border-b-white dark:data-[state=active]:border-b-[#262626] data-[state=active]:bg-white dark:data-[state=active]:bg-[#262626] data-[state=active]:text-[#ac3500] text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 data-[state=active]:z-10"
                             >
-                                <Lock className="w-5 h-5 lg:w-4 lg:h-4" />
-                                <span className="hidden lg:inline">Password</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="appearance"
-                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
-                            >
-                                <Palette className="w-5 h-5 lg:w-4 lg:h-4" />
-                                <span className="hidden lg:inline">Tampilan</span>
+                                <Lock className="w-4 h-4" />
+                                <span className="hidden md:inline">Password</span>
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value="activity"
-                                className="w-full justify-center lg:justify-start px-2 lg:px-4 py-3 h-auto text-base font-medium rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none hover:bg-muted/50 transition-all duration-200 gap-3"
+                                className="relative inline-flex items-center justify-center py-3 px-6 text-sm font-semibold transition-all duration-200 whitespace-nowrap gap-2 -mb-px rounded-t-lg rounded-b-none border border-transparent data-[state=active]:border-zinc-200 dark:data-[state=active]:border-zinc-700 data-[state=active]:border-b-white dark:data-[state=active]:border-b-[#262626] data-[state=active]:bg-white dark:data-[state=active]:bg-[#262626] data-[state=active]:text-[#ac3500] text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 data-[state=active]:z-10"
                             >
-                                <Activity className="w-5 h-5 lg:w-4 lg:h-4" />
-                                <span className="hidden lg:inline">Aktifitas</span>
+                                <Activity className="w-4 h-4" />
+                                <span className="hidden md:inline">Aktifitas</span>
                             </TabsTrigger>
                         </TabsList>
+                    </div>
 
-                        <div className="flex-1 min-w-0">
+                    <div className="min-h-[500px]">
+                        {/* ACCOUNT TAB */}
+                        <TabsContent value="account" className="space-y-8 mt-0">
+                            <div className="bg-white dark:bg-[#262626] border-x border-b border-t-0 dark:border-zinc-800 rounded-b-none rounded-t-none shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden relative group min-h-[500px]">
+                                <div className="border-0 relative overflow-hidden bg-[#262626] text-white rounded-none h-full">
+                                    {/* Banner */}
+                                    <div className="h-48 relative border-none">
+                                        <div className="absolute inset-0 bg-gradient-to-b from-zinc-800/50 to-transparent opacity-50"></div>
+                                    </div>
 
-                            {/* ACCOUNT TAB */}
-                            <TabsContent value="account" className="space-y-8 mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="relative group">
-                                    <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-white rounded-2xl opacity-20 group-hover:opacity-30 transition duration-500 blur-xl"></div>
-                                    <Card className="border-0 shadow-lg relative overflow-hidden">
-                                        {/* Banner */}
-                                        <div className="h-32 bg-gradient-to-r from-red-600 to-white relative">
-                                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
-                                            {/* Decorative Circles */}
-                                            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
-                                            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-black/10 rounded-full blur-2xl"></div>
-                                        </div>
+                                    <CardContent className="pt-0 px-8 pb-8">
+                                        <form
+                                            action={ProfileController.update.url()}
+                                            method="post"
+                                            encType="multipart/form-data"
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                const formData = new FormData(e.currentTarget);
+                                                formData.append('_method', 'PATCH');
+                                                router.post(ProfileController.update.url(), formData, {
+                                                    preserveScroll: true,
+                                                    forceFormData: true,
+                                                });
+                                            }}
+                                            className="space-y-6 w-full"
+                                        >
+                                            {(() => {
+                                                const [preview, setPreview] = useState<string | null>(null);
+                                                const fileInputRef = useRef<HTMLInputElement>(null);
 
-                                        <CardContent className="pt-0 px-8 pb-8">
-                                            <form
-                                                action={ProfileController.update.url()}
-                                                method="post"
-                                                encType="multipart/form-data"
-                                                onSubmit={(e) => {
-                                                    e.preventDefault();
-                                                    const formData = new FormData(e.currentTarget);
-                                                    formData.append('_method', 'PATCH');
-                                                    router.post(ProfileController.update.url(), formData, {
-                                                        preserveScroll: true,
-                                                        forceFormData: true,
-                                                    });
-                                                }}
-                                                className="space-y-6 w-full"
-                                            >
-                                                {(() => {
-                                                    const [preview, setPreview] = useState<string | null>(null);
-                                                    const fileInputRef = useRef<HTMLInputElement>(null);
+                                                const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const url = URL.createObjectURL(file);
+                                                        setPreview(url);
+                                                    }
+                                                };
 
-                                                    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            const url = URL.createObjectURL(file);
-                                                            setPreview(url);
-                                                        }
-                                                    };
+                                                // Determine avatar source: Preview -> Auth User Avatar (via accessor) -> Fallback
+                                                const avatarSrc = preview || auth.user.avatar || '';
 
-                                                    // Determine avatar source: Preview -> Auth User Avatar (via accessor) -> Fallback
-                                                    const avatarSrc = preview || auth.user.avatar || '';
+                                                return (
+                                                    <>
+                                                        {/* Floating Avatar */}
+                                                        <div className="flex flex-col md:flex-row gap-6 items-center md:items-end -mt-20 relative z-30 px-2">
+                                                            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                                                                <Avatar className="h-32 w-32 border-4 border-[#262626] shadow-xl transition-transform group-hover:scale-105 duration-300">
+                                                                    <AvatarImage src={avatarSrc} alt={auth.user.name} className="object-cover" />
+                                                                    <AvatarFallback className="text-3xl font-bold bg-[#AC0021] text-white">{initials}</AvatarFallback>
+                                                                </Avatar>
 
-                                                    return (
-                                                        <>
-                                                            {/* Floating Avatar */}
-                                                            <div className="flex flex-col md:flex-row gap-6 items-start -mt-12 relative z-30">
-                                                                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                                                    <Avatar className="h-32 w-32 border-4 border-gray-200 dark:border-gray-700 shadow-2xl ring-4 ring-black/5 dark:ring-white/10 transition-transform group-hover:scale-105 duration-300">
-                                                                        <AvatarImage src={avatarSrc} alt={auth.user.name} className="object-cover" />
-                                                                        <AvatarFallback className="text-3xl font-bold bg-red-600 text-white">{initials}</AvatarFallback>
-                                                                    </Avatar>
-
-                                                                    {/* Camera Overlay */}
-                                                                    <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
-                                                                        <Camera className="w-8 h-8 text-white drop-shadow-lg" />
-                                                                    </div>
-
-                                                                    <input
-                                                                        type="file"
-                                                                        ref={fileInputRef}
-                                                                        name="profile"
-                                                                        className="hidden"
-                                                                        accept="image/*"
-                                                                        onChange={handleFileChange}
-                                                                    />
-
-                                                                    <div className="absolute bottom-2 right-2 bg-green-500 border-4 border-background p-2 rounded-full shadow-sm z-10" title="Active"></div>
+                                                                {/* Camera Overlay */}
+                                                                <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
+                                                                    <Camera className="w-8 h-8 text-white drop-shadow-lg" />
                                                                 </div>
 
-                                                                <div className="flex-1 mt-14 md:mt-12 space-y-1">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <h3 className="text-2xl font-bold">{auth.user.name}</h3>
-                                                                        {auth.user.email_verified_at && (
-                                                                            <CheckCircle2 className="w-5 h-5 text-blue-500 fill-blue-500/10" />
-                                                                        )}
-                                                                    </div>
-                                                                    <p className="text-muted-foreground">{auth.user.email}</p>
-                                                                    <div className="flex gap-2 mt-2">
-                                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                                            Super Admin
-                                                                        </span>
-                                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                                            Verified
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
+                                                                <input
+                                                                    type="file"
+                                                                    ref={fileInputRef}
+                                                                    name="profile"
+                                                                    className="hidden"
+                                                                    accept="image/*"
+                                                                    onChange={handleFileChange}
+                                                                />
+
+                                                                <div className="absolute bottom-2 right-2 bg-green-500 border-4 border-[#262626] p-2 rounded-full shadow-sm z-10" title="Active"></div>
                                                             </div>
 
-                                                            <div className="mt-8 border-t pt-8">
-                                                                <div className="grid gap-6 md:grid-cols-3">
-                                                                    <div className="space-y-2">
-                                                                        <Label htmlFor="name">Nama Lengkap</Label>
-                                                                        <Input
-                                                                            id="name"
-                                                                            className="mt-1 block w-full bg-background transition-colors"
-                                                                            defaultValue={auth.user.name}
-                                                                            name="name"
-                                                                            required
-                                                                            autoComplete="name"
-                                                                            placeholder="Nama Lengkap"
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="space-y-2">
-                                                                        <Label htmlFor="email">Alamat Email</Label>
-                                                                        <Input
-                                                                            id="email"
-                                                                            type="email"
-                                                                            className="mt-1 block w-full bg-muted/50 text-muted-foreground focus:bg-background transition-colors cursor-not-allowed"
-                                                                            defaultValue={auth.user.email}
-                                                                            name="email"
-                                                                            readOnly
-                                                                            autoComplete="username"
-                                                                            placeholder="Email address"
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="space-y-2">
-                                                                        <Label htmlFor="username">Username</Label>
-                                                                        <Input
-                                                                            id="username"
-                                                                            className="mt-1 block w-full bg-muted/50 text-muted-foreground focus:bg-background transition-colors cursor-not-allowed"
-                                                                            defaultValue={auth.user.username as string}
-                                                                            name="username"
-                                                                            readOnly
-                                                                            disabled
-                                                                            autoComplete="username"
-                                                                            placeholder="Username"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-
-                                                                {mustVerifyEmail &&
-                                                                    auth.user.email_verified_at === null && (
-                                                                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg dark:bg-orange-900/20 dark:border-orange-800/50 flex gap-3">
-                                                                            <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
-                                                                            <div>
-                                                                                <p className="text-sm text-orange-800 dark:text-orange-200">
-                                                                                    Alamat email Anda belum terverifikasi.
-                                                                                </p>
-                                                                                <Link
-                                                                                    href={send()}
-                                                                                    as="button"
-                                                                                    className="mt-1 text-sm font-medium text-orange-900 underline hover:text-orange-700 dark:text-orange-100"
-                                                                                >
-                                                                                    Klik di sini untuk kirim ulang email verifikasi.
-                                                                                </Link>
-                                                                            </div>
-                                                                        </div>
+                                                            <div className="flex-1 space-y-1 pb-2 text-center md:text-left">
+                                                                <div className="flex items-center gap-2 justify-center md:justify-start">
+                                                                    <h3 className="text-2xl font-bold text-white">{auth.user.name}</h3>
+                                                                    {auth.user.email_verified_at && (
+                                                                        <CheckCircle2 className="w-5 h-5 text-green-500 fill-green-500/10" />
                                                                     )}
-
-                                                                <div className="flex items-center gap-4 pt-2">
-                                                                    <Button
-                                                                        type="submit"
-                                                                        className="w-full md:min-w-[120px] bg-red-600 hover:bg-red-700 transition-colors"
-                                                                    >
-                                                                        Simpan Perubahan
-                                                                    </Button>
+                                                                </div>
+                                                                <p className="text-zinc-400">{auth.user.email}</p>
+                                                                <div className="flex gap-2 mt-2 justify-center md:justify-start">
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#3f3f46]/30 text-zinc-300 border border-[#3f3f46]/50">
+                                                                        Super Admin
+                                                                    </span>
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/20 text-green-400 border border-green-900/30">
+                                                                        Verified
+                                                                    </span>
                                                                 </div>
                                                             </div>
-                                                        </>
-                                                    );
-                                                })()}
-                                            </form>
-                                        </CardContent>
-                                    </Card>
+                                                        </div>
+
+                                                        <div className="mt-8 border-t border-zinc-800 pt-8">
+                                                            <div className="grid gap-6 md:grid-cols-3">
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor="name" className="text-zinc-400">Nama Lengkap</Label>
+                                                                    <Input
+                                                                        id="name"
+                                                                        className="mt-1 block w-full bg-[#18181b] border-zinc-500 text-zinc-100 focus:bg-[#18181b] focus:border-[#AC0021] focus:ring-1 focus:ring-[#AC0021] transition-colors placeholder:text-zinc-500"
+                                                                        defaultValue={auth.user.name}
+                                                                        name="name"
+                                                                        required
+                                                                        autoComplete="name"
+                                                                        placeholder="Nama Lengkap"
+                                                                    />
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor="email" className="text-zinc-400">Alamat Email</Label>
+                                                                    <Input
+                                                                        id="email"
+                                                                        type="email"
+                                                                        className="mt-1 block w-full bg-[#18181b] border-zinc-500/50 text-zinc-400 focus:bg-[#18181b] transition-colors cursor-not-allowed opacity-80"
+                                                                        defaultValue={auth.user.email}
+                                                                        name="email"
+                                                                        readOnly
+                                                                        autoComplete="username"
+                                                                        placeholder="Email address"
+                                                                    />
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <Label htmlFor="username" className="text-zinc-400">Username</Label>
+                                                                    <Input
+                                                                        id="username"
+                                                                        className="mt-1 block w-full bg-[#18181b] border-zinc-500/50 text-zinc-400 focus:bg-[#18181b] transition-colors cursor-not-allowed opacity-80"
+                                                                        defaultValue={auth.user.username as string}
+                                                                        name="username"
+                                                                        readOnly
+                                                                        disabled
+                                                                        autoComplete="username"
+                                                                        placeholder="Username"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {mustVerifyEmail &&
+                                                                auth.user.email_verified_at === null && (
+                                                                    <div className="p-4 bg-orange-900/10 border border-orange-900/20 rounded-lg flex gap-3 mt-6">
+                                                                        <AlertTriangle className="w-5 h-5 text-orange-400 mt-0.5" />
+                                                                        <div>
+                                                                            <p className="text-sm text-orange-200">
+                                                                                Alamat email Anda belum terverifikasi.
+                                                                            </p>
+                                                                            <Link
+                                                                                href={send()}
+                                                                                as="button"
+                                                                                className="mt-1 text-sm font-medium text-orange-400 underline hover:text-orange-300"
+                                                                            >
+                                                                                Klik di sini untuk kirim ulang email verifikasi.
+                                                                            </Link>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                            <div className="flex items-center gap-4 pt-6">
+                                                                <Button
+                                                                    type="submit"
+                                                                    className="w-full bg-[#AC0021] hover:bg-[#8a2b00] text-white font-medium py-2.5 transition-colors"
+                                                                >
+                                                                    Simpan Perubahan
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
+                                        </form>
+                                    </CardContent>
                                 </div>
+                            </div>
+                        </TabsContent>
 
-
-                            </TabsContent>
-
-                            {/* DETAILS TAB */}
-                            <TabsContent value="details" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* DETAILS TAB */}
+                        <TabsContent value="details" className="mt-0">
+                            <div className="bg-white dark:bg-[#262626] border-x border-b border-t-0 dark:border-zinc-800 rounded-b-none rounded-t-none shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden min-h-[500px] p-6">
                                 <UpdateProfileDetailsForm
                                     userDetail={userDetail}
                                     jabatans={jabatans}
                                 />
-                            </TabsContent>
+                            </div>
+                        </TabsContent>
 
-                            {/* PASSWORD TAB */}
-                            <TabsContent value="password" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <Card className="border-0 shadow-sm ring-1 ring-border/40">
-                                    <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-2.5 rounded-xl shadow-sm bg-gradient-to-br from-rose-500 to-pink-600">
-                                                <Lock className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base">Ganti Password</CardTitle>
-                                                <CardDescription>Pastikan akun Anda aman dengan password yang kuat.</CardDescription>
-                                            </div>
+                        {/* PASSWORD TAB */}
+                        <TabsContent value="password" className="mt-0">
+                            <div className="bg-white dark:bg-[#262626] border-x border-b border-t-0 dark:border-zinc-800 rounded-b-none rounded-t-none shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden min-h-[500px]">
+                                <CardHeader className="bg-transparent pb-6 border-b border-zinc-700/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2.5 rounded-xl shadow-sm bg-[#AC0021]/10 border border-[#AC0021]/20">
+                                            <Lock className="w-6 h-6 text-[#AC0021]" />
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="p-6">
-                                        <Form
-                                            {...PasswordController.update.form()}
-                                            options={{ preserveScroll: true }}
-                                            resetOnError={['password', 'password_confirmation', 'current_password']}
-                                            resetOnSuccess
-                                            onError={(errors) => {
-                                                if (errors.password) passwordInput.current?.focus();
-                                                if (errors.current_password) currentPasswordInput.current?.focus();
-                                            }}
-                                            className="space-y-6 max-w-xl"
-                                        >
-                                            {({ errors, processing, recentlySuccessful }) => (
-                                                <>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="current_password">Password Saat Ini</Label>
-                                                        <PasswordInput
-                                                            id="current_password"
-                                                            ref={currentPasswordInput}
-                                                            name="current_password"
-                                                            autoComplete="current-password"
-                                                            placeholder="Masukkan password lama"
-                                                        />
-                                                        <InputError message={errors.current_password} />
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="password">Password Baru</Label>
-                                                        <PasswordInput
-                                                            id="password"
-                                                            ref={passwordInput}
-                                                            name="password"
-                                                            autoComplete="new-password"
-                                                            placeholder="Masukkan password baru"
-                                                        />
-                                                        <InputError message={errors.password} />
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="password_confirmation">Konfirmasi Password</Label>
-                                                        <PasswordInput
-                                                            id="password_confirmation"
-                                                            name="password_confirmation"
-                                                            autoComplete="new-password"
-                                                            placeholder="Ulangi password baru"
-                                                        />
-                                                        <InputError message={errors.password_confirmation} />
-                                                    </div>
-
-                                                    <div className="flex items-center gap-4 pt-2">
-                                                        <Button disabled={processing} className="w-full md:w-auto bg-red-600 hover:bg-red-700 transition-colors">Update Password</Button>
-                                                        <Transition
-                                                            show={recentlySuccessful}
-                                                            enter="transition ease-in-out"
-                                                            enterFrom="opacity-0"
-                                                            leave="transition ease-in-out"
-                                                            leaveTo="opacity-0"
-                                                        >
-                                                            <p className="text-sm text-green-600 font-medium flex items-center gap-2">
-                                                                <CheckCircle2 className="w-4 h-4" /> Tersimpan
-                                                            </p>
-                                                        </Transition>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </Form>
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
-
-                            {/* APPEARANCE TAB */}
-                            <TabsContent value="appearance" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <Card className="border-0 shadow-sm ring-1 ring-border/40">
-                                    <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-2.5 rounded-xl shadow-sm bg-gradient-to-br from-amber-500 to-yellow-600">
-                                                <Palette className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base">Tampilan Aplikasi</CardTitle>
-                                                <CardDescription>Sesuaikan tema gelap/terang sesuai preferensi Anda.</CardDescription>
-                                            </div>
+                                        <div>
+                                            <CardTitle className="text-lg font-bold text-white">Ganti Password</CardTitle>
+                                            <CardDescription className="text-zinc-400">Pastikan akun Anda aman dengan password yang kuat.</CardDescription>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="p-6">
-                                        <AppearanceTabs />
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-6">
+                                    <Form
+                                        {...PasswordController.update.form()}
+                                        options={{ preserveScroll: true }}
+                                        resetOnError={['password', 'password_confirmation', 'current_password']}
+                                        resetOnSuccess
+                                        onError={(errors) => {
+                                            if (errors.password) passwordInput.current?.focus();
+                                            if (errors.current_password) currentPasswordInput.current?.focus();
+                                        }}
+                                        className="space-y-6 max-w-xl"
+                                    >
+                                        {({ errors, processing, recentlySuccessful }) => (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="current_password" className="text-zinc-300 font-medium">Password Saat Ini</Label>
+                                                    <PasswordInput
+                                                        id="current_password"
+                                                        ref={currentPasswordInput}
+                                                        name="current_password"
+                                                        autoComplete="current-password"
+                                                        placeholder="Masukkan password lama"
+                                                        className="bg-[#18181b] border-zinc-500 text-zinc-100 focus:bg-[#18181b] focus:border-[#AC0021] focus:ring-1 focus:ring-[#AC0021]"
+                                                    />
+                                                    <InputError message={errors.current_password} />
+                                                </div>
 
-                            {/* ACTIVITY TAB */}
-                            <TabsContent value="activity" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <ActivityTimeline logs={activityLogs || []} />
-                            </TabsContent>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="password" className="text-zinc-300 font-medium">Password Baru</Label>
+                                                    <PasswordInput
+                                                        id="password"
+                                                        ref={passwordInput}
+                                                        name="password"
+                                                        autoComplete="new-password"
+                                                        placeholder="Masukkan password baru"
+                                                        className="bg-[#18181b] border-zinc-500 text-zinc-100 focus:bg-[#18181b] focus:border-[#AC0021] focus:ring-1 focus:ring-[#AC0021]"
+                                                    />
+                                                    <InputError message={errors.password} />
+                                                </div>
 
-                        </div>
-                    </Tabs>
-                </div>
-            </SettingsLayout >
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="password_confirmation" className="text-zinc-300 font-medium">Konfirmasi Password</Label>
+                                                    <PasswordInput
+                                                        id="password_confirmation"
+                                                        name="password_confirmation"
+                                                        autoComplete="new-password"
+                                                        placeholder="Ulangi password baru"
+                                                        className="bg-[#18181b] border-zinc-500 text-zinc-100 focus:bg-[#18181b] focus:border-[#AC0021] focus:ring-1 focus:ring-[#AC0021]"
+                                                    />
+                                                    <InputError message={errors.password_confirmation} />
+                                                </div>
+
+                                                <div className="flex items-center gap-4 pt-4">
+                                                    <Button disabled={processing} className="w-full md:w-auto bg-[#AC0021] hover:bg-[#8a2b00] text-white transition-colors font-medium py-2.5">Update Password</Button>
+                                                    <Transition
+                                                        show={recentlySuccessful}
+                                                        enter="transition ease-in-out"
+                                                        enterFrom="opacity-0"
+                                                        leave="transition ease-in-out"
+                                                        leaveTo="opacity-0"
+                                                    >
+                                                        <p className="text-sm text-green-500 font-medium flex items-center gap-2">
+                                                            <CheckCircle2 className="w-4 h-4" /> Tersimpan
+                                                        </p>
+                                                    </Transition>
+                                                </div>
+                                            </>
+                                        )}
+                                    </Form>
+                                </CardContent>
+                            </div>
+                        </TabsContent>
+
+                        {/* APPEARANCE TAB */}
+
+
+                        {/* ACTIVITY TAB */}
+                        <TabsContent value="activity" className="mt-0">
+                            <ActivityTimeline
+                                logs={activityLogs || []}
+                                className="bg-white dark:bg-[#262626] border-x border-b border-t-0 dark:border-zinc-800 rounded-b-none rounded-t-none shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden min-h-[500px]"
+                            />
+                        </TabsContent>
+
+                    </div>
+                </Tabs>
+            </div>
         </AppLayout >
     );
 }

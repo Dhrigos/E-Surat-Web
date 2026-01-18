@@ -100,8 +100,6 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
         if (id) {
             const target = jabatan.data.find(j => j.id === id);
             if (target && target.level >= 5) {
-                // Prevent navigation deeper than level 5
-                // You might want to use a proper Toast here instead of alert
                 return;
             }
         }
@@ -116,7 +114,7 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get('/jabatan', {
-            parent_id: null, // Global search
+            parent_id: null,
             search,
             kategori: filters.kategori
         }, { preserveState: true });
@@ -133,7 +131,7 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
     };
 
     const handleEdit = (item: Jabatan, e?: React.MouseEvent) => {
-        e?.stopPropagation(); // Prevent navigation when clicking edit
+        e?.stopPropagation();
         setEditingItem(item);
         editForm.setData({
             nama: item.nama,
@@ -166,49 +164,58 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
         }
     };
 
+    const getKategoriColor = (kategori: string) => {
+        // Uniform style for all categories as requested
+        return 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700';
+    };
+
     return (
         <AppLayout>
             <Head title="Data Unit" />
 
-            <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold">Data Unit</h1>
-                            <p className="text-muted-foreground mt-2">
-                                Kelola struktur dan hierarki unit
-                            </p>
-                        </div>
-
+            <div className="flex flex-col gap-6 p-4 md:p-8 max-w-7xl mx-auto w-full">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4 bg-zinc-100 dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-md shadow-zinc-900/5">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Data Unit & Jabatan</h1>
+                        <p className="text-muted-foreground">
+                            Kelola struktur organisasi, unit kerja, dan hierarki jabatan dalam sistem.
+                        </p>
                     </div>
+                </div>
 
-                    {/* Navigation Bar */}
-                    <div className="flex items-center gap-2 text-sm bg-muted/30 p-2 rounded-md border">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleNavigate(currentParent?.parent_id || null)}
-                            disabled={!currentParent}
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
+                {/* Main Content Card */}
+                <div className="bg-card dark:bg-zinc-900 border dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+                    {/* Toolbar */}
+                    <div className="p-4 border-b dark:border-zinc-800 flex flex-col md:flex-row gap-4 items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-sm">
 
-                        <div className="flex items-center gap-1 overflow-hidden px-2">
+                        {/* Breadcrumbs Navigation */}
+                        <div className="flex items-center gap-2 text-sm overflow-x-auto no-scrollbar max-w-full md:max-w-2xl px-2">
+                            {currentParent && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0 rounded-full mr-1 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                                    onClick={() => handleNavigate(currentParent.parent_id)}
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                </Button>
+                            )}
+
                             <button
                                 onClick={() => handleNavigate(null)}
-                                className={`flex items-center hover:text-primary cursor-pointer ${!currentParent ? 'font-bold' : ''}`}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors ${!currentParent ? 'bg-white dark:bg-zinc-800 shadow-sm font-medium text-foreground' : 'text-muted-foreground hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50'}`}
                             >
-                                <Home className="h-4 w-4 mr-1" />
-                                Unit
+                                <Home className="h-3.5 w-3.5" />
+                                <span>Unit</span>
                             </button>
 
                             {breadcrumbs.map((crumb) => (
                                 <div key={crumb.id} className="flex items-center">
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground mx-1" />
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                                     <button
                                         onClick={() => handleNavigate(crumb.id)}
-                                        className="hover:text-primary whitespace-nowrap cursor-pointer"
+                                        className="px-3 py-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-colors whitespace-nowrap"
                                     >
                                         {crumb.nama}
                                     </button>
@@ -216,194 +223,223 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                             ))}
 
                             {currentParent && (
-                                <div className="flex items-center font-bold">
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground mx-1" />
-                                    <span>{currentParent.nama}</span>
+                                <div className="flex items-center">
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                                    <span className="px-3 py-1.5 rounded-full bg-white dark:bg-zinc-800 shadow-sm font-medium text-foreground whitespace-nowrap">
+                                        {currentParent.nama}
+                                    </span>
                                 </div>
                             )}
                         </div>
-                    </div>
 
-                    {/* Filters */}
-                    <div className="flex gap-2">
-                        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-                            <div className="relative flex-1 max-w-sm">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        {/* Actions & Filters */}
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <form onSubmit={handleSearch} className="relative flex-1 md:w-64">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                    type="text"
                                     placeholder="Cari unit..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-10"
+                                    className="pl-9 h-9 bg-white dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-700 focus-visible:ring-indigo-500 rounded-full"
                                 />
-                            </div>
-                        </form>
-                        <Select
-                            value={filters.kategori || 'all'}
-                            onValueChange={(value) => router.get('/jabatan', {
-                                parent_id: currentParent?.id,
-                                search,
-                                kategori: value === 'all' ? '' : value
-                            }, { preserveState: true })}
-                        >
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Semua Kategori" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Kategori</SelectItem>
-                                <SelectItem value="struktural">Struktural</SelectItem>
-                                <SelectItem value="fungsional">Fungsional</SelectItem>
-                                <SelectItem value="anggota">Anggota</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button
-                            onClick={() => {
-                                createForm.setData({
-                                    ...createForm.data,
-                                    parent_id: currentParent?.id || null,
-                                    kategori: currentParent?.kategori || 'anggota',
-                                    // level: calculated in backend
-                                });
-                                setIsCreateOpen(true);
-                            }}
-                            disabled={(currentParent?.level ?? 0) >= 5}
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah
-                        </Button>
-                    </div>
-                </div>
+                            </form>
 
-                {/* Grid View */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {jabatan.data.length === 0 ? (
-                        <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/10 rounded-lg border border-dashed">
-                            <p className="mb-1 text-lg font-medium">Unit yang anda cari tidak ditemukan</p>
-                            <p className="text-sm text-muted-foreground">
-                                Tambah{' '}
-                                <button
-                                    onClick={() => {
-                                        createForm.setData({
-                                            ...createForm.data,
-                                            parent_id: currentParent?.id || null,
-                                            kategori: currentParent?.kategori || 'anggota',
-                                            // level: calculated in backend
-                                        });
-                                        setIsCreateOpen(true);
-                                    }}
-                                    className="underline hover:text-primary font-medium text-foreground cursor-pointer"
-                                >
-                                    disini
-                                </button>
-                            </p>
-                        </div>
-                    ) : (
-                        jabatan.data.map((item) => (
-                            <Card
-                                key={item.id}
-                                className="cursor-pointer hover:border-primary/50 transition-colors group relative"
-                                onDoubleClick={() => handleNavigate(item.id)}
+                            <Select
+                                value={filters.kategori || 'all'}
+                                onValueChange={(value) => router.get('/jabatan', {
+                                    parent_id: currentParent?.id,
+                                    search,
+                                    kategori: value === 'all' ? '' : value
+                                }, { preserveState: true })}
                             >
-                                <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
-                                        {(item.children_count || 0) > 0 ? (
-                                            <Building2 className="h-6 w-6 fill-current" />
-                                        ) : (
-                                            <Briefcase className="h-6 w-6" />
-                                        )}
-                                    </div>
+                                <SelectTrigger className="w-[140px] h-9 rounded-full bg-white dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-700">
+                                    <SelectValue placeholder="Kategori" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua</SelectItem>
+                                    <SelectItem value="struktural">Struktural</SelectItem>
+                                    <SelectItem value="fungsional">Fungsional</SelectItem>
+                                    <SelectItem value="anggota">Anggota</SelectItem>
+                                </SelectContent>
+                            </Select>
 
-                                    <div className="w-full">
-                                        <h3 className="font-medium truncate" title={item.nama}>
-                                            {item.nama}
-                                        </h3>
-                                        <p className="text-xs text-muted-foreground mt-1 capitalize">
-                                            {item.kategori}
-                                        </p>
-                                    </div>
+                            <Button
+                                size="sm"
+                                onClick={() => {
+                                    createForm.setData({
+                                        ...createForm.data,
+                                        parent_id: currentParent?.id || null,
+                                        kategori: currentParent?.kategori || 'anggota',
+                                    });
+                                    setIsCreateOpen(true);
+                                }}
+                                disabled={(currentParent?.level ?? 0) >= 5}
+                                className="h-9 px-4 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20"
+                            >
+                                <Plus className="h-4 w-4 mr-1.5" />
+                                Tambah
+                            </Button>
+                        </div>
+                    </div>
 
-                                    {(item.children_count || 0) > 0 && (
-                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                                            {item.children_count} items
-                                        </Badge>
-                                    )}
+                    {/* Table View */}
+                    <div className="flex-1 overflow-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-muted-foreground uppercase bg-zinc-50/50 dark:bg-zinc-900/50 sticky top-0 backdrop-blur-sm z-10">
+                                <tr>
+                                    <th className="px-6 py-3 font-medium">Nama Unit</th>
+                                    <th className="px-6 py-3 font-medium">Kategori</th>
+                                    <th className="px-6 py-3 font-medium text-center">Sub-Unit</th>
+                                    <th className="px-6 py-3 font-medium text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                {jabatan.data.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                                            <div className="flex flex-col items-center justify-center gap-3">
+                                                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                                    <Building2 className="h-6 w-6 text-muted-foreground/50" />
+                                                </div>
+                                                <p>Tidak ada unit ditemukan</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    jabatan.data.map((item) => {
+                                        const isAnggota = item.kategori.toLowerCase() === 'anggota';
 
-                                    {/* Actions Overlay */}
-                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 p-1 rounded-md backdrop-blur-sm">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            onClick={(e) => handleEdit(item, e)}
-                                        >
-                                            <Pencil className="h-3 w-3" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6 text-destructive hover:text-destructive"
-                                            onClick={(e) => handleDelete(item.id, e)}
-                                        >
-                                            <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))
+                                        return (
+                                            <tr
+                                                key={item.id}
+                                                className={`group transition-colors ${isAnggota ? 'cursor-default' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer'}`}
+                                                onClick={() => !isAnggota && handleNavigate(item.id)}
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                                            {(item.children_count || 0) > 0 ? (
+                                                                <Building2 className="h-5 w-5 fill-current" />
+                                                            ) : (
+                                                                <Briefcase className="h-5 w-5" />
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <div className={`font-medium transition-colors ${!isAnggota ? 'text-foreground group-hover:text-indigo-600' : 'text-muted-foreground'}`}>{item.nama}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <Badge variant="outline" className={`capitalize border shadow-none font-normal ${getKategoriColor(item.kategori)}`}>
+                                                        {item.kategori}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {(item.children_count || 0) > 0 ? (
+                                                        <Badge variant="secondary" className="rounded-full px-2.5">
+                                                            {item.children_count}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-xs">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-indigo-600 hover:shadow-sm rounded-full transition-all"
+                                                            onClick={(e) => handleEdit(item, e)}
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-red-600 hover:shadow-sm rounded-full transition-all"
+                                                            onClick={(e) => handleDelete(item.id, e)}
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 hover:bg-white dark:hover:bg-zinc-700 hover:text-foreground hover:shadow-sm rounded-full transition-all"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleNavigate(item.id);
+                                                            }}
+                                                        >
+                                                            <ChevronRight className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {jabatan.last_page > 1 && (
+                        <div className="p-4 border-t dark:border-zinc-800 flex justify-center bg-zinc-50/30 dark:bg-zinc-900/30">
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={jabatan.current_page === 1}
+                                    onClick={() => router.get(`/jabatan?page=${jabatan.current_page - 1}&parent_id=${currentParent?.id || ''}`)}
+                                    className="bg-white dark:bg-zinc-800"
+                                >
+                                    Sebelumnya
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={jabatan.current_page === jabatan.last_page}
+                                    onClick={() => router.get(`/jabatan?page=${jabatan.current_page + 1}&parent_id=${currentParent?.id || ''}`)}
+                                    className="bg-white dark:bg-zinc-800"
+                                >
+                                    Selanjutnya
+                                </Button>
+                            </div>
+                        </div>
                     )}
                 </div>
-
-                {jabatan.last_page > 1 && (
-                    <div className="flex justify-center mt-4">
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                disabled={jabatan.current_page === 1}
-                                onClick={() => router.get(`/jabatan?page=${jabatan.current_page - 1}&parent_id=${currentParent?.id || ''}`)}
-                            >
-                                Sebelumnya
-                            </Button>
-                            <Button
-                                variant="outline"
-                                disabled={jabatan.current_page === jabatan.last_page}
-                                onClick={() => router.get(`/jabatan?page=${jabatan.current_page + 1}&parent_id=${currentParent?.id || ''}`)}
-                            >
-                                Selanjutnya
-                            </Button>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Create Modal */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Tambah Unit</DialogTitle>
-                        <DialogDescription>
-                            Menambahkan Unit di: <span className="font-semibold">{currentParent ? currentParent.nama : 'Root (Tingkat Atas)'}</span>
+                <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-card border-none shadow-2xl">
+                    <div className="px-6 py-6 border-b bg-zinc-50/50 dark:bg-zinc-900/50">
+                        <DialogTitle className="text-xl font-semibold text-foreground">Tambah Unit Baru</DialogTitle>
+                        <DialogDescription className="mt-1.5">
+                            Menambahkan unit ke dalam <span className="font-medium text-indigo-600 dark:text-indigo-400">{currentParent ? currentParent.nama : 'Root (Tingkat Atas)'}</span>
                         </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleCreate} className="space-y-4">
+                    </div>
+
+                    <form onSubmit={handleCreate} className="p-6 space-y-5">
                         <div className="space-y-2">
-                            <Label htmlFor="create-nama">Nama Unit *</Label>
+                            <Label htmlFor="create-nama" className="text-sm font-medium">Nama Unit</Label>
                             <Input
                                 id="create-nama"
                                 value={createForm.data.nama}
                                 onChange={(e) => createForm.setData('nama', e.target.value)}
-                                placeholder="Contoh: Kepala Bagian"
-                                className={createForm.errors.nama ? 'border-destructive' : ''}
+                                placeholder="Contoh: Divisi Teknologi"
+                                className={`h-10 transition-all focus-visible:ring-indigo-500 ${createForm.errors.nama ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                             />
-                            {createForm.errors.nama && <p className="text-sm text-destructive">{createForm.errors.nama}</p>}
+                            {createForm.errors.nama && <p className="text-xs text-red-500 font-medium">{createForm.errors.nama}</p>}
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="create-kategori">Kategori *</Label>
+                            <Label htmlFor="create-kategori" className="text-sm font-medium">Kategori</Label>
                             <Select
                                 value={createForm.data.kategori}
                                 onValueChange={(value) => createForm.setData('kategori', value)}
                             >
-                                <SelectTrigger id="create-kategori">
+                                <SelectTrigger id="create-kategori" className="h-10 focus:ring-indigo-500">
                                     <SelectValue placeholder="Pilih Kategori" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -412,21 +448,29 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                                     <SelectItem value="struktural">Struktural</SelectItem>
                                 </SelectContent>
                             </Select>
-                            {createForm.errors.kategori && (
-                                <p className="text-sm text-destructive">{createForm.errors.kategori}</p>
-                            )}
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="create-keterangan" className="text-sm font-medium">Keterangan (Opsional)</Label>
+                            <Textarea
+                                id="create-keterangan"
+                                value={createForm.data.keterangan}
+                                onChange={(e) => createForm.setData('keterangan', e.target.value)}
+                                placeholder="Deskripsi singkat unit ini..."
+                                className="min-h-[80px] resize-none focus-visible:ring-indigo-500"
+                            />
+                        </div>
 
-
-
-
-                        <div className="flex gap-3 pt-4">
-                            <Button type="submit" disabled={createForm.processing}>
-                                {createForm.processing ? 'Menyimpan...' : 'Simpan'}
-                            </Button>
-                            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                        <div className="flex justify-end gap-3 pt-2">
+                            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="h-10 px-4">
                                 Batal
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={createForm.processing}
+                                className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20"
+                            >
+                                {createForm.processing ? 'Menyimpan...' : 'Simpan'}
                             </Button>
                         </div>
                     </form>
@@ -435,27 +479,32 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
 
             {/* Edit Modal */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Unit</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleUpdate} className="space-y-4">
+                <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-card border-none shadow-2xl">
+                    <div className="px-6 py-6 border-b bg-zinc-50/50 dark:bg-zinc-900/50">
+                        <DialogTitle className="text-xl font-semibold text-foreground">Edit Unit</DialogTitle>
+                        <DialogDescription className="mt-1.5">
+                            Perbarui informasi unit ini.
+                        </DialogDescription>
+                    </div>
+
+                    <form onSubmit={handleUpdate} className="p-6 space-y-5">
                         <div className="space-y-2">
-                            <Label htmlFor="edit-nama">Nama Unit *</Label>
+                            <Label htmlFor="edit-nama" className="text-sm font-medium">Nama Unit</Label>
                             <Input
                                 id="edit-nama"
                                 value={editForm.data.nama}
                                 onChange={(e) => editForm.setData('nama', e.target.value)}
+                                className="h-10 focus-visible:ring-indigo-500"
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="edit-kategori">Kategori *</Label>
+                            <Label htmlFor="edit-kategori" className="text-sm font-medium">Kategori</Label>
                             <Select
                                 value={editForm.data.kategori}
                                 onValueChange={(value) => editForm.setData('kategori', value)}
                             >
-                                <SelectTrigger id="edit-kategori">
+                                <SelectTrigger id="edit-kategori" className="h-10 focus:ring-indigo-500">
                                     <SelectValue placeholder="Pilih Kategori" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -464,33 +513,39 @@ export default function Index({ jabatan, filters, currentParent, breadcrumbs }: 
                                     <SelectItem value="struktural">Struktural</SelectItem>
                                 </SelectContent>
                             </Select>
-                            {editForm.errors.kategori && (
-                                <p className="text-sm text-destructive">{editForm.errors.kategori}</p>
-                            )}
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="edit-parent">ID Induk (Opsional)</Label>
-                            <Input
-                                id="edit-parent"
-                                type="number"
-                                placeholder="ID Unit Induk"
-                                value={editForm.data.parent_id || ''}
-                                onChange={(e) => editForm.setData('parent_id', e.target.value ? parseInt(e.target.value) : null)}
+                            <Label htmlFor="edit-keterangan" className="text-sm font-medium">Keterangan</Label>
+                            <Textarea
+                                id="edit-keterangan"
+                                value={editForm.data.keterangan}
+                                onChange={(e) => editForm.setData('keterangan', e.target.value)}
+                                className="min-h-[80px] resize-none focus-visible:ring-indigo-500"
                             />
-                            <p className="text-xs text-muted-foreground">Biarkan kosong jika berada di root.</p>
                         </div>
 
+                        <div className="space-y-2 pt-2 border-t border-dashed">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="edit-active"
+                                    checked={editForm.data.is_active}
+                                    onCheckedChange={(checked) => editForm.setData('is_active', checked as boolean)}
+                                />
+                                <Label htmlFor="edit-active" className="cursor-pointer">Status Aktif</Label>
+                            </div>
+                        </div>
 
-
-
-
-                        <div className="flex gap-3 pt-4">
-                            <Button type="submit" disabled={editForm.processing}>
-                                {editForm.processing ? 'Menyimpan...' : 'Simpan Perubahan'}
-                            </Button>
-                            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                        <div className="flex justify-end gap-3 pt-2">
+                            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="h-10 px-4">
                                 Batal
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={editForm.processing}
+                                className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20"
+                            >
+                                {editForm.processing ? 'Menyimpan...' : 'Simpan Perubahan'}
                             </Button>
                         </div>
                     </form>

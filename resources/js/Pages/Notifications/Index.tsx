@@ -89,8 +89,8 @@ export default function Index({ notifications }: Props) {
                                 >
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-sm truncate text-foreground">{notification.data.subject}</p>
-                                            <p className="text-sm text-muted-foreground line-clamp-2">{notification.data.message}</p>
+                                            <p className="font-medium text-sm truncate text-foreground">{notification.data?.subject || 'Notifikasi'}</p>
+                                            <p className="text-sm text-muted-foreground line-clamp-2">{notification.data?.message || ''}</p>
                                             <p className="text-xs text-muted-foreground mt-1">{new Date(notification.created_at).toLocaleString()}</p>
                                         </div>
                                         {!notification.read_at && (

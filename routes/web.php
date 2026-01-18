@@ -64,8 +64,11 @@ Route::middleware(['auth'])->group(function () {
             Route::post('jenis-surat/{id}/workflow', [\App\Http\Controllers\JenisSuratController::class, 'updateWorkflow'])->name('jenis-surat.workflow.update');
 
             // Master Data Routes
+
+
             Route::prefix('master-data')->name('master-data.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\MasterDataController::class, 'index'])->name('index');
+
 
                 // Golongan
                 Route::post('/golongan', [\App\Http\Controllers\MasterDataController::class, 'storeGolongan'])->name('golongan.store');
@@ -87,6 +90,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Staff Mapping Routes
         Route::middleware(['role:admin|super-admin'])->group(function () {
+            Route::get('data-master', [\App\Http\Controllers\DataMaster\DataMasterController::class, 'index'])->name('data-master.index');
             Route::get('staff-mapping', [\App\Http\Controllers\StaffController::class, 'index'])->name('staff-mapping');
             Route::resource('staff', \App\Http\Controllers\StaffController::class)->except(['create', 'edit', 'show']);
             Route::put('staff/{staff}/toggle-status', [\App\Http\Controllers\StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
@@ -105,6 +109,7 @@ Route::middleware(['auth'])->group(function () {
         });
 
         // Mail Management Routes
+        Route::get('letters/next-number', [\App\Http\Controllers\LetterController::class, 'getNextNumber'])->name('letters.next-number');
         Route::get('list-surat', [\App\Http\Controllers\LetterController::class, 'index'])->name('letters.index');
         Route::get('starred-mails', [\App\Http\Controllers\LetterController::class, 'starred'])->name('letters.starred');
         Route::get('archived-mails', [\App\Http\Controllers\LetterController::class, 'archived'])->name('letters.archived');
@@ -119,12 +124,15 @@ Route::middleware(['auth'])->group(function () {
 
         // Messages
         Route::get('messages', [\App\Http\Controllers\ChatController::class, 'index'])->name('messages.index');
+        Route::get('/api/conversations', [\App\Http\Controllers\ChatController::class, 'listConversations'])->name('api.conversations.index');
         Route::get('messages/{conversation}', [\App\Http\Controllers\ChatController::class, 'show'])->name('messages.show');
         Route::get('/api/users/search', [\App\Http\Controllers\ChatController::class, 'searchUsers'])->name('api.users.search');
         Route::post('conversations', [\App\Http\Controllers\ChatController::class, 'storeConversation'])->name('conversations.store');
         Route::patch('conversations/{conversation}', [\App\Http\Controllers\ChatController::class, 'update'])->name('conversations.update');
         Route::post('messages/{conversation}', [\App\Http\Controllers\ChatController::class, 'store'])->name('messages.store');
         Route::post('messages/{conversation}/read', [\App\Http\Controllers\ChatController::class, 'markRead'])->name('messages.read');
+        Route::post('conversations/{conversation}/participants', [\App\Http\Controllers\ChatController::class, 'addParticipants'])->name('conversations.participants.add');
+        Route::delete('conversations/{conversation}/participants/{user}', [\App\Http\Controllers\ChatController::class, 'removeParticipant'])->name('conversations.participants.remove');
 
         Route::resource('letters', \App\Http\Controllers\LetterController::class)->except(['index', 'edit', 'create']);
 

@@ -17,7 +17,7 @@ import {
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { BreadcrumbItem, SharedData } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
-import { Bell, ChevronDown, LogOut, Menu, UserCog, Trash2, Mail, MessageSquare } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, UserCog, Trash2, Mail, MessageSquare, UserCheck, Clock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 
@@ -32,9 +32,33 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
     const notifications = auth.notifications || [];
 
     const [localNotifications, setLocalNotifications] = useState(notifications);
+    const [activeTab, setActiveTab] = useState<'surat' | 'pesan'>('surat');
+
     useEffect(() => {
         setLocalNotifications(notifications);
     }, [notifications]);
+
+    // Listener for when conversation is opened in ChatDrawer
+    useEffect(() => {
+        const handleConversationOpened = (event: CustomEvent) => {
+            const { conversationId } = event.detail;
+            setLocalNotifications(prev => prev.map((n: any) => {
+                // Check if notification belongs to this conversation
+                // Handle both structure formats (broadcast vs database) just in case
+                const nConvId = n.data?.conversation_id || n.conversation_id;
+
+                if (nConvId && parseInt(nConvId) === parseInt(conversationId) && (!n.read_at)) {
+                    return { ...n, read_at: new Date().toISOString() };
+                }
+                return n;
+            }));
+        };
+
+        window.addEventListener('conversation-opened' as any, handleConversationOpened as any);
+        return () => {
+            window.removeEventListener('conversation-opened' as any, handleConversationOpened as any);
+        };
+    }, []);
 
     useEffect(() => {
         if (user?.id) {
@@ -43,9 +67,21 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
 
             channel.notification((notification: any) => {
                 setLocalNotifications((prev: any[]) => {
+                    // Normalize broadcast notification to match database structure
+                    // Broadcast notifications have data at root, database has it in 'data' property
+                    const normalizedNotification = {
+                        id: notification.id,
+                        type: notification.type,
+                        // Wrap the flat broadcast data into 'data' object if it's missing
+                        data: notification.data || notification,
+                        created_at: notification.created_at || new Date().toISOString(),
+                        read_at: null,
+                        created_at_human: 'Baru saja'
+                    };
+
                     // Check if already exists to prevent duplicates (though typically new ID)
                     if (prev.find(n => n.id === notification.id)) return prev;
-                    return [notification, ...prev];
+                    return [normalizedNotification, ...prev];
                 });
             });
 
@@ -90,6 +126,22 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
         return 'Selamat Malam';
     };
 
+    const formatTimeAgo = (dateString: string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+        if (diffInSeconds < 60) return 'Baru saja';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} menit yang lalu`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} jam yang lalu`;
+        if (diffInSeconds < 172800) return 'Kemarin';
+
+        return new Intl.DateTimeFormat('id-ID', {
+            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        }).format(date);
+    };
+
     return (
         <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm border-b border-border flex items-center justify-between h-16 md:h-20 px-4 md:px-6 lg:px-8 shrink-0 z-50 fixed top-0 left-0 right-0 w-full transition-colors duration-200">
             <div className="flex items-center gap-2 md:gap-6">
@@ -100,8 +152,8 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                 )}
 
                 <div className="flex items-center gap-2 md:gap-4">
-                    <div className="bg-primary/10 p-2 rounded-lg hidden md:block">
-                        <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="BCN Logo" className="h-6 w-6 md:h-8 md:w-8 object-contain" />
+                    <div className="hidden md:block">
+                        <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="BCN Logo" className="h-10 w-10 md:h-14 md:w-14 object-contain" />
                     </div>
                     <div className="hidden sm:block">
                         <h1 className="text-lg md:text-2xl lg:text-3xl font-bold text-foreground">Badan Cadangan Nasional</h1>
@@ -119,40 +171,42 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
 
                 {/* Messages - Mobile */}
                 <div className="md:hidden">
-                    <Link href={route('messages.index')}>
+                    <div className="md:hidden">
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="icon"
-                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
+                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-[#AC0021]"
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-chat-drawer'))}
                         >
                             <MessageSquare className="h-5 w-5 md:h-6 md:w-6" />
                         </Button>
-                    </Link>
+                    </div>
                 </div>
                 {/* Messages - Desktop */}
                 <div className="hidden md:block">
-                    <Link href={route('messages.index')}>
+                    <div className="hidden md:block">
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="icon"
-                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
+                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-[#AC0021]"
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-chat-drawer'))}
                         >
                             <MessageSquare className="h-5 w-5 md:h-6 md:w-6" />
                         </Button>
-                    </Link>
+                    </div>
                 </div>
 
                 {/* Notifications */}
                 <div className="md:hidden">
                     <Link href={route('notifications.index')}>
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="icon"
-                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
+                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-[#AC0021]"
                         >
                             <Bell className="h-5 w-5 md:h-6 md:w-6" />
                             {localUnreadCount > 0 && (
-                                <Badge className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 flex items-center justify-center p-0 bg-red-600 text-white text-xs">
+                                <Badge className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 flex items-center justify-center p-0 bg-[#AC0021] text-white text-xs">
                                     {localUnreadCount > 9 ? '9+' : localUnreadCount}
                                 </Badge>
                             )}
@@ -162,140 +216,181 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                 <Popover>
                     <PopoverTrigger asChild className="hidden md:flex">
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="icon"
-                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-accent-foreground"
+                            className="relative h-10 w-10 md:h-12 md:w-12 text-foreground hover:bg-accent hover:text-[#AC0021]"
                         >
                             <Bell className="h-5 w-5 md:h-6 md:w-6" />
                             {localUnreadCount > 0 && (
-                                <Badge className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 flex items-center justify-center p-0 bg-red-600 text-white text-xs">
+                                <Badge className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 flex items-center justify-center p-0 bg-[#AC0021] text-white text-xs">
                                     {localUnreadCount > 9 ? '9+' : localUnreadCount}
                                 </Badge>
                             )}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-80 md:w-96 lg:w-[420px] bg-popover border-border text-popover-foreground" align="end">
-                        <div className="p-3 md:p-4 border-b border-border">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-semibold">Notifikasi</h3>
+                    <PopoverContent className="p-0 w-80 md:w-96 lg:w-[420px] bg-[#262626] border-neutral-800 text-neutral-200" align="end">
+                        <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+                            <h3 className="font-semibold text-white">Notifikasi</h3>
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={clearAllNotifications}
+                                    className="text-xs text-neutral-400 hover:text-white transition-colors"
+                                >
+                                    Tandai Dibaca
+                                </button>
                                 {localNotifications.length > 0 && (
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={clearAllNotifications}
-                                            className="text-xs h-7 text-muted-foreground hover:text-foreground hover:bg-accent"
-                                        >
-                                            Tandai Dibaca
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                                setLocalNotifications([]);
-                                                router.delete(route('notifications.delete-all'), { preserveScroll: true });
-                                            }}
-                                            className="text-xs h-7 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        >
-                                            Hapus Semua
-                                        </Button>
-                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setLocalNotifications([]);
+                                            router.delete(route('notifications.delete-all'), { preserveScroll: true });
+                                        }}
+                                        className="text-neutral-400 hover:text-red-500 transition-colors"
+                                        title="Hapus Semua"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
                                 )}
                             </div>
                         </div>
-                        <div className="overflow-y-auto max-h-80">
+
+
+
+                        {/* Category Tabs */}
+                        <div className="p-4 border-b border-neutral-800 grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => setActiveTab('surat')}
+                                className={`flex flex-col items-center justify-center gap-2 h-[84px] w-full p-2 rounded-2xl border transition-all duration-200 ${activeTab === 'surat'
+                                    ? 'bg-[#d04438]/10 border-[#d04438]/20 shadow-[0_0_15px_-3px_rgba(208,68,56,0.1)]'
+                                    : 'bg-neutral-800/40 border-transparent hover:bg-neutral-800 hover:border-neutral-700'
+                                    }`}
+                            >
+                                <div className={`p-2 rounded-full ${activeTab === 'surat' ? 'text-[#d04438]' : 'text-neutral-400'}`}>
+                                    <Mail className="h-6 w-6" />
+                                </div>
+                                <span className={`text-xs font-medium ${activeTab === 'surat' ? 'text-[#d04438]' : 'text-neutral-400'}`}>Surat</span>
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab('pesan')}
+                                className={`flex flex-col items-center justify-center gap-2 h-[84px] w-full p-2 rounded-2xl border transition-all duration-200 ${activeTab === 'pesan'
+                                    ? 'bg-[#659800]/10 border-[#659800]/20 shadow-[0_0_15px_-3px_rgba(101,152,0,0.1)]'
+                                    : 'bg-neutral-800/40 border-transparent hover:bg-neutral-800 hover:border-neutral-700'
+                                    }`}
+                            >
+                                <div className={`p-2 rounded-full ${activeTab === 'pesan' ? 'text-[#659800]' : 'text-neutral-400'}`}>
+                                    <MessageSquare className="h-6 w-6" />
+                                </div>
+                                <span className={`text-xs font-medium ${activeTab === 'pesan' ? 'text-[#659800]' : 'text-neutral-400'}`}>Pesan</span>
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto max-h-[400px]">
                             {localNotifications.length === 0 ? (
-                                <div className="p-4 text-center text-muted-foreground text-sm">
+                                <div className="p-8 text-center text-neutral-500 text-sm">
                                     Tidak ada notifikasi
                                 </div>
                             ) : (
-                                localNotifications.map((notification: any) => (
-                                    <div
-                                        key={notification.id}
-                                        className={`p-3 md:p-4 border-b border-border hover:bg-accent/50 transition-colors ${!notification.read_at ? 'bg-accent/20' : ''}`}
-                                    >
-                                        <div className="flex justify-between items-start gap-2">
-                                            <div
-                                                className="flex-1 min-w-0 cursor-pointer"
-                                                onClick={() => {
-                                                    // Determine effective URL: use data.url if available, else fallback
-                                                    const targetUrl = notification.data.url
-                                                        ? notification.data.url
-                                                        : (notification.data.type === 'message' ? route('messages.index') : route('notifications.index'));
+                                localNotifications
+                                    .filter((n: any) => {
+                                        const isMessage = n.data?.type === 'message' || n.type === 'message';
+                                        if (activeTab === 'pesan') return isMessage;
+                                        // Default or 'surat' -> show non-messages
+                                        return !isMessage;
+                                    })
+                                    .map((notification: any) => {
+                                        // Determine icon and color based on content
+                                        let Icon = Bell;
+                                        let iconColor = "text-[#007ee7]";
+                                        let dotColor = "bg-[#007ee7]";
+                                        const subject = notification.data?.subject || "";
+                                        const message = notification.data?.message || "";
 
-                                                    const visitUrl = () => router.visit(targetUrl);
+                                        if (subject.toLowerCase().includes('verifikasi') || message.toLowerCase().includes('verifikasi')) {
+                                            Icon = UserCheck;
+                                            iconColor = "text-[#007ee7]";
+                                            dotColor = "bg-[#007ee7]";
+                                        } else if (subject.toLowerCase().includes('surat') || message.toLowerCase().includes('surat')) {
+                                            Icon = Mail;
+                                            iconColor = "text-[#d04438]";
+                                            dotColor = "bg-[#d04438]";
+                                        } else if (subject.toLowerCase().includes('persetujuan') || message.toLowerCase().includes('persetujuan')) {
+                                            Icon = Clock;
+                                            iconColor = "text-[#007ee7]";
+                                            dotColor = "bg-[#007ee7]";
+                                        } else if (notification.data?.type === 'message' || notification.type === 'message') {
+                                            Icon = MessageSquare;
+                                            iconColor = "text-[#659800]";
+                                            dotColor = "bg-[#659800]";
+                                        }
+
+                                        return (
+                                            <div
+                                                key={notification.id}
+                                                className={`p-4 border-b border-neutral-800 hover:bg-white/5 transition-colors cursor-pointer group flex gap-4 ${!notification.read_at ? 'bg-white/[0.02]' : ''}`}
+                                                onClick={() => {
+                                                    const isMessage = notification.data?.type === 'message' || notification.type === 'message';
+
+                                                    const handleAction = () => {
+                                                        if (isMessage) {
+                                                            // For messages, open the chat drawer instead of navigating
+                                                            const conversationId = notification.data?.conversation_id || notification.conversation_id;
+                                                            window.dispatchEvent(new CustomEvent('open-chat-conversation', {
+                                                                detail: { conversationId }
+                                                            }));
+                                                        } else {
+                                                            // For other notifications, navigate to URL
+                                                            const targetUrl = notification.data?.url
+                                                                ? notification.data.url
+                                                                : route('notifications.index');
+                                                            router.visit(targetUrl);
+                                                        }
+                                                    };
 
                                                     if (!notification.read_at) {
-                                                        markAsRead(notification.id, visitUrl);
+                                                        markAsRead(notification.id, handleAction);
                                                     } else {
-                                                        visitUrl();
+                                                        handleAction();
                                                     }
                                                 }}
                                             >
-                                                <p className={`font-medium text-sm truncate text-foreground ${!notification.read_at ? 'font-bold' : ''}`}>
-                                                    {notification.data.type === 'message' ? notification.data.sender_name : notification.data.subject}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                                    {notification.data.type === 'message' ? notification.data.body : notification.data.message}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground mt-1">{new Date(notification.created_at).toLocaleString()}</p>
+                                                <div className="mt-1 flex-shrink-0">
+                                                    <Icon className={`h-5 w-5 ${iconColor}`} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-white truncate">
+                                                        {notification.data?.type === 'message' ? notification.data?.sender_name : notification.data?.subject}
+                                                    </p>
+                                                    <p className="text-sm text-neutral-400 line-clamp-2 mt-0.5">
+                                                        {notification.data?.type === 'message' ? notification.data?.body : notification.data?.message}
+                                                    </p>
+                                                    <p className="text-xs text-neutral-500 mt-2">
+                                                        {notification.created_at_human || formatTimeAgo(notification.created_at)}
+                                                    </p>
+                                                </div>
+                                                <div className="mt-2 flex-shrink-0">
+                                                    {!notification.read_at && (
+                                                        <div className={`w-2 h-2 rounded-full ${dotColor}`}></div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col items-center gap-2">
-                                                {!notification.read_at && (
-                                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                                                )}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        router.delete(route('notifications.destroy', notification.id), {
-                                                            preserveScroll: true,
-                                                        });
-                                                    }}
-                                                    className="text-muted-foreground hover:text-red-500 transition-colors"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
+                                        );
+                                    })
                             )}
-                        </div>
-                        <div className="p-2 border-t border-border text-center">
-                            <Link
-                                href={route('notifications.index')}
-                                className="text-sm text-primary hover:underline"
-                            >
-                                Lihat Semua Notifikasi
-                            </Link>
                         </div>
                     </PopoverContent>
                 </Popover>
 
                 {/* User greeting - enhanced for desktop */}
-                <div className="text-right text-foreground hidden lg:block xl:block">
-                    <p className="text-sm text-muted-foreground">{getGreeting()}</p>
-                    <p className="font-semibold text-lg xl:text-xl">{user.name}</p>
-                    <p className="text-xs xl:text-sm text-muted-foreground">
-                        {user.detail?.jabatan_role?.nama ? (
-                            user.detail?.jabatan?.nama ? `${user.detail.jabatan_role.nama} (${user.detail.jabatan.nama})` : user.detail.jabatan_role.nama
-                        ) : (
-                            user.detail?.jabatan?.nama ||
-                            (user.roles?.some((r: any) => r.name === 'super-admin') ? 'Super Admin' :
-                                user.roles?.some((r: any) => r.name === 'admin') ? 'Admin' : 'Staff')
-                        )}
-                    </p>
-                </div>
 
-                <div className="h-8 md:h-12 w-px bg-border hidden md:block"></div>
+                <div className="h-6 md:h-8 w-px bg-[#FEFCF8] hidden md:block"></div>
 
                 {/* Profile - Mobile: Link to profile page */}
                 <div className="md:hidden">
                     <Link href={route('profile.edit')}>
-                        <Button variant="ghost" className="relative text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl h-10 gap-2 px-2">
+                        <Button variant="ghost" className="group relative text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl h-10 gap-2 ">
                             <Avatar className="h-8 w-8 border-2 border-border">
                                 <AvatarImage src={user.avatar} alt={user.name} />
-                                <AvatarFallback className="bg-background text-foreground font-semibold text-xs">
+                                <AvatarFallback className="bg-transparent text-foreground group-hover:text-[#AC0021] font-semibold text-xs transition-colors duration-200">
                                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                                 </AvatarFallback>
                             </Avatar>
@@ -306,67 +401,69 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                 {/* Profile - Desktop: Dropdown Menu */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild className="hidden md:flex">
-                        <Button variant="ghost" className="relative text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl h-10 md:h-12 lg:h-14 gap-2 md:gap-3 px-2 md:px-4 lg:px-6">
+                        <Button variant="outline" className="group relative text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl h-10 md:h-12 lg:h-14 gap-2 md:gap-3 px-2 md:px-4 lg:px-6 ">
                             <Avatar className="h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 border-2 border-border">
                                 <AvatarImage src={user.avatar} alt={user.name} />
-                                <AvatarFallback className="bg-background text-foreground font-semibold text-xs md:text-sm lg:text-base">
+                                <AvatarFallback className="bg-transparent text-foreground group-hover:text-[#AC0021] font-semibold text-xs md:text-sm lg:text-base transition-colors duration-200">
                                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                                 </AvatarFallback>
                             </Avatar>
 
-                            <ChevronDown className="h-4 w-4 hidden md:block" />
+                            <ChevronDown className="h-4 w-4 hidden md:block group-hover:text-[#AC0021] transition-colors duration-200" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-80 md:w-96 bg-popover border-border text-popover-foreground p-0" align="end" forceMount>
-                        <DropdownMenuLabel className="font-normal p-4">
-                            <div className="flex items-center gap-3 mb-4">
-                                <Avatar className="h-12 w-12">
+                    <DropdownMenuContent className="w-80 md:w-96 bg-[#262626] border-neutral-800 text-white p-0 shadow-xl" align="end" forceMount>
+                        <DropdownMenuLabel className="font-normal p-5">
+                            <div className="flex items-center gap-4 mb-5">
+                                <Avatar className="h-14 w-14 border-2 border-[#AC0021]">
                                     <AvatarImage src={user.avatar} alt={user.name} />
-                                    <AvatarFallback className="bg-red-600 text-white font-bold">
+                                    <AvatarFallback className="bg-red-600 text-white font-bold text-lg">
                                         {user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-base font-bold leading-none truncate text-foreground">{user.name}</p>
-                                    <p className="text-sm leading-none text-muted-foreground mt-1 truncate">
+                                    <p className="text-lg font-bold leading-none truncate text-white">{user.name}</p>
+                                    <p className="text-sm leading-none text-neutral-400 mt-1.5 truncate">
                                         {user.detail?.nia_nrp ? `NRP: ${user.detail.nia_nrp}` : `NIP: ${user.nip_nik || '-'}`}
                                     </p>
-                                    <p className="text-sm leading-none text-muted-foreground mt-1 truncate">
+                                    <p className="text-sm leading-none text-neutral-400 mt-1 truncate">
                                         NIK: {user.detail?.nik || '-'}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="bg-accent/50 rounded-lg p-4 space-y-3 border border-border">
+                            <div className="bg-neutral-900/50 rounded-xl p-4 space-y-3 border border-neutral-800">
                                 <div>
-                                    <p className="text-xs text-muted-foreground mb-0.5">Email:</p>
-                                    <p className="text-sm font-semibold text-foreground truncate">{user.email}</p>
+                                    <p className="text-xs text-neutral-500 mb-0.5 uppercase tracking-wider font-medium">Email:</p>
+                                    <p className="text-sm font-medium text-neutral-200 truncate">{user.email}</p>
                                 </div>
+                                <div className="h-px bg-neutral-800/50"></div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground mb-0.5">Jabatan:</p>
-                                    <p className="text-sm font-semibold text-foreground truncate">{user.detail?.jabatan_role?.nama || '-'}</p>
+                                    <p className="text-xs text-neutral-500 mb-0.5 uppercase tracking-wider font-medium">Jabatan:</p>
+                                    <p className="text-sm font-medium text-neutral-200 truncate">{user.detail?.jabatan_role?.nama || '-'}</p>
                                 </div>
+                                <div className="h-px bg-neutral-800/50"></div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground mb-0.5">Unit Kerja:</p>
-                                    <p className="text-sm font-semibold text-foreground truncate">{user.detail?.jabatan?.nama || '-'}</p>
+                                    <p className="text-xs text-neutral-500 mb-0.5 uppercase tracking-wider font-medium">Unit Kerja:</p>
+                                    <p className="text-sm font-medium text-neutral-200 truncate">{user.detail?.jabatan?.nama || '-'}</p>
                                 </div>
 
                             </div>
                         </DropdownMenuLabel>
 
-                        <div className="p-2 space-y-1">
-                            <DropdownMenuItem asChild className="cursor-pointer focus:bg-accent focus:text-accent-foreground">
-                                <Link href={route('profile.edit')} className="w-full flex items-center py-2">
-                                    <UserCog className="mr-2 h-4 w-4" />
+                        <div className="p-2 space-y-1 border-t border-neutral-800">
+                            <DropdownMenuItem asChild className="cursor-pointer focus:bg-black/40 focus:text-white text-neutral-300 h-11 rounded-lg transition-colors duration-200">
+                                <Link href={route('profile.edit')} className="w-full flex items-center px-3">
+                                    <UserCog className="mr-3 h-4 w-4 text-neutral-400" />
                                     <span>Edit Profile</span>
                                 </Link>
                             </DropdownMenuItem>
 
-                            <DropdownMenuSeparator className="bg-border my-1" />
+                            {/* <DropdownMenuSeparator className="bg-neutral-800 my-1" /> */}
 
-                            <DropdownMenuItem asChild className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
-                                <Link href={route('logout')} method="post" as="button" className="w-full flex items-center py-2">
-                                    <LogOut className="mr-2 h-4 w-4" />
+                            <DropdownMenuItem asChild className="text-red-500 focus:text-red-400 focus:bg-red-950/30 cursor-pointer h-11 rounded-lg transition-colors duration-200">
+                                <Link href={route('logout')} method="post" as="button" className="w-full flex items-center px-3">
+                                    <LogOut className="mr-3 h-4 w-4" />
                                     <span>Keluar dari Sistem</span>
                                 </Link>
                             </DropdownMenuItem>
@@ -374,6 +471,6 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-        </header>
+        </header >
     );
 }

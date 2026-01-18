@@ -24,37 +24,161 @@ class DispositionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $stats = [
+            'total' => Disposition::where('recipient_id', Auth::id())->count(),
+            'pending' => Disposition::where('recipient_id', Auth::id())->where('status', 'pending')->count(),
+            'process' => Disposition::where('recipient_id', Auth::id())->where('status', 'read')->count(),
+            'completed' => Disposition::where('recipient_id', Auth::id())->where('status', 'completed')->count(),
+        ];
+
         return Inertia::render('Dispositions/Index', [
-            'dispositions' => $dispositions
+            'dispositions' => $dispositions,
+            'stats' => $stats
         ]);
     }
 
     public function store(Request $request, Letter $letter)
     {
         $validated = $request->validate([
-            'recipient_id' => 'required|exists:users,id',
+            'recipient_id' => 'required', // Can be user_id, unit_id (formatted as 'unit_ID'), mako_id, or region_id
+            'disposition_type' => 'nullable|in:personal,unit,wilayah,mako',
             'instruction' => 'required|string',
             'note' => 'nullable|string',
             'due_date' => 'nullable|date',
+            'priority' => 'nullable|in:urgent,normal,low',
+            'province_id' => 'nullable', // For Mako cascading
         ]);
+
+        $recipientId = $validated['recipient_id'];
+        $dispositionType = $validated['disposition_type'] ?? 'personal';
+
+        // Resolve Recipient ID if type is not personal
+        if ($dispositionType === 'unit') {
+            // recipient_id is Jabatan ID (Struktural)
+            // Find User holding this Jabatan
+             $user = \App\Models\User::whereHas('detail', function ($q) use ($recipientId) {
+                $q->where('jabatan_id', $recipientId);
+            })->first(); // TODO: If multiple, ideally pick active/main one.
+             
+            if ($user) $recipientId = $user->id;
+            else return redirect()->back()->withErrors(['recipient_id' => 'Pejabat untuk unit ini tidak ditemukan.']);
+
+        } elseif ($dispositionType === 'wilayah') {
+            // Recipient ID is Province ID
+            $user = \App\Models\User::whereHas('detail', function ($q) use ($recipientId) {
+                 $q->where('office_province_id', $recipientId); // Assuming we map to office_province
+            })->first();
+
+            if ($user) $recipientId = $user->id;
+             else return redirect()->back()->withErrors(['recipient_id' => 'Pejabat wilayah ini tidak ditemukan.']);
+
+        } elseif ($dispositionType === 'mako') {
+             // recipient_id is Mako ID
+             // User selected Province -> Mako
+             $user = \App\Models\User::whereHas('detail', function ($q) use ($recipientId) {
+                $q->where('mako_id', $recipientId);
+             })->first();
+
+             if ($user) $recipientId = $user->id;
+             else return redirect()->back()->withErrors(['recipient_id' => 'Pejabat Mako ini tidak ditemukan.']);
+        }
 
         Disposition::create([
             'letter_id' => $letter->id,
             'sender_id' => Auth::id(),
-            'recipient_id' => $validated['recipient_id'],
+            'recipient_id' => $recipientId,
             'instruction' => $validated['instruction'],
             'note' => $validated['note'],
             'due_date' => $validated['due_date'],
             'status' => 'pending',
+            'priority' => $validated['priority'] ?? 'normal',
         ]);
 
         return redirect()->back()->with('success', 'Disposisi berhasil dikirim.');
     }
 
-    public function getRecipients()
+    public function getRecipients(Request $request)
     {
-        // For now, return all users except current user
-        // In future, filter by subordinates or unit
+        $type = $request->query('type', 'personal');
+        $provinceCode = $request->query('province_code');
+
+        if ($type === 'province') {
+             $provinces = \Illuminate\Support\Facades\DB::table('indonesia_provinces')
+                ->select('id', 'code', 'name')
+                ->orderBy('name')
+                ->get()
+                ->map(function ($prov) {
+                    return [
+                        'id' => $prov->code, // Use Code for relations if needed
+                        'name' => $prov->name,
+                        'type' => 'province'
+                    ];
+                });
+            return response()->json($provinces);
+        }
+
+        if ($type === 'mako') {
+            // Use province_code to filter Makos if provided
+            $query = \App\Models\Mako::select('id', 'name', 'code', 'province_code')->orderBy('name');
+            
+            if ($provinceCode) {
+                $query->where('province_code', $provinceCode);
+            }
+
+            $makos = $query->get()->map(function ($mako) {
+                return [
+                    'id' => $mako->id,
+                    'name' => $mako->name,
+                    'jabatan' => $mako->code,
+                    'type' => 'mako'
+                ];
+            });
+            return response()->json($makos);
+        }
+
+        if ($type === 'unit') {
+            // List Structural Jabatans under current user
+            $currentUserJabatanId = Auth::user()->detail?->jabatan_id;
+
+            if (!$currentUserJabatanId) {
+                return response()->json([]);
+            }
+
+            $units = \App\Models\Jabatan::where('kategori', 'struktural')
+                ->where('parent_id', $currentUserJabatanId)
+                ->with('parent')
+                ->orderBy('level')
+                ->orderBy('nama')
+                ->get()
+                ->map(function ($jabatan) {
+                    return [
+                        'id' => $jabatan->id,
+                        'name' => $jabatan->nama,
+                        'jabatan' => 'Unit Bawahan', // Context info
+                        'type' => 'unit'
+                    ];
+                });
+            return response()->json($units);
+        } 
+        
+        if ($type === 'wilayah') {
+             // List Provinces for Wilayah selection
+             $provinces = \Illuminate\Support\Facades\DB::table('indonesia_provinces')
+                ->select('id', 'code', 'name')
+                ->orderBy('name')
+                ->get()
+                ->map(function ($prov) {
+                    return [
+                        'id' => $prov->code, 
+                        'name' => $prov->name,
+                        'jabatan' => 'Provinsi',
+                        'type' => 'wilayah'
+                    ];
+                });
+            return response()->json($provinces);
+        }
+
+        // Default: Personal (Users)
         $users = \App\Models\User::where('id', '!=', Auth::id())
             ->with('detail.jabatan')
             ->orderBy('name')
@@ -64,11 +188,13 @@ class DispositionController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'jabatan' => $user->detail?->jabatan?->nama ?? 'Staff',
+                    'type' => 'personal'
                 ];
             });
 
         return response()->json($users);
     }
+
     public function updateStatus(Request $request, Disposition $disposition)
     {
         $validated = $request->validate([

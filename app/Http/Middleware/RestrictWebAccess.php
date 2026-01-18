@@ -20,6 +20,11 @@ class RestrictWebAccess
             return $next($request);
         }
 
+        // Check for Capacitor App header
+        if ($request->header('X-Capacitor-App')) {
+            return $next($request);
+        }
+
         // Allow API requests (typically for the mobile app or strict API calls)
         if ($request->expectsJson() && !$request->header('X-Inertia')) {
             return $next($request);
@@ -40,7 +45,8 @@ class RestrictWebAccess
 
         // IF it IS a mobile device AND NOT an App, redirect to download page
         if ($isMobile && !$isApp) {
-            return redirect()->route('download-app');
+            // return redirect()->route('download-app');
+            // DISABLED BY USER REQUEST
         }
 
         // Otherwise (Desktop, or Mobile in Desktop Mode), allow access

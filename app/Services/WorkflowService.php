@@ -124,10 +124,8 @@ class WorkflowService
 
         LetterApprover::create([
             'letter_id' => $letter->id,
-            'approver_id' => $userId ?? $approver_id, // User ID if found, else Jabatan ID (if system supports it, otherwise might need fixing)
-                                                      // Note: LetterApprover usually expects user_id. 
-                                                      // If logic requires valid user, we might need to handle 'vacant' positions.
-                                                      // For now assuming system handles user_id.
+            'user_id' => $userId, // FIXED: User ID goes to user_id field
+            'approver_id' => (string) $jabatan->id, // FIXED: Jabatan ID goes to approver_id field
             'approver_name' => $staff ? $staff->user->name : $jabatan->nama, // Fallback name
             'order' => $order,
             'status' => ($userId && $userId == $letter->created_by) ? 'approved' : 'pending',

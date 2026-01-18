@@ -11,16 +11,17 @@ interface Props {
     filters?: {
         search?: string;
     };
+    pendingCount?: number;
 }
 
-export default function Index({ staff, jabatan, filters }: Props) {
+export default function Index({ staff, jabatan, filters, pendingCount }: Props) {
     const [activeTab, setActiveTab] = useState<'staff-list' | 'roles'>('staff-list');
     const { auth } = usePage().props as any;
     const isSuperAdmin = auth.user.roles.some((r: any) => r.name === 'super-admin');
 
     const tabs = [
         { id: 'staff-list' as const, label: 'Staff List', icon: Users, show: true, href: route('staff-mapping') },
-        { id: 'verification-queue' as const, label: 'Verification Queue', icon: Shield, show: true, href: route('verification-queue.index') },
+        { id: 'verification-queue' as const, label: 'Antrian', icon: Shield, show: true, href: route('verification-queue.index') },
     ].filter(tab => tab.show);
 
     return (
@@ -28,43 +29,7 @@ export default function Index({ staff, jabatan, filters }: Props) {
             <Head title="Mapping Staff" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
-                {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold">Mapping Staff</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Kelola tim dan mapping staff di bawah Anda
-                    </p>
-                </div>
 
-                {/* Tab Navigation */}
-                <div className="border-b border-border">
-                    <nav className="-mb-px flex gap-5">
-                        {tabs.map((tab) => {
-                            const Icon = tab.icon;
-                            const isActive = activeTab === tab.id;
-
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => {
-                                        if (tab.href) {
-                                            router.get(tab.href);
-                                        } else {
-                                            setActiveTab(tab.id as any);
-                                        }
-                                    }}
-                                    className={`${isActive
-                                        ? 'border-primary text-primary border-b-2'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                                        } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200`}
-                                >
-                                    <Icon className="h-4 w-4" />
-                                    {tab.label}
-                                </button>
-                            );
-                        })}
-                    </nav>
-                </div>
 
                 {/* Tab Content */}
                 <div>
@@ -73,6 +38,7 @@ export default function Index({ staff, jabatan, filters }: Props) {
                             staff={staff}
                             jabatan={jabatan}
                             filters={filters}
+                            pendingCount={pendingCount}
                         />
                     )}
                 </div>

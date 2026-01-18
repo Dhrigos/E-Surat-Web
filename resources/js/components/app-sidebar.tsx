@@ -1,12 +1,13 @@
 import { NavMain } from '@/components/nav-main';
+import { resolveUrl } from '@/lib/utils';
 import {
     Sidebar,
     SidebarContent,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
-import { Activity, FileText, Home, List, Mail, Users, Share2, Star, Archive, MoreHorizontal, MapPin } from 'lucide-react';
+import { Link, usePage, router } from '@inertiajs/react';
+import { Activity, FileText, Home, List, Mail, Users, Share2, Star, Archive, MoreHorizontal, MapPin, Inbox, Clock, Send, CheckCircle, SquarePen, LogOut } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,17 +19,45 @@ export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const user = auth.user;
 
+    const suratItems = [
+        {
+            title: 'Buat Surat',
+            href: '/buat-surat',
+            icon: SquarePen,
+        },
+        {
+            title: 'Inbox',
+            href: '/list-surat?tab=inbox',
+            icon: Inbox,
+        },
+        {
+            title: 'Approval',
+            href: '/list-surat?tab=approvals',
+            icon: Clock,
+        },
+        {
+            title: 'Sent',
+            href: '/list-surat?tab=sent',
+            icon: Send,
+        },
+        {
+            title: 'Approved',
+            href: '/list-surat?tab=approved',
+            icon: CheckCircle,
+        },
+    ];
+
     const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
             href: dashboard(),
             icon: Home,
         },
-
         {
             title: 'Surat',
-            href: '/list-surat',
+            href: '#',
             icon: Mail,
+            items: suratItems,
         },
         {
             title: 'Pesan Berbintang',
@@ -54,19 +83,7 @@ export function AppSidebar() {
 
     const isSuperAdmin = user?.roles?.some((role: any) => role.name === 'super-admin');
 
-    if (isSuperAdmin) {
-        mainNavItems.push({
-            title: 'Data Master',
-            href: '#',
-            icon: Users,
-            items: [
-                { title: 'Unit', href: '/jabatan', icon: FileText },
-                { title: 'Jabatan', href: '/jabatan-roles', icon: Users },
-                { title: 'Jenis Surat', href: '/jenis-surat', icon: FileText },
-                { title: 'Golongan & Pangkat', href: '/master-data', icon: FileText },
-            ]
-        });
-    }
+
 
 
     const hasManagerRole = user.roles?.some((role: any) => ['admin', 'super-admin'].includes(role.name));
@@ -75,6 +92,11 @@ export function AppSidebar() {
         mainNavItems.push({
             title: 'Mapping Staff',
             href: '/staff-mapping',
+            icon: Users,
+        });
+        mainNavItems.push({
+            title: 'Data Master',
+            href: '/data-master',
             icon: Users,
         });
         mainNavItems.push({
@@ -95,7 +117,7 @@ export function AppSidebar() {
 
     return (
         <>
-            <Sidebar collapsible="icon" className="hidden md:flex top-16 md:top-20 h-[calc(100svh-4rem)] md:h-[calc(100svh-5rem)] fixed left-0 z-40 bg-sidebar border-r border-sidebar-border">
+            <Sidebar collapsible="icon" className="hidden md:flex top-16 md:top-20 h-[calc(100svh-4rem)] md:h-[calc(100svh-5rem)] fixed left-0 z-40 bg-sidebar border-r border-neutral-800 shadow-sm">
                 <div className="flex items-center gap-3 p-4 border-b border-sidebar-border md:hidden">
                     <div className="bg-sidebar-accent p-2 rounded-lg">
                         <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="BCN Logo" className="h-6 w-6 object-contain" />
@@ -110,17 +132,24 @@ export function AppSidebar() {
                 </SidebarContent>
             </Sidebar>
 
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-sidebar-border z-50 flex justify-around items-center h-16 px-2 pb-safe bg-white dark:bg-sidebar">
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-sidebar-border dark:border-white/10 z-50 flex justify-around items-center h-16 px-2 pb-safe bg-white dark:bg-sidebar">
                 {/* Primary Items */}
-                {mainNavItems.filter(item => ['Dashboard', 'Surat', 'Pesan Berbintang', 'Arsip'].includes(item.title)).map((item) => {
+                {[
+                    mainNavItems.find(i => i.title === 'Dashboard'),
+                    ...suratItems.filter(i => ['Inbox', 'Approval', 'Sent'].includes(i.title)),
+                    mainNavItems.find(i => i.title === 'Arsip')
+                ].filter(Boolean).map((item) => {
+                    if (!item) return null;
                     const Icon = item.icon;
-                    const targetHref = item.href as string;
+                    const targetHref = resolveUrl(item.href || '');
                     const currentUrl = usePage().url;
 
+                    // Improved isActive logic for query params
                     const isActive =
                         currentUrl === targetHref ||
-                        (targetHref !== '/' && currentUrl.startsWith(targetHref)) ||
-                        (item.title === 'Surat' && (currentUrl.startsWith('/list-surat') || currentUrl.startsWith('/buat-surat')));
+                        (targetHref !== '/' && !targetHref.includes('?') && currentUrl.startsWith(targetHref)) ||
+                        (item.title === 'Inbox' && currentUrl === '/list-surat') ||
+                        (targetHref.includes('?') && currentUrl.includes(targetHref.substring(targetHref.indexOf('?'))));
 
                     return (
                         <Link
@@ -128,7 +157,7 @@ export function AppSidebar() {
                             href={targetHref}
                             className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${isActive
                                 ? 'text-red-600'
-                                : 'text-muted-foreground hover:text-foreground'
+                                : 'text-muted-foreground hover:text-[#ac0021]'
                                 }`}
                         >
                             {Icon && <Icon className="h-5 w-5" />}
@@ -140,7 +169,7 @@ export function AppSidebar() {
                 {/* Lain-lain Dropdown */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <button className="flex flex-col items-center justify-center w-full h-full space-y-1 text-muted-foreground hover:text-foreground transition-colors">
+                        <button className="flex flex-col items-center justify-center w-full h-full space-y-1 text-muted-foreground hover:text-[#ac0021] transition-colors">
                             <MoreHorizontal className="h-5 w-5" />
                             <span className="text-[10px] font-medium">Lain-lain</span>
                         </button>
@@ -157,6 +186,13 @@ export function AppSidebar() {
                                 </DropdownMenuItem>
                             );
                         })}
+                        <DropdownMenuItem
+                            onClick={() => router.post(route('logout'))}
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                        >
+                            <LogOut className="h-4 w-4 mr-2" />
+                            <span>Logout</span>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

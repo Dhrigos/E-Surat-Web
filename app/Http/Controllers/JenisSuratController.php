@@ -48,7 +48,7 @@ class JenisSuratController extends Controller
 
         LetterType::create($validated);
 
-        return redirect()->route('jenis-surat.index')
+        return redirect()->route('data-master.index', ['tab' => 'templates'])
             ->with('success', 'Jenis Surat berhasil ditambahkan.');
     }
 
@@ -67,7 +67,7 @@ class JenisSuratController extends Controller
 
         $letterType->update($validated);
 
-        return redirect()->route('jenis-surat.index')
+        return redirect()->route('data-master.index', ['tab' => 'templates'])
             ->with('success', 'Jenis Surat berhasil diperbarui.');
     }
 
@@ -85,7 +85,7 @@ class JenisSuratController extends Controller
 
         $letterType->delete();
 
-        return redirect()->route('jenis-surat.index')
+        return redirect()->route('data-master.index', ['tab' => 'templates'])
             ->with('success', 'Jenis Surat berhasil dihapus.');
     }
 

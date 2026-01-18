@@ -7,13 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Send, X, FileText, Check, ArrowRight, ChevronDown, ArrowLeft, ZoomIn, ZoomOut, GitMerge, Plus, XCircle } from 'lucide-react';
+import { Upload, Send, X, FileText, Check, ArrowRight, ChevronDown, ArrowLeft, ZoomIn, ZoomOut, GitMerge, Plus, XCircle, PenTool } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from "@/lib/utils"
 import axios from 'axios';
+import RichTextEditor from '@/components/RichTextEditor';
 
 interface User {
     id: number;
@@ -21,6 +22,10 @@ interface User {
     username: string;
     rank?: string;
     unit?: string;
+    nip?: string;
+    staff?: {
+        nia_nrp?: string;
+    };
     position_name?: string;
     signature_url?: string | null;
 }
@@ -46,7 +51,9 @@ interface WorkflowStep {
         name: string;
         rank?: string;
         unit?: string;
+        nip?: string;
         staff?: {
+            nia_nrp?: string;
             jabatan?: {
                 nama: string;
             }
@@ -92,7 +99,27 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
         reference_letter_id: referenceLetter?.id || null, // Track reference ID
         workflow_steps: [] as WorkflowStep[],
         custom_approvers: {} as Record<string, string>,
+        place: 'Jakarta',
     });
+
+    useEffect(() => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                try {
+                    const { latitude, longitude } = position.coords;
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                    const data = await response.json();
+                    // Priority: city -> town -> village -> county -> 'Jakarta'
+                    const city = data.address.city || data.address.town || data.address.village || data.address.county || 'Jakarta';
+                    setData('place', city);
+                } catch (error) {
+                    console.error("Error fetching location:", error);
+                }
+            }, (error) => {
+                console.error("Geolocation error:", error);
+            });
+        }
+    }, []);
 
     const [query, setQuery] = useState(referenceLetter ? `${referenceLetter.sender.name} - ${referenceLetter.sender.username}` : '');
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -101,11 +128,12 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
 
     const [customApprovers, setCustomApprovers] = useState<Record<string, string>>({}); // step_id -> user_id
     const [customApproverNames, setCustomApproverNames] = useState<Record<string, string>>({}); // step_id -> user_name
-    const [customApproverDetails, setCustomApproverDetails] = useState<Record<string, { rank?: string, unit?: string, position_name?: string, signature_url?: string | null }>>({}); // step_id -> { rank, unit, position_name, signature_url }
+    const [customApproverDetails, setCustomApproverDetails] = useState<Record<string, { rank?: string, unit?: string, position_name?: string, signature_url?: string | null, nip?: string }>>({}); // step_id -> { rank, unit, position_name, signature_url, nip }
     const [openStepId, setOpenStepId] = useState<number | null>(null);
     const [stepUsers, setStepUsers] = useState<User[]>([]);
     const [loadingStepUsers, setLoadingStepUsers] = useState(false);
     const [step, setStep] = useState(1); // 1: Form, 2: Preview & Signature
+    const [sequenceNumber, setSequenceNumber] = useState<number | null>(null);
 
     // Drag and Drop State
     const [signaturePositions, setSignaturePositions] = useState<Record<number, { x: number, y: number }>>({});
@@ -127,6 +155,13 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                 setStructuralJabatanList(response.data);
             })
             .catch(error => console.error("Failed to fetch structural jabatan", error));
+
+        // Fetch next sequence number
+        axios.get(route('letters.next-number'))
+            .then(response => {
+                setSequenceNumber(response.data.sequence_number);
+            })
+            .catch(error => console.error("Failed to fetch next number", error));
     }, []);
 
     // Fetch Users when Manual Jabatan changes
@@ -346,17 +381,20 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
 
     // --- Mouse Drag Handlers ---
     const handleDragStart = (e: React.DragEvent, id: number, type: 'sidebar' | 'preview') => {
+        let offsetX: number;
+        let offsetY: number;
+
         if (type === 'preview') {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setDraggedItem({
-                id,
-                type,
-                offsetX: e.clientX - rect.left,
-                offsetY: e.clientY - rect.top
-            });
+            const rect = (e.target as HTMLElement).getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
         } else {
-            setDraggedItem({ id, type, offsetX: 75, offsetY: 40 }); // Center offset for sidebar items
+            // New Reduced Standard: 150x80 box
+            offsetX = 75;
+            offsetY = 40;
         }
+
+        setDraggedItem({ id, type, offsetX, offsetY });
         e.dataTransfer.effectAllowed = 'move';
     };
 
@@ -370,26 +408,35 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
         if (!draggedItem) return;
 
         const containerRect = e.currentTarget.getBoundingClientRect();
-        let x = e.clientX - containerRect.left;
-        let y = e.clientY - containerRect.top;
+
+        // Calculate Top-Left Position
+        let targetX = e.clientX - containerRect.left;
+        let targetY = e.clientY - containerRect.top;
 
         if (draggedItem.offsetX !== undefined && draggedItem.offsetY !== undefined) {
-            x -= draggedItem.offsetX;
-            y -= draggedItem.offsetY;
+            targetX -= draggedItem.offsetX;
+            targetY -= draggedItem.offsetY;
         }
 
         // Convert to percentage
-        // Convert to percentage
-        const xPercent = (x / containerRect.width) * 100;
-        const yPercent = (y / containerRect.height) * 100;
+        const xPercent = (targetX / containerRect.width) * 100;
+        const yPercent = (targetY / containerRect.height) * 100;
 
-        // Find step details to store with position
-        const step = workflowSteps.find(s => s.id === draggedItem.id);
-        let metadata = {};
-        if (step) {
-            const name = (step.approver_type === 'user' ? step.approver_user?.name : null) || (customApproverNames[step.id] || step.current_holder?.name || step.approver_jabatan?.nama);
-            const jabatan = step.approver_jabatan?.nama || step.approver_user?.staff?.jabatan?.nama || 'Pejabat';
-            metadata = { name, jabatan };
+        // Find the specific workflow step for this signature
+        const workflowStep = workflowSteps.find(s => s.id === draggedItem.id);
+        let metadata: { name?: string; jabatan?: string; unit?: string; rank?: string; nip?: string } = {};
+
+        if (workflowStep) {
+            const name = (workflowStep.approver_type === 'user' ? workflowStep.approver_user?.name : null) || (customApproverNames[workflowStep.id] || workflowStep.current_holder?.name || workflowStep.approver_jabatan?.nama);
+            const jabatan = workflowStep.approver_jabatan?.nama || workflowStep.approver_user?.staff?.jabatan?.nama || 'Pejabat';
+            const details = customApproverDetails[workflowStep.id] || {};
+            metadata = {
+                name,
+                jabatan,
+                unit: details.unit || workflowStep.approver_user?.unit || '',
+                rank: details.rank || workflowStep.approver_user?.rank || '',
+                nip: details.nip || workflowStep.approver_user?.nip || workflowStep.approver_user?.staff?.nia_nrp || ''
+            };
         }
 
         setSignaturePositions(prev => ({
@@ -427,17 +474,6 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
         if (!draggedItem) return;
 
         const touch = e.changedTouches[0];
-        // We need to find the drop target (preview area) manually since touchend happens on the dragged element
-        // But here we can check if the touch point is within the preview container
-        // We need a ref to the preview container. Let's assume we can get it or pass it.
-        // For now, let's use document.elementFromPoint or similar, OR better:
-        // Since we are in the parent component, we can check if the touch is inside the preview area bounds.
-        // However, we don't have the preview container ref easily accessible here without adding one.
-        // Let's add a ref to the preview container.
-
-        // Actually, let's just use the logic: if we are dragging, we assume we want to drop on the preview if it's there.
-        // But we need the rect of the preview container.
-        // Let's add an ID to the preview container and get it.
         const previewContainer = document.getElementById('preview-container');
 
         if (previewContainer) {
@@ -448,24 +484,31 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                 touch.clientY >= containerRect.top &&
                 touch.clientY <= containerRect.bottom
             ) {
-                let x = touch.clientX - containerRect.left;
-                let y = touch.clientY - containerRect.top;
+                // Calculate Top-Left Position
+                let targetX = touch.clientX - containerRect.left;
+                let targetY = touch.clientY - containerRect.top;
 
-                if (draggedItem && draggedItem.offsetX !== undefined && draggedItem.offsetY !== undefined) {
-                    x -= draggedItem.offsetX;
-                    y -= draggedItem.offsetY;
+                if (draggedItem.offsetX !== undefined && draggedItem.offsetY !== undefined) {
+                    targetX -= draggedItem.offsetX;
+                    targetY -= draggedItem.offsetY;
                 }
 
-                const xPercent = (x / containerRect.width) * 100;
-                const yPercent = (y / containerRect.height) * 100;
+                const xPercent = (targetX / containerRect.width) * 100;
+                const yPercent = (targetY / containerRect.height) * 100;
 
                 // Find step details to store with position
-                const step = workflowSteps.find(s => s.id === draggedItem.id);
-                let metadata = {};
-                if (step) {
-                    const name = (step.approver_type === 'user' ? step.approver_user?.name : null) || (customApproverNames[step.id] || step.current_holder?.name || step.approver_jabatan?.nama);
-                    const jabatan = step.approver_jabatan?.nama || step.approver_user?.staff?.jabatan?.nama || 'Pejabat';
-                    metadata = { name, jabatan };
+                const workflowStep = workflowSteps.find(s => s.id === draggedItem.id);
+                let metadata: { name?: string; jabatan?: string; unit?: string; rank?: string; nip?: string } = {};
+                if (workflowStep) {
+                    const name = (workflowStep.approver_type === 'user' ? workflowStep.approver_user?.name : null) || (customApproverNames[workflowStep.id] || workflowStep.current_holder?.name || workflowStep.approver_jabatan?.nama);
+                    const jabatan = workflowStep.approver_jabatan?.nama || workflowStep.approver_user?.staff?.jabatan?.nama || 'Pejabat';
+                    const details = customApproverDetails[workflowStep.id] || {};
+                    metadata = {
+                        name,
+                        jabatan,
+                        unit: details.unit || workflowStep.approver_user?.unit || '',
+                        rank: details.rank || workflowStep.approver_user?.rank || ''
+                    };
                 }
 
                 setSignaturePositions(prev => ({
@@ -694,49 +737,57 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
             { title: 'Buat Surat', href: '/buat-surat' },
         ]}>
             <Head title="Buat Surat" />
-            <div className="p-4 md:p-6 space-y-6">
+            <div className="p-4 md:p-6 space-y-6 w-full">
                 {/* Stepper UI */}
-                <div className="w-full max-w-4xl mx-auto mb-8">
-                    <div className="flex items-center justify-between w-full mb-4 px-4">
+                {/* New Stepper UI */}
+                <div className="w-full mb-8 bg-[#262626] rounded-2xl p-6 border border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
+                    {/* Header */}
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="h-12 w-12 rounded-xl bg-[#AC0021]/20 flex items-center justify-center border border-[#AC0021]/30">
+                            <FileText className="h-6 w-6 text-[#AC0021]" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-white">Buat Surat Baru</h1>
+                            <p className="text-zinc-400 text-sm">Lengkapi formulir dan tambahkan tanda tangan Anda</p>
+                        </div>
+                    </div>
+
+                    {/* Stepper Steps */}
+                    <div className="flex items-center justify-between">
                         {/* Step 1 */}
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-3">
                             <div className={cn(
-                                "flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm transition-colors duration-300",
-                                step >= 1 ? "bg-red-600 text-white" : "bg-muted text-muted-foreground"
+                                "flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm transition-all duration-300",
+                                step === 2 ? "bg-[#659800] text-white" : "bg-[#AC0021] text-white"
                             )}>
-                                1
+                                {step === 2 ? <Check className="h-4 w-4" /> : "1"}
                             </div>
-                            <span className={cn(
-                                "ml-3 font-medium text-sm transition-colors duration-300",
-                                step >= 1 ? "text-foreground" : "text-muted-foreground"
-                            )}>
-                                Informasi Surat
-                            </span>
+                            <span className="font-medium text-white text-sm">Informasi</span>
+                        </div>
+
+                        {/* Connection Line */}
+                        <div className="flex-1 h-[2px] bg-zinc-800 mx-4 relative rounded-full overflow-hidden">
+                            <div
+                                className={cn(
+                                    "absolute left-0 top-0 h-full bg-[#007ee7] transition-all duration-500 ease-in-out"
+                                )}
+                                style={{ width: step === 2 ? '100%' : '0%' }}
+                            />
                         </div>
 
                         {/* Step 2 */}
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-3">
                             <div className={cn(
-                                "flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm transition-colors duration-300",
-                                step >= 2 ? "bg-red-600 text-white" : "bg-muted text-muted-foreground"
+                                "flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm transition-all duration-300",
+                                step === 2 ? "bg-[#AC0021] text-white" : "bg-zinc-700 text-zinc-400"
                             )}>
                                 2
                             </div>
                             <span className={cn(
-                                "ml-3 font-medium text-sm transition-colors duration-300",
-                                step >= 2 ? "text-foreground" : "text-muted-foreground"
-                            )}>
-                                Preview & Tanda Tangan
-                            </span>
+                                "font-medium text-sm transition-colors duration-300",
+                                step === 2 ? "text-white" : "text-zinc-400"
+                            )}>Preview & Tanda Tangan</span>
                         </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-red-600 transition-all duration-500 ease-in-out"
-                            style={{ width: step === 1 ? '50%' : '100%' }}
-                        ></div>
                     </div>
                 </div>
 
@@ -758,7 +809,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                     </div>
                 )}
 
-                <Card>
+                <Card className="bg-[#262626] shadow-[0_8px_30px_rgb(0,0,0,0.5)] border-zinc-800">
                     <CardHeader>
                         <CardTitle>{step === 1 ? 'Form Buat Surat' : 'Preview & Penempatan Tanda Tangan'}</CardTitle>
                         <CardDescription>
@@ -769,6 +820,50 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {step === 1 && (
                                 <>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Jenis Surat (Letter Type) - Determines Workflow */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="letter_type_id">Jenis Surat <span className="text-red-500">*</span></Label>
+                                            <Select
+                                                value={data.letter_type_id}
+                                                onValueChange={(value) => setData('letter_type_id', value)}
+                                            >
+                                                <SelectTrigger className={cn(errors.letter_type_id && "border-destructive", "bg-[#18181b] border-zinc-700 focus:ring-1 focus:ring-[#AC0021] focus:border-[#AC0021]")}>
+                                                    <SelectValue placeholder="Pilih jenis surat (Wajib)" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {/* Removed 'No Approval' option */}
+                                                    {letterTypes.map((type) => (
+                                                        <SelectItem key={type.id} value={type.id.toString()}>
+                                                            {type.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {errors.letter_type_id && <p className="text-sm text-destructive">{errors.letter_type_id}</p>}
+                                        </div>
+
+                                        {/* Kategori */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="category">Kategori</Label>
+                                            <Select
+                                                value={data.category}
+                                                onValueChange={(value) => setData('category', value)}
+                                            >
+                                                <SelectTrigger className="bg-[#18181b] border-zinc-700 focus:ring-1 focus:ring-[#AC0021] focus:border-[#AC0021]">
+                                                    <SelectValue placeholder="Pilih kategori" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="internal">Internal</SelectItem>
+                                                    <SelectItem value="external">Eksternal</SelectItem>
+                                                    <SelectItem value="report">Laporan</SelectItem>
+                                                    <SelectItem value="finance">Keuangan</SelectItem>
+                                                    <SelectItem value="hr">SDM</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
                                     {/* Perihal */}
                                     <div className="space-y-2">
                                         <Label htmlFor="subject">Perihal Surat <span className="text-red-500">*</span></Label>
@@ -778,6 +873,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                             value={data.subject}
                                             onChange={(e) => setData('subject', e.target.value)}
                                             required
+                                            className="bg-[#18181b] border-zinc-700 focus-visible:ring-1 focus-visible:ring-[#AC0021] focus-visible:border-[#AC0021]"
                                         />
                                         {errors.subject && <p className="text-sm text-destructive">{errors.subject}</p>}
                                     </div>
@@ -794,7 +890,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                     onChange={handleInputChange}
                                                     onFocus={() => setShowSuggestions(true)}
                                                     autoComplete="off"
-                                                    className={cn(errors.recipient && "border-destructive")}
+                                                    className={cn(errors.recipient && "border-destructive", "bg-[#18181b] border-zinc-700 focus-visible:ring-1 focus-visible:ring-[#AC0021] focus-visible:border-[#AC0021]")}
                                                 />
                                                 {showSuggestions && query && filteredUsers.length > 0 && (
                                                     <div className="absolute z-10 w-full mt-1 bg-popover border rounded-md shadow-md max-h-60 overflow-auto">
@@ -828,7 +924,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                 value={data.priority}
                                                 onValueChange={(value) => setData('priority', value)}
                                             >
-                                                <SelectTrigger>
+                                                <SelectTrigger className="bg-[#18181b] border-zinc-700 focus:ring-1 focus:ring-[#AC0021] focus:border-[#AC0021]">
                                                     <SelectValue placeholder="Pilih prioritas" />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -838,50 +934,6 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                     <SelectItem value="urgent">Mendesak</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Kategori */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="category">Kategori</Label>
-                                            <Select
-                                                value={data.category}
-                                                onValueChange={(value) => setData('category', value)}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Pilih kategori" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="internal">Internal</SelectItem>
-                                                    <SelectItem value="external">Eksternal</SelectItem>
-                                                    <SelectItem value="report">Laporan</SelectItem>
-                                                    <SelectItem value="finance">Keuangan</SelectItem>
-                                                    <SelectItem value="hr">SDM</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        {/* Jenis Surat (Letter Type) - Determines Workflow */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="letter_type_id">Jenis Surat <span className="text-red-500">*</span></Label>
-                                            <Select
-                                                value={data.letter_type_id}
-                                                onValueChange={(value) => setData('letter_type_id', value)}
-                                            >
-                                                <SelectTrigger className={cn(errors.letter_type_id && "border-destructive")}>
-                                                    <SelectValue placeholder="Pilih jenis surat (Wajib)" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {/* Removed 'No Approval' option */}
-                                                    {letterTypes.map((type) => (
-                                                        <SelectItem key={type.id} value={type.id.toString()}>
-                                                            {type.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {errors.letter_type_id && <p className="text-sm text-destructive">{errors.letter_type_id}</p>}
                                         </div>
                                     </div>
 
@@ -906,7 +958,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                         <div className="text-sm text-muted-foreground">Memuat user...</div>
                                                     ) : usersByJabatanList.length > 0 ? (
                                                         <Select value={manualWorkflowUser} onValueChange={setManualWorkflowUser}>
-                                                            <SelectTrigger>
+                                                            <SelectTrigger className="bg-[#18181b] border-zinc-700 focus:ring-1 focus:ring-[#AC0021] focus:border-[#AC0021]">
                                                                 <SelectValue placeholder="Pilih User..." />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -1196,12 +1248,9 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                     {/* Isi Surat */}
                                     <div className="space-y-2">
                                         <Label htmlFor="content">Isi Surat</Label>
-                                        <Textarea
-                                            id="content"
-                                            placeholder="Tulis isi surat di sini..."
-                                            rows={15}
+                                        <RichTextEditor
                                             value={data.content}
-                                            onChange={(e) => setData('content', e.target.value)}
+                                            onChange={(html) => setData('content', html)}
                                         />
                                     </div>
 
@@ -1276,13 +1325,22 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                         <div
                                             className="fixed z-50 pointer-events-none opacity-80"
                                             style={{
-                                                left: ghostPosition.x - (draggedItem.offsetX || 0),
-                                                top: ghostPosition.y - (draggedItem.offsetY || 0),
+                                                left: ghostPosition.x - (draggedItem.offsetX || 75),
+                                                top: ghostPosition.y - (draggedItem.offsetY || 40),
                                                 width: '150px'
                                             }}
                                         >
-                                            <div className="p-2 border-2 border-dashed border-blue-500 bg-blue-50/50 rounded text-center bg-white">
-                                                <p className="text-xs font-semibold uppercase text-black">Signature</p>
+                                            <div className="p-2 border-2 border-dashed border-blue-500 bg-blue-50/50 rounded text-center bg-white flex flex-col items-center">
+                                                <div className="min-h-[2.5rem] flex items-center justify-center">
+                                                    <p className="text-[10px] font-bold uppercase text-black leading-tight">
+                                                        {(() => {
+                                                            const step = workflowSteps.find(s => s.id === draggedItem.id);
+                                                            return (step?.approver_type === 'user' ? step.approver_user?.name : null) ||
+                                                                (customApproverNames[draggedItem.id] || step?.current_holder?.name || step?.approver_jabatan?.nama || 'Signature');
+                                                        })()}
+                                                    </p>
+                                                </div>
+                                                <div className="h-10 w-full border border-zinc-200 border-dashed my-1 flex items-center justify-center text-[10px] text-zinc-400">SIGNATURE</div>
                                             </div>
                                         </div>
                                     )}
@@ -1295,21 +1353,38 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
 
                                                 <div
                                                     id="preview-container"
-                                                    className="bg-white text-black p-8 shadow-sm border min-h-[800px] relative w-[210mm] transition-all duration-200"
-                                                    style={{ zoom: zoom } as React.CSSProperties}
+                                                    className="bg-white text-black shadow-2xl relative transition-transform origin-top mx-auto"
+                                                    style={{
+                                                        width: '210mm',
+                                                        minHeight: '297mm', // A4 height
+                                                        transform: `scale(${zoom})`,
+                                                        padding: '2.5cm 2.5cm 2.5cm 2.5cm',
+                                                        boxSizing: 'border-box'
+                                                    }}
                                                     onDragOver={handleDragOver}
                                                     onDrop={handleDrop}
                                                 >
                                                     {/* Header */}
-                                                    <div className="text-center mb-8 relative">
-                                                        <div className="border-b-4 border-black pb-4 mb-4">
-                                                            <h3 className="text-lg font-bold uppercase tracking-wide">PEMERINTAH KABUPATEN CONTOH</h3>
-                                                            <h2 className="text-2xl font-bold uppercase tracking-wider mb-1">DINAS KOMUNIKASI DAN INFORMATIKA</h2>
-                                                            <p className="text-sm font-medium">Jalan Jenderal Sudirman No. 123, Kota Contoh, 12345</p>
-                                                            <p className="text-sm font-medium">Telepon: (021) 1234567 | Email: info@dinas.contoh.go.id</p>
+                                                    <div className="text-center mb-4 relative">
+                                                        <div className="border-b-[3px] border-black pb-1 mb-2 relative min-h-[100px] flex flex-col justify-center">
+                                                            <div className="absolute left-10 top-[44%] -translate-y-1/2 h-24 w-24">
+                                                                <img
+                                                                    src="/images/BADAN-CADANGAN-NASIONAL.png"
+                                                                    alt="Logo"
+                                                                    className="w-full h-full object-contain"
+                                                                />
+                                                            </div>
+                                                            <div className="w-full pl-32 pr-4 space-y-0.5">
+                                                                <h3 className="text-md font-bold uppercase tracking-[0.1em] font-serif">KEMENTERIAN PERTAHANAN RI</h3>
+                                                                <h1 className="text-xl font-black uppercase tracking-[0.1em] font-serif leading-tight whitespace-nowrap">BADAN CADANGAN NASIONAL</h1>
+                                                                <p className="text-sm font-serif text-black">Jalan Medan Merdeka Barat No. 13-14, Jakarta Pusat, 10110</p>
+                                                                <p className="text-xs font-serif italic text-zinc-500">Website: www.kemhan.go.id Email: ppid@kemhan.go.id</p>
+                                                            </div>
                                                         </div>
 
-                                                        <h2 className="text-xl font-bold uppercase underline decoration-2 underline-offset-4 mb-6">SURAT DINAS</h2>
+                                                        <h2 className="text-xl font-bold uppercase underline decoration-2 underline-offset-4 mb-6">
+                                                            {letterTypes.find(t => t.id.toString() === data.letter_type_id)?.name || 'SURAT DINAS'}
+                                                        </h2>
 
                                                         <div className="flex justify-between items-start text-sm mb-4">
                                                             <div className="text-left">
@@ -1319,25 +1394,30 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                                             <td className="pr-2">Nomor</td>
                                                                             <td className="pr-2">:</td>
                                                                             <td>
-                                                                                SK/
                                                                                 {letterTypes.find(t => t.id.toString() === data.letter_type_id)?.code || '...'}
                                                                                 /
-                                                                                {String(new Date().getDate()).padStart(2, '0')}{String(new Date().getMonth() + 1).padStart(2, '0')}{new Date().getFullYear()}
-                                                                                /...
+                                                                                {sequenceNumber ? String(sequenceNumber).padStart(3, '0') : '...'}
+                                                                                /
+                                                                                {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][new Date().getMonth()]}
+                                                                                /
+                                                                                {new Date().getFullYear()}
+                                                                                /BACADNAS
                                                                             </td>
                                                                         </tr>
                                                                         <tr>
-                                                                            <td className="pr-2">Sifat</td>
+                                                                            <td className="pr-2">Klasifikasi</td>
                                                                             <td className="pr-2">:</td>
                                                                             <td className="uppercase">{data.priority}</td>
                                                                         </tr>
-                                                                        {data.attachments.length > 0 && (
-                                                                            <tr>
-                                                                                <td className="pr-2">Lampiran</td>
-                                                                                <td className="pr-2">:</td>
-                                                                                <td>{data.attachments.length} Berkas</td>
-                                                                            </tr>
-                                                                        )}
+                                                                        <tr>
+                                                                            <td className="pr-2">Lampiran</td>
+                                                                            <td className="pr-2">:</td>
+                                                                            <td>
+                                                                                {data.attachments.length > 0
+                                                                                    ? `${data.attachments.length} Berkas`
+                                                                                    : '-'}
+                                                                            </td>
+                                                                        </tr>
                                                                         <tr>
                                                                             <td className="pr-2">Perihal</td>
                                                                             <td className="pr-2">:</td>
@@ -1347,7 +1427,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                                 </table>
                                                             </div>
                                                             <div className="text-right">
-                                                                <p>Jakarta, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                                                <p>{data.place}, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1367,36 +1447,36 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                                         return (
                                                             <div
                                                                 key={stepId}
-                                                                className="absolute cursor-move border-2 border-dashed border-blue-500 bg-blue-50/50 p-2 rounded text-center min-w-[150px] touch-none"
+                                                                className="absolute cursor-move border-2 border-dashed border-blue-500 bg-blue-50/50 p-2 rounded text-center w-[150px] min-h-[110px] flex flex-col items-center justify-start touch-none"
                                                                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                                                                 draggable
                                                                 onDragStart={(e) => handleDragStart(e, parseInt(stepId), 'preview')}
                                                                 onTouchStart={(e) => handleTouchStart(e, parseInt(stepId), 'preview')}
                                                             >
-                                                                <p className="text-xs font-semibold uppercase">{customApproverDetails[parseInt(stepId)]?.position_name || jabatan}</p>
-                                                                {(step.approver_type === 'user' && step.approver_user?.unit) || (customApproverDetails[step.id]?.unit) ? (
-                                                                    <p className="text-[10px] font-semibold uppercase">{step.approver_user?.unit || customApproverDetails[step.id]?.unit}</p>
-                                                                ) : null}
+                                                                <div className="min-h-[3.5rem] flex flex-col items-center justify-center mb-1">
+                                                                    <p className="text-[10px] font-bold uppercase leading-tight line-clamp-2">{customApproverDetails[parseInt(stepId)]?.position_name || jabatan}</p>
+                                                                    <p className="text-[9px] font-semibold uppercase text-zinc-500 line-clamp-1">
+                                                                        {customApproverDetails[parseInt(stepId)]?.unit || step.approver_user?.unit || ''}
+                                                                    </p>
+                                                                </div>
 
-                                                                <div className="h-16 flex items-center justify-center my-1">
+                                                                <div className="h-10 flex items-center justify-center my-0.5">
                                                                     {customApproverDetails[parseInt(stepId)]?.signature_url ? (
                                                                         <img
                                                                             src={customApproverDetails[parseInt(stepId)]?.signature_url!}
                                                                             alt="Signature"
-                                                                            className="max-h-full max-w-full object-contain"
+                                                                            className="max-h-full max-w-full object-contain mix-blend-multiply"
                                                                             draggable={false}
                                                                         />
                                                                     ) : (
-                                                                        <div className="h-full w-full flex items-center justify-center border border-dashed border-gray-300 rounded bg-gray-50 text-[10px] text-gray-400">
-                                                                            No Signature
-                                                                        </div>
+                                                                        <div className="text-[10px] text-blue-400 italic font-serif">Signature Here</div>
                                                                     )}
                                                                 </div>
-
-                                                                <p className="text-xs font-bold underline">{name}</p>
-                                                                {(step.approver_type === 'user' && step.approver_user?.rank) || (customApproverDetails[step.id]?.rank) ? (
-                                                                    <p className="text-[10px]">{step.approver_user?.rank || customApproverDetails[step.id]?.rank}</p>
-                                                                ) : null}
+                                                                <div className="flex flex-col items-center w-full">
+                                                                    <p className="text-xs font-bold text-black underline underline-offset-2 w-full truncate px-1">{name}</p>
+                                                                    <p className="text-[9px] text-zinc-800 font-medium truncate w-full px-1 mt-0.5">{customApproverDetails[parseInt(stepId)]?.rank || step.approver_user?.rank || '-'}</p>
+                                                                    <p className="text-[9px] text-zinc-600 truncate w-full px-1">NIP. {customApproverDetails[parseInt(stepId)]?.nip || step.approver_user?.nip || step.approver_user?.staff?.nia_nrp || '-'}</p>
+                                                                </div>
                                                             </div>
                                                         );
                                                     })}
@@ -1423,7 +1503,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                     {/* Right: Sidebar */}
                                     <div className="space-y-6">
                                         {/* Zoom Controls */}
-                                        <Card className="bg-muted/30">
+                                        <Card className="bg-[#262626] border border-[#007ee7]/30 shadow-[0_0_15px_rgba(0,126,231,0.1)] hover:shadow-[0_0_20px_rgba(0,126,231,0.3)] hover:border-[#007ee7]/60 transition-all duration-300 rounded-xl">
                                             <CardContent className="p-3 flex items-center justify-between">
                                                 <span className="text-sm font-medium">Zoom Preview</span>
                                                 <div className="flex items-center gap-2">
@@ -1454,7 +1534,7 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                             </CardContent>
                                         </Card>
 
-                                        <Card className="bg-muted/30">
+                                        <Card className="bg-[#262626] border border-[#007ee7]/30 shadow-[0_0_15px_rgba(0,126,231,0.1)] hover:shadow-[0_0_20px_rgba(0,126,231,0.3)] hover:border-[#007ee7]/60 transition-all duration-300 rounded-xl">
                                             <CardHeader className="pb-3">
                                                 <CardTitle className="text-base">Tanda Tangan Tersedia</CardTitle>
                                             </CardHeader>
@@ -1495,25 +1575,32 @@ export default function CreateSurat({ users = [], letterTypes = [], referenceLet
                                             </CardContent>
                                         </Card>
 
-                                        <Card className="bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
-                                            <CardHeader className="pb-3">
-                                                <CardTitle className="text-base text-blue-700 dark:text-blue-400">Petunjuk Penempatan</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="text-sm text-blue-600 dark:text-blue-300 space-y-2">
-                                                <ul className="list-disc pl-4 space-y-1">
-                                                    <li>Drag & drop nama penanda tangan dari list di atas ke area surat.</li>
-                                                    <li>Geser posisi tanda tangan di area surat sesuai keinginan.</li>
-                                                    <li>Pastikan posisi tidak menutupi teks penting.</li>
-                                                </ul>
-                                            </CardContent>
-                                        </Card>
+                                        <div className="bg-[#262626] border border-[#007ee7]/30 shadow-[0_0_15px_rgba(0,126,231,0.1)] hover:shadow-[0_0_20px_rgba(0,126,231,0.3)] hover:border-[#007ee7]/60 transition-all duration-300 rounded-xl p-5">
+                                            <div className="flex gap-4">
+                                                <div className="h-10 w-10 rounded-full bg-[#007ee7]/20 flex items-center justify-center shrink-0 border border-[#007ee7]/30">
+                                                    <PenTool className="h-5 w-5 text-[#007ee7]" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <h4 className="font-bold text-[#FEFCF8] text-base">Tanda Tangan Anda</h4>
+                                                    <ul className="text-sm text-[#FEFCF8] space-y-1.5 list-disc pl-4 marker:text-[#007ee7]">
+                                                        <li>Tanda tangan diambil dari profile Anda</li>
+                                                        <li>Drag & drop tanda tangan untuk mengatur posisi</li>
+                                                        <li>Pastikan posisi tidak menutupi teks penting</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         <div className="flex flex-col gap-3 pt-4">
-                                            <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
-                                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                                Kembali ke Form
+                                            <Button
+                                                type="button"
+                                                className="w-full h-11 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-600 hover:border-zinc-500 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl flex items-center justify-center group"
+                                                onClick={() => setStep(1)}
+                                            >
+                                                <ArrowLeft className="h-4 w-4 mr-2 text-zinc-400 group-hover:text-white transition-colors duration-300 group-hover:-translate-x-1" />
+                                                <span className="font-medium tracking-wide">Kembali ke Form</span>
                                             </Button>
-                                            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={processing}>
+                                            <Button type="submit" className="w-full bg-[#AC0021] hover:bg-[#AC0021]/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl h-11" disabled={processing}>
                                                 <Send className="h-4 w-4 mr-2" />
                                                 {processing ? 'Mengirim...' : 'Kirim Surat'}
                                             </Button>

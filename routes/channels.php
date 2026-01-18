@@ -30,3 +30,12 @@ Broadcast::channel('location.online', function ($user) {
         'avatar' => $user->avatar,
     ];
 });
+
+// Chat online presence channel
+Broadcast::channel('chat.online', function ($user) {
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'avatar' => $user->avatar,
+    ];
+});

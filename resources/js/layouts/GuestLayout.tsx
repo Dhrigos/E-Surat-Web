@@ -9,24 +9,24 @@ interface GuestLayoutProps {
 
 export default function GuestLayout({ children, title, hideHeader = false }: GuestLayoutProps) {
     // Assets
-    const tniPhoto = "/images/BEGROUND.png";
+    const tniPhoto = "/images/Background_final.png";
 
     return (
-        <div className="min-h-screen bg-black relative overflow-hidden font-sans flex flex-col">
+        <div className="fixed inset-0 bg-black overflow-hidden font-sans flex flex-col overscroll-none">
             <Head title={title} />
 
             {/* Background Image with Dark Overlay */}
-            <div className="absolute inset-0">
+            <div className="fixed inset-0 z-0 pointer-events-none">
                 <img
                     src={tniPhoto}
                     alt="Background"
-                    className="w-full h-full object-cover opacity-50"
+                    className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.3),rgba(0,0,0,95))]" />
             </div>
 
             {/* Content Wrapper */}
-            <div className="relative z-10 flex-1 flex flex-col">
+            <div className="relative z-10 flex-1 flex flex-col overflow-y-auto">
 
                 {/* Header Section - Institutional Branding Removed */}
 

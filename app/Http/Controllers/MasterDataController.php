@@ -20,20 +20,20 @@ class MasterDataController extends Controller
     {
         $request->validate(['nama' => 'required|string|max:255|unique:golongans,nama']);
         \App\Models\Golongan::create($request->all());
-        return redirect()->back()->with('success', 'Golongan berhasil ditambahkan');
+        return redirect()->route('data-master.index', ['tab' => 'ranks'])->with('success', 'Golongan berhasil ditambahkan');
     }
 
     public function updateGolongan(Request $request, $id)
     {
         $request->validate(['nama' => 'required|string|max:255|unique:golongans,nama,'.$id]);
         \App\Models\Golongan::findOrFail($id)->update($request->all());
-        return redirect()->back()->with('success', 'Golongan berhasil diperbarui');
+        return redirect()->route('data-master.index', ['tab' => 'ranks'])->with('success', 'Golongan berhasil diperbarui');
     }
 
     public function destroyGolongan($id)
     {
         \App\Models\Golongan::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Golongan berhasil dihapus');
+        return redirect()->route('data-master.index', ['tab' => 'ranks'])->with('success', 'Golongan berhasil dihapus');
     }
 
     public function storePangkat(Request $request)
@@ -43,7 +43,7 @@ class MasterDataController extends Controller
             'golongan_id' => 'nullable|exists:golongans,id'
         ]);
         \App\Models\Pangkat::create($request->all());
-        return redirect()->back()->with('success', 'Pangkat berhasil ditambahkan');
+        return redirect()->route('data-master.index', ['tab' => 'ranks'])->with('success', 'Pangkat berhasil ditambahkan');
     }
 
     public function updatePangkat(Request $request, $id)
@@ -53,13 +53,13 @@ class MasterDataController extends Controller
             'golongan_id' => 'nullable|exists:golongans,id'
         ]);
         \App\Models\Pangkat::findOrFail($id)->update($request->all());
-        return redirect()->back()->with('success', 'Pangkat berhasil diperbarui');
+        return redirect()->route('data-master.index', ['tab' => 'ranks'])->with('success', 'Pangkat berhasil diperbarui');
     }
 
     public function destroyPangkat($id)
     {
         \App\Models\Pangkat::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Pangkat berhasil dihapus');
+        return redirect()->route('data-master.index', ['tab' => 'ranks'])->with('success', 'Pangkat berhasil dihapus');
     }
 
     public function getLetterTypes()
@@ -95,15 +95,20 @@ class MasterDataController extends Controller
         $users = \App\Models\User::whereHas('staff', function ($q) use ($jabatanId) {
             $q->where('jabatan_id', $jabatanId)
                 ->where('status', 'active');
-        })->with(['detail.pangkat', 'staff.jabatan.parent'])->get()
+        })->with(['detail.pangkat', 'staff.jabatan.parent', 'detail.jabatanRole'])->get()
           ->map(function ($user) {
+              // Fix: Add Role Name to Position Name
+              $roleName = $user->detail?->jabatanRole?->nama;
+              $unitName = $user->staff?->jabatan?->nama;
+              $positionName = $roleName ? "$roleName $unitName" : $unitName;
+
               return [
                   'id' => $user->id,
                   'name' => $user->name,
                   'username' => $user->username,
                   'rank' => $user->detail?->pangkat?->nama,
                   'unit' => $user->staff?->jabatan?->parent?->nama,
-                  'position_name' => $user->staff?->jabatan?->nama,
+                  'position_name' => $positionName, // Updated
                   'signature_url' => $user->detail?->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($user->detail->tanda_tangan) : null,
               ];
           });
@@ -150,23 +155,22 @@ class MasterDataController extends Controller
             if (!$userJabatan) {
                  return response()->json(['message' => 'User ini belum memiliki Jabatan (Cek data Staff/Detail).'], 404);
             }
-            if (!$userJabatan->parent) {
-                 return response()->json(['message' => 'Jabatan user ini adalah level tertinggi (tidak memiliki atasan).'], 404);
-            }
 
+            // Default Parent is the Unit's Parent
             $parentJabatan = $userJabatan->parent;
         }
 
-        if (!$parentJabatan) {
-             // Fallback
-             return response()->json(['message' => 'Superior not found (Unknown Error).'], 404);
+        if (!$parentJabatan && $jabatanId) {
+             // If we searched by Jabatan ID and no parent found, we returned early.
+             // If we searched by User ID and default parent is null, it means we are at top unit.
+             // But we might still need to check "Same Unit Head" logic below if I am just a staff in top unit.
         }
 
         \Illuminate\Support\Facades\Log::info('getSuperior Debug:', [
             'request_user' => $userId,
             'request_jabatan' => $jabatanId,
-            'resolved_parent_id' => $parentJabatan->id,
-            'resolved_parent_name' => $parentJabatan->nama
+            'resolved_parent_id' => $parentJabatan?->id,
+            'resolved_parent_name' => $parentJabatan?->nama
         ]);
 
         // Check for direct manager linkage first (Highest priority override)
@@ -179,8 +183,10 @@ class MasterDataController extends Controller
                 $managerHasJabatan = $manager->staff?->jabatan || $manager->detail?->jabatanRole;
                 
                 if ($manager && $managerHasJabatan) {
+                     $positionName = ($manager->detail?->jabatanRole?->nama ? ($manager->detail->jabatanRole->nama . ' ' . $manager->staff?->jabatan?->nama) : $manager->staff?->jabatan?->nama);
+
                      return response()->json([
-                        'jabatan' => $manager->staff?->jabatan ?? $parentJabatan, // Use manager's jabata or fallback
+                        'jabatan' => $manager->staff?->jabatan ?? $parentJabatan, 
                         'users' => [
                             [
                                 'id' => $manager->id,
@@ -188,7 +194,7 @@ class MasterDataController extends Controller
                                 'username' => $manager->username,
                                 'rank' => $manager->detail?->pangkat?->nama,
                                 'unit' => $manager->staff?->jabatan?->parent?->nama,
-                                'position_name' => $manager->staff?->jabatan?->nama,
+                                'position_name' => $positionName,
                                 'role_level' => $manager->detail?->jabatanRole?->level,
                                 'signature_url' => $manager->detail?->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($manager->detail->tanda_tangan) : null,
                             ]
@@ -204,61 +210,86 @@ class MasterDataController extends Controller
         // 2. Who is the highest level role in THIS unit?
         // 3. Is the user the highest level?
         
-        $targetJabatan = $parentJabatan; // Default to parent (legacy behavior)
+        $targetJabatan = $parentJabatan;
         
         if ($userId) {
              // Retrieve re-fresh user with roles
-             $currentUser = \App\Models\User::with(['detail.jabatanRole', 'staff.jabatan'])->find($userId);
-             $myJabatanId = $currentUser->staff?->jabatan_id;
+             // FIX: Use detail.jabatan_id instead of staff.jabatan_id
+             $currentUser = \App\Models\User::with(['detail.jabatanRole', 'detail.jabatan'])->find($userId);
+             $myJabatanId = $currentUser->detail?->jabatan_id;
              $myLevel = $currentUser->detail?->jabatanRole?->level ?? 999;
 
              if ($myJabatanId) {
                   // Find the minimum level (highest rank) in THIS unit
-                  // Check BOTH staff and detail to ensure we find "Direktur" or "Ketua"
-                  $minLevelInUnit = \App\Models\User::where(function($query) use ($myJabatanId) {
-                        $query->whereHas('staff', function($q) use ($myJabatanId) {
-                            $q->where('jabatan_id', $myJabatanId)->where('status', 'active');
-                        })->orWhereHas('detail', function($q) use ($myJabatanId) {
+                  // FIX: Query user_details.jabatan_id instead of staff.jabatan_id
+                  $minLevelInUnit = \App\Models\User::whereHas('detail', function($q) use ($myJabatanId) {
                             $q->where('jabatan_id', $myJabatanId);
-                        });
-                  })->join('user_details', 'users.id', '=', 'user_details.user_id')
-                    ->join('jabatan_roles', 'user_details.jabatan_role_id', '=', 'jabatan_roles.id')
-                    ->min('jabatan_roles.level');
+                      })
+                      ->join('user_details', 'users.id', '=', 'user_details.user_id')
+                      ->join('jabatan_roles', 'user_details.jabatan_role_id', '=', 'jabatan_roles.id')
+                      ->min('jabatan_roles.level');
+
+                  \Log::info("DEBUG SUPERIOR: Unit Check", [
+                      'my_jabatan_id' => $myJabatanId,
+                      'my_level' => $myLevel,
+                      'min_level_in_unit' => $minLevelInUnit
+                  ]);
 
                   // If I am NOT the highest in my unit (myLevel > minLevelInUnit), 
                   // then my superior is the person in MY unit with minLevel.
                   if (!is_null($minLevelInUnit) && $myLevel > $minLevelInUnit) {
-                       $targetJabatan = $currentUser->staff->jabatan; // Stay in same unit
-                       // We will filter by minLevel later, which effectively picks the "Ketua"
-                       
-                       // Override parentJabatan variable for subsequent query
+                       $targetJabatan = $currentUser->detail->jabatan; // Stay in same unit
+                       // Override parentJabatan variable for subsequent query to target THIS unit
                        $parentJabatan = $targetJabatan; 
                        \Log::info("DEBUG SUPERIOR: Switching target to Same Unit: {$targetJabatan->nama} (ID: {$targetJabatan->id})");
                   } else {
-                       \Log::info("DEBUG SUPERIOR: Keeping target as Parent Unit: {$targetJabatan->nama} (ID: {$targetJabatan->id})");
+                       \Log::info("DEBUG SUPERIOR: Staying with Parent Unit: " . ($targetJabatan?->nama ?? 'None'));
                   }
-                  // Else: I am the highest (Ketua), so $parentJabatan (my unit's parent) remains the target.
              }
         }
 
+        if (!$targetJabatan) {
+             return response()->json(['message' => 'Jabatan atasan tidak ditemukan (Mungkin anda sudah di level tertinggi).'], 404);
+        }
+
         // Find users holding the TARGET jabatan (either my unit's head OR parent unit's head)
-        $potentialSuperiors = \App\Models\User::where(function($query) use ($parentJabatan) {
-            $query->whereHas('staff', function ($q) use ($parentJabatan) {
-                $q->where('jabatan_id', $parentJabatan->id)
-                  ->where('status', 'active');
-            })->orWhereHas('detail', function ($q) use ($parentJabatan) {
-                $q->where('jabatan_id', $parentJabatan->id);
-            });
-        })->with(['detail.jabatanRole', 'staff.jabatan.parent'])->get();
+        // We need to look for users who are active in this Jabatan
+        // FIX: Query user_details.jabatan_id instead of staff.jabatan_id
+        $potentialSuperiors = \App\Models\User::whereHas('detail', function ($q) use ($targetJabatan) {
+                $q->where('jabatan_id', $targetJabatan->id);
+            })
+            // Exclude users pending verification (same logic as StaffController)
+            ->where(function ($q) {
+                $q->where('verifikasi', true)
+                  ->orWhereNotNull('rejection_reason');
+            })
+            ->with(['detail.jabatanRole', 'staff.jabatan.parent', 'detail.pangkat', 'detail.jabatan'])
+            ->get();
+
+        \Log::info("DEBUG SUPERIOR: Potential Superiors Found", [
+            'target_jabatan_id' => $targetJabatan->id,
+            'target_jabatan_nama' => $targetJabatan->nama,
+            'count_before_filter' => $potentialSuperiors->count(),
+            'users' => $potentialSuperiors->map(fn($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'has_role' => !is_null($u->detail?->jabatanRole),
+                'role_level' => $u->detail?->jabatanRole?->level ?? 'null',
+                'staff_status' => $u->staff?->status
+            ])
+        ]);
 
         // Calculate Min Level (Highest Rank) available in this set
         $minLevel = $potentialSuperiors->map(function ($u) {
-            // Get role from detail (or staff if we had role there)
-            // Assuming JabatanRole is linked to UserDetail via jabatan_role_id
             return $u->detail?->jabatanRole?->level ?? 999;
         })->min();
 
-        // If no one has a role assigned, fallback to returning all
+        \Log::info("DEBUG SUPERIOR: Min Level Calculation", [
+            'min_level' => $minLevel,
+            'will_filter' => $minLevel !== null && $minLevel !== 999
+        ]);
+
+        // If no one has a role assigned, fallback to returning all (shouldn't happen ideally)
         if ($minLevel === null || $minLevel === 999) {
              $filteredSuperiors = $potentialSuperiors;
         } else {
@@ -268,14 +299,24 @@ class MasterDataController extends Controller
              });
         }
 
+        \Log::info("DEBUG SUPERIOR: After Filtering", [
+            'count_after_filter' => $filteredSuperiors->count(),
+            'filtered_users' => $filteredSuperiors->map(fn($u) => $u->name)
+        ]);
+
         $superiors = $filteredSuperiors->values()->map(function ($user) {
+              // Fix: Add Role Name to Position Name
+              $roleName = $user->detail?->jabatanRole?->nama;
+              $unitName = $user->staff?->jabatan?->nama;
+              $positionName = $roleName ? "$roleName $unitName" : $unitName;
+
               return [
                   'id' => $user->id,
                   'name' => $user->name,
                   'username' => $user->username,
                   'rank' => $user->detail?->pangkat?->nama,
                   'unit' => $user->staff?->jabatan?->parent?->nama,
-                  'position_name' => $user->staff?->jabatan?->nama,
+                  'position_name' => $positionName, // Updated
                   'role_level' => $user->detail?->jabatanRole?->level,
                   'signature_url' => $user->detail?->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($user->detail->tanda_tangan) : null,
               ];
@@ -287,7 +328,7 @@ class MasterDataController extends Controller
         ]);
 
         return response()->json([
-            'jabatan' => $parentJabatan,
+            'jabatan' => $targetJabatan,
             'users' => $superiors
         ]);
     }

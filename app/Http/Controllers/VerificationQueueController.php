@@ -22,7 +22,7 @@ class VerificationQueueController extends Controller
                 'detail.jabatanRole',
                 'locker',
             ])
-            ->orderBy('updated_at', 'asc') // FIFO
+            ->orderBy('created_at', 'asc') // FIFO by registration time (Stable)
             ->get();
 
         return Inertia::render('StaffMapping/VerificationQueue', [

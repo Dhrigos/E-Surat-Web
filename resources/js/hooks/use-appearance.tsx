@@ -41,43 +41,31 @@ const handleSystemThemeChange = () => {
 };
 
 export function initializeTheme() {
-    const savedAppearance =
-        (localStorage.getItem('appearance') as Appearance) || 'system';
-
-    applyTheme(savedAppearance);
-
-    // Add the event listener for system theme changes...
-    mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+    // Force dark theme application
+    applyTheme('dark');
+    
+    // Optional: still listen to system changes if we wanted to support it, 
+    // but here we force dark, so no need to listen.
 }
 
 export function useAppearance() {
-    const [appearance, setAppearance] = useState<Appearance>('system');
+    // Force 'dark' state
+    const [appearance, setAppearance] = useState<Appearance>('dark');
 
     const updateAppearance = useCallback((mode: Appearance) => {
-        setAppearance(mode);
-
-        // Store in localStorage for client-side persistence...
-        localStorage.setItem('appearance', mode);
-
-        // Store in cookie for SSR...
-        setCookie('appearance', mode);
-
-        applyTheme(mode);
+        // Force 'dark' regardless of input
+        const forcedMode = 'dark';
+        setAppearance(forcedMode);
+        localStorage.setItem('appearance', forcedMode);
+        setCookie('appearance', forcedMode);
+        applyTheme(forcedMode);
     }, []);
 
     useEffect(() => {
-        const savedAppearance = localStorage.getItem(
-            'appearance',
-        ) as Appearance | null;
-
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        updateAppearance(savedAppearance || 'system');
-
-        return () =>
-            mediaQuery()?.removeEventListener(
-                'change',
-                handleSystemThemeChange,
-            );
+        // Enforce dark on mount
+        updateAppearance('dark');
+        
+        // No need to listen to media query changes since we force dark
     }, [updateAppearance]);
 
     return { appearance, updateAppearance } as const;

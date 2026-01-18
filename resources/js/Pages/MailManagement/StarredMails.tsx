@@ -13,7 +13,13 @@ import {
     PenLine,
     ChevronLeft,
     ChevronRight,
-    Star
+    Star,
+    Clock,
+    CheckCircle,
+    XCircle,
+    Edit,
+    User,
+    Calendar
 } from 'lucide-react';
 import MailDetail from './MailDetail';
 
@@ -103,87 +109,129 @@ export default function StarredMails({ starredMails, filters }: Props) {
         }
     };
 
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'pending': return <Clock className="h-4 w-4" />;
+            case 'approved': return <CheckCircle className="h-4 w-4" />;
+            case 'rejected': return <XCircle className="h-4 w-4" />;
+            case 'revision': return <Edit className="h-4 w-4" />;
+            case 'new': return <FileText className="h-4 w-4" />;
+            case 'read': return <Archive className="h-4 w-4" />;
+            default: return <FileText className="h-4 w-4" />;
+        }
+    };
+
     const handleViewDetail = (mail: any) => {
         setSelectedMail(mail);
         setShowDetailDialog(true);
     };
 
-    const MailCard = ({ mail }: { mail: any }) => (
-        <div className="bg-card dark:bg-[#18181b] border border-border dark:border-zinc-800 rounded-xl p-6 mb-4 hover:border-primary/50 transition-colors shadow-sm">
-            <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                    <Star className="h-5 w-5 text-yellow-500 fill-current" />
-                    <h3 className="text-lg font-bold text-foreground dark:text-white">{mail.subject}</h3>
+    const MailCard = ({ mail }: { mail: any }) => {
+        const getBorderColor = () => {
+            if (mail.status === 'approved') return 'border-l-green-500 hover:border-l-green-500';
+            if (mail.status === 'rejected') return 'border-l-red-500 hover:border-l-red-500';
+            return 'border-l-yellow-500 hover:border-l-yellow-500'; // Starred mails
+        };
+
+        return (
+            <div className={`group bg-[#262626] border border-zinc-800 rounded-xl p-5 mb-4 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.5)] hover:shadow-2xl border-l-4 ${getBorderColor()}`}>
+                <div className="flex justify-between items-start gap-4 mb-3">
+                    {/* Left Side: Badges + Title */}
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center gap-2">
+                            {mail.status === 'approved' ? (
+                                <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-0 px-3 py-1 rounded-full font-medium text-xs flex items-center gap-1.5">
+                                    <CheckCircle className="h-3.5 w-3.5" />
+                                    Disetujui
+                                </Badge>
+                            ) : mail.status === 'rejected' ? (
+                                <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-0 px-3 py-1 rounded-full font-medium text-xs flex items-center gap-1.5">
+                                    <XCircle className="h-3.5 w-3.5" />
+                                    Ditolak
+                                </Badge>
+                            ) : (
+                                <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-0 px-3 py-1 rounded-full font-medium text-xs flex items-center gap-1.5">
+                                    <Star className="h-3.5 w-3.5 fill-current" />
+                                    Berbintang
+                                </Badge>
+                            )}
+                            <Badge variant="outline" className="border-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-3 py-1 rounded-full font-medium text-xs">
+                                {mail.category || 'Surat'}
+                            </Badge>
+                        </div>
+
+                        <h3 className="text-base md:text-lg font-bold text-foreground dark:text-zinc-100">
+                            {mail.code || 'N/A'} - {mail.subject}
+                        </h3>
+                    </div>
+
+                    {/* Right Side: Action Buttons */}
+                    <div className="flex flex-col gap-2 items-end shrink-0 hidden md:flex">
+                        <div className="flex gap-1 mb-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10"
+                                onClick={() => router.put(route('letters.toggle-star', mail.id), {}, { preserveScroll: true })}
+                                title="Unstar"
+                            >
+                                <Star className="h-4 w-4 fill-current" />
+                            </Button>
+                        </div>
+                        <Button
+                            size="sm"
+                            className="h-8 gap-1.5 rounded-lg bg-yellow-600 hover:bg-yellow-700 text-white transition-colors text-xs"
+                            onClick={() => handleViewDetail(mail)}
+                        >
+                            <Eye className="h-3.5 w-3.5" />
+                            Lihat
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="flex gap-2">
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 rounded-lg text-yellow-500 hover:text-yellow-600"
-                        onClick={() => router.put(route('letters.toggle-star', mail.id), {}, { preserveScroll: true })}
-                        title="Unstar"
-                    >
-                        <Star className="h-4 w-4 fill-current" />
-                    </Button>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                <div>
-                    <span className="text-muted-foreground/70">Pengirim/Penerima:</span>
-                    <span className="ml-2 text-foreground">{mail.sender || mail.recipient}</span>
-                </div>
-                <div>
-                    <span className="text-muted-foreground/70">Tanggal:</span>
-                    <span className="ml-2 text-foreground">{mail.date}</span>
-                </div>
-                <div>
-                    <span className="text-muted-foreground/70">Kategori:</span>
-                    <span className="ml-2 text-foreground">{mail.category}</span>
-                </div>
-            </div>
-
-            <p className="text-sm text-muted-foreground mb-6 line-clamp-2">{mail.description}</p>
-
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Badge variant="outline" className={`${getStatusColor(mail.status)} border-0 px-4 py-1 rounded-full font-medium`}>
-                        {mail.status.charAt(0).toUpperCase() + mail.status.slice(1)}
-                    </Badge>
-                    <Badge variant="outline" className={`${getPriorityColor(mail.priority)} border-0 px-4 py-1 rounded-full font-medium`}>
-                        {mail.priority.charAt(0).toUpperCase() + mail.priority.slice(1)}
-                    </Badge>
+                {/* Metadata Row with Icons */}
+                <div className="flex flex-wrap gap-x-6 gap-y-2 mb-4 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <span className="text-xs">Dari: <span className="text-foreground font-medium">{(typeof mail.sender === 'object' ? mail.sender?.name : mail.sender) || mail.recipient || 'Unknown'}</span></span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-xs text-foreground">{mail.date ? new Date(mail.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</span>
+                    </div>
                 </div>
 
-                <div className="flex gap-2">
+                {/* Content Preview */}
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                    {mail.description || mail.content}
+                </p>
+
+                {/* Mobile Actions */}
+                <div className="flex md:hidden gap-2 mt-4 justify-end">
                     <Button
                         size="sm"
-                        variant="outline"
-                        className="gap-2 rounded-lg hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors"
+                        variant="ghost"
+                        className="h-8 gap-1.5 text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10"
+                        onClick={() => router.put(route('letters.toggle-star', mail.id), {}, { preserveScroll: true })}
+                    >
+                        <Star className="h-4 w-4 fill-current" />
+                        <span className="text-xs">Unstar</span>
+                    </Button>
+                    <Button
+                        size="sm"
+                        className="h-8 gap-1.5 bg-yellow-600 hover:bg-yellow-700 text-white"
                         onClick={() => handleViewDetail(mail)}
                     >
                         <Eye className="h-4 w-4" />
-                        <span>View</span>
+                        <span className="text-xs">Lihat</span>
                     </Button>
-                    {mail.status === 'approved' && (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-2 rounded-lg hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-colors"
-                            onClick={() => router.put(route('letters.archive', mail.id), {}, { preserveScroll: true })}
-                        >
-                            <Archive className="h-4 w-4" />
-                            <span>Archive</span>
-                        </Button>
-                    )}
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const Pagination = ({ links }: { links: PaginationLinks[] }) => (
-        <div className="flex items-center justify-center gap-1 mt-6">
+        <div className="flex items-center justify-center gap-1 mt-8">
             {links.map((link, i) => {
                 let content;
                 if (link.label.includes('Previous') || link.label.includes('&laquo;')) {
@@ -199,7 +247,10 @@ export default function StarredMails({ starredMails, filters }: Props) {
                         key={i}
                         variant={link.active ? "default" : "outline"}
                         size="sm"
-                        className={`h-8 min-w-8 px-2 ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`h-9 min-w-9 px-2 rounded-lg transition-all ${link.active
+                            ? 'bg-yellow-600 hover:bg-yellow-700 text-white border-transparent shadow-md'
+                            : 'border-zinc-200 dark:border-zinc-800 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 text-muted-foreground'
+                            } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => handlePageChange(link.url)}
                         disabled={!link.url}
                     >
@@ -213,44 +264,44 @@ export default function StarredMails({ starredMails, filters }: Props) {
     return (
         <AppLayout>
             <Head title="Starred Mails" />
-            <div className="p-4 md:p-6 space-y-4">
+            <div className="p-3 md:p-8 space-y-6 md:space-y-8">
+                {/* Header Section */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-foreground mb-1">⭐ Starred Mails</h2>
-                        <p className="text-muted-foreground">Surat yang Anda tandai bintang</p>
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-[#AC0021] rounded-xl shadow-lg shadow-[#AC0021]/20 flex items-center justify-center shrink-0">
+                            <Star className="w-6 h-6 md:w-7 md:h-7 text-[#FEFCF8] fill-current" />
+                        </div>
+                        <div className="space-y-0.5">
+                            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Starred Mails</h2>
+                            <p className="text-muted-foreground text-xs md:text-sm max-w-md">Surat yang Anda tandai bintang</p>
+                        </div>
                     </div>
-                    <Link href="/list-surat">
-                        <Button variant="outline" className="gap-2">
-                            <FileText className="h-4 w-4" />
-                            <span>Kembali ke List Surat</span>
-                        </Button>
-                    </Link>
                 </div>
 
                 {/* Search and Filter */}
-                <div className="bg-white dark:bg-black p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row gap-2 shadow-sm items-center">
+                <div className="bg-[#262626] p-4 rounded-xl flex flex-col sm:flex-row gap-4 shadow-lg hover:shadow-[0_0_25px_rgba(254,252,248,0.15)] transition-all duration-300 items-center relative z-20">
                     <div className="flex-1 relative w-full">
-                        <Search className="absolute left-4 top-2.5 h-5 w-5 text-zinc-500 dark:text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                         <Input
                             placeholder="Cari berdasarkan perihal atau nama..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-12 bg-zinc-100 dark:bg-[#18181b] border-transparent text-zinc-900 dark:text-foreground placeholder:text-zinc-500 dark:placeholder:text-muted-foreground h-10 focus-visible:ring-blue-600 focus-visible:border-blue-600 rounded-lg transition-all hover:bg-zinc-200/50 dark:hover:bg-zinc-900"
+                            className="pl-9 bg-[#2a2a2a] border-white/10 text-white placeholder:text-gray-500 h-10 shadow-none focus-visible:ring-1 focus-visible:ring-yellow-500/50 focus-visible:border-yellow-500/50 rounded-lg transition-all"
                         />
                     </div>
 
-                    <div className="w-full sm:w-56">
+                    <div className="w-full sm:w-[280px]">
                         <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-                            <SelectTrigger className="w-full h-10 bg-zinc-100 dark:bg-[#18181b] border-transparent dark:border-blue-900/30 text-zinc-900 dark:text-zinc-300 focus:ring-blue-600 focus:border-blue-600 rounded-lg px-4 hover:bg-zinc-200/50 dark:hover:bg-zinc-900 transition-all data-[state=open]:border-blue-600">
+                            <SelectTrigger className="w-full h-10 bg-[#2a2a2a] border-white/10 text-white focus:ring-1 focus:ring-yellow-500/50 rounded-lg px-4 shadow-none">
                                 <SelectValue placeholder="Filter kategori" />
                             </SelectTrigger>
-                            <SelectContent className="bg-white dark:bg-popover border-zinc-200 dark:border-border text-zinc-900 dark:text-popover-foreground">
-                                <SelectItem value="all">Semua Kategori</SelectItem>
-                                <SelectItem value="internal">Internal</SelectItem>
-                                <SelectItem value="external">Eksternal</SelectItem>
-                                <SelectItem value="report">Laporan</SelectItem>
-                                <SelectItem value="finance">Keuangan</SelectItem>
-                                <SelectItem value="hr">SDM</SelectItem>
+                            <SelectContent className="bg-[#1a1a1a] border-white/10 text-white rounded-xl shadow-xl w-[280px]">
+                                <SelectItem value="all" className="focus:bg-white/10 cursor-pointer py-3 font-medium">Semua Kategori</SelectItem>
+                                <SelectItem value="internal" className="focus:bg-white/10 cursor-pointer py-2.5">Internal</SelectItem>
+                                <SelectItem value="external" className="focus:bg-white/10 cursor-pointer py-2.5">Eksternal</SelectItem>
+                                <SelectItem value="report" className="focus:bg-white/10 cursor-pointer py-2.5">Laporan</SelectItem>
+                                <SelectItem value="finance" className="focus:bg-white/10 cursor-pointer py-2.5">Keuangan</SelectItem>
+                                <SelectItem value="hr" className="focus:bg-white/10 cursor-pointer py-2.5">SDM</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -259,10 +310,12 @@ export default function StarredMails({ starredMails, filters }: Props) {
                 {/* Mail List */}
                 <div className="space-y-4">
                     {starredMails.data.length === 0 ? (
-                        <div className="text-center py-12 bg-card dark:bg-[#18181b] rounded-xl border border-border dark:border-zinc-800 shadow-sm">
-                            <Star className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-semibold mb-2 text-foreground">Tidak ada surat berbintang</h3>
-                            <p className="text-muted-foreground">Surat yang Anda tandai bintang akan muncul di sini</p>
+                        <div className="flex flex-col items-center justify-center py-16 px-4 text-center border border-zinc-800 rounded-2xl bg-[#262626]">
+                            <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                                <Star className="w-8 h-8 text-zinc-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground mb-2">Tidak ada surat berbintang</h3>
+                            <p className="text-muted-foreground max-w-sm mx-auto mb-6">Surat yang Anda tandai bintang akan muncul di sini</p>
                         </div>
                     ) : (
                         <>

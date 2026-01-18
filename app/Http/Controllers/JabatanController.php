@@ -90,7 +90,7 @@ class JabatanController extends Controller
 
         Jabatan::create($validated);
 
-        return redirect()->route('jabatan.index', ['parent_id' => $validated['parent_id'] ?? null])
+        return redirect()->route('data-master.index', ['tab' => 'units', 'parent_id' => $validated['parent_id'] ?? null])
             ->with('success', 'Jabatan berhasil ditambahkan.');
     }
 
@@ -120,7 +120,7 @@ class JabatanController extends Controller
 
         $jabatan->update($validated);
 
-        return redirect()->route('jabatan.index', ['parent_id' => $validated['parent_id'] ?? $jabatan->parent_id])
+        return redirect()->route('data-master.index', ['tab' => 'units', 'parent_id' => $validated['parent_id'] ?? $jabatan->parent_id])
             ->with('success', 'Jabatan berhasil diperbarui.');
     }
 
@@ -131,7 +131,7 @@ class JabatanController extends Controller
     {
         $jabatan->delete();
 
-        return redirect()->route('jabatan.index')
+        return redirect()->route('data-master.index', ['tab' => 'units'])
             ->with('success', 'Jabatan berhasil dihapus.');
     }
 }

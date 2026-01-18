@@ -44,10 +44,18 @@ class AuditLogController extends Controller
         // Get unique actions for filter dropdown
         $actions = ActivityLog::select('action')->distinct()->pluck('action');
 
+        $stats = [
+            'total_activities' => ActivityLog::count(),
+            'today_activities' => ActivityLog::whereDate('created_at', now())->count(),
+            'success_count' => ActivityLog::count(), // Assuming all are success for now
+            'failed_count' => 0, // Placeholder
+        ];
+
         return Inertia::render('AuditLog/Index', [
             'logs' => $logs,
             'filters' => $request->only(['search', 'action', 'start_date', 'end_date']),
             'actions' => $actions,
+            'stats' => $stats,
         ]);
     }
 }

@@ -6,6 +6,8 @@ import LocationTracker from '@/components/Location/LocationTracker';
 import { SharedData } from '@/types';
 import Echo from 'laravel-echo';
 import DashboardBackground from '@/components/DashboardBackground';
+import { Badge } from '@/components/ui/badge';
+import { Map, Navigation, Users, Clock, Radio } from 'lucide-react';
 
 interface LocationMapProps extends SharedData {
     activeUsers: Array<{
@@ -148,153 +150,156 @@ export default function LocationMap({ auth, activeUsers: initialActiveUsers }: L
     };
 
     return (
-        <AppLayout>
-            <Head title="Location Tracking" />
-            <DashboardBackground />
+        <AppLayout breadcrumbs={[]}>
+            <Head title="Live Location" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Map Section */}
-                        <div className="lg:col-span-2">
-                            <div className="bg-white dark:bg-black border dark:border-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                                <div className="p-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                                        Live Map
-                                    </h3>
-                                    <MapComponent
-                                        markers={markers}
-                                        currentUserId={auth.user.id}
-                                        height="600px"
-                                        onMarkerClick={handleMarkerClick}
-                                    />
+            <div className="p-3 md:p-8 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
+                    {/* Map Section */}
+                    <div className="lg:col-span-2 h-full flex flex-col">
+                        <div className="bg-card dark:bg-[#18181b] border border-border dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex-1 relative">
+                            <div className="absolute top-4 left-4 z-10 bg-white/80 dark:bg-black/80 backdrop-blur-md p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-lg">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-zinc-500/10 rounded-lg text-zinc-600 dark:text-zinc-400">
+                                        <Map className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-foreground">Live Map</h3>
+                                        <p className="text-xs text-muted-foreground">Real-time tracking</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Sidebar */}
-                        <div className="space-y-6">
-                            {/* Location Tracker */}
+                            <MapComponent
+                                markers={markers}
+                                currentUserId={auth.user.id}
+                                height="100%"
+                                onMarkerClick={handleMarkerClick}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className="space-y-6 h-full flex flex-col">
+                        {/* Location Tracker */}
+                        <div className="bg-card dark:bg-[#18181b] border border-border dark:border-zinc-800 rounded-2xl p-4 shadow-sm">
                             <LocationTracker
                                 updateInterval={5000}
                                 autoStart={true}
                                 onLocationUpdate={handleLocationUpdate}
                                 onError={handleError}
                             />
+                        </div>
 
-                            {/* Active Users List */}
-                            <div className="bg-white dark:bg-black border dark:border-gray-800 rounded-lg shadow p-4">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                                    Active Users ({activeUsers.filter((u) => u.location).length})
-                                </h3>
-                                <div className="space-y-3 max-h-96 overflow-y-auto">
-                                    {activeUsers
-                                        .filter((user) => user.location)
-                                        .map((user) => (
-                                            <div
-                                                key={user.id}
-                                                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                                                onClick={() => {
-                                                    const marker = markers.find(
-                                                        (m) => m.user.id === user.id
-                                                    );
-                                                    if (marker) {
-                                                        handleMarkerClick(marker);
-                                                    }
-                                                }}
-                                            >
+                        {/* Active Users List */}
+                        <div className="bg-card dark:bg-[#18181b] border border-border dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex-1 flex flex-col min-h-0">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-muted-foreground" />
+                                    <h3 className="font-semibold text-foreground">Active Users</h3>
+                                </div>
+                                <Badge variant="secondary" className="bg-zinc-100 dark:bg-zinc-800">
+                                    {activeUsers.filter((u) => u.location).length} Online
+                                </Badge>
+                            </div>
+
+                            <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                                {activeUsers
+                                    .filter((user) => user.location)
+                                    .map((user) => (
+                                        <div
+                                            key={user.id}
+                                            className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer border ${selectedMarker?.user.id === user.id
+                                                    ? 'bg-zinc-500/10 border-zinc-500/20 shadow-sm'
+                                                    : 'bg-zinc-50/50 dark:bg-zinc-900/50 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700'
+                                                }`}
+                                            onClick={() => {
+                                                const marker = markers.find(
+                                                    (m) => m.user.id === user.id
+                                                );
+                                                if (marker) {
+                                                    handleMarkerClick(marker);
+                                                }
+                                            }}
+                                        >
+                                            <div className="relative">
                                                 {user.avatar ? (
                                                     <img
                                                         src={user.avatar}
                                                         alt={user.name}
-                                                        className="w-10 h-10 rounded-full"
+                                                        className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-zinc-900"
                                                     />
                                                 ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                                                        <span className="text-gray-600 dark:text-gray-300 font-semibold">
-                                                            {user.name.charAt(0).toUpperCase()}
-                                                        </span>
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-500 to-gray-600 flex items-center justify-center text-white font-bold border-2 border-white dark:border-zinc-900 shadow-sm">
+                                                        {user.name.charAt(0).toUpperCase()}
                                                     </div>
                                                 )}
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-zinc-900 rounded-full">
+                                                    <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping"></span>
+                                                </span>
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-sm font-semibold text-foreground truncate">
                                                         {user.name}
-                                                        {user.id === auth.user.id && (
-                                                            <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">
-                                                                (You)
-                                                            </span>
-                                                        )}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {user.location &&
-                                                            new Date(
-                                                                user.location.captured_at
-                                                            ).toLocaleTimeString()}
-                                                    </p>
+                                                    {user.id === auth.user.id && (
+                                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+                                                            You
+                                                        </Badge>
+                                                    )}
                                                 </div>
-                                                <div className="flex h-3 w-3">
-                                                    <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                                    <Clock className="w-3 h-3" />
+                                                    {user.location && new Date(user.location.captured_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
-                                        ))}
+                                        </div>
+                                    ))}
 
-                                    {activeUsers.filter((u) => u.location).length === 0 && (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                                            No active users tracking location
-                                        </p>
+                                {activeUsers.filter((u) => u.location).length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                                        <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-3">
+                                            <Radio className="w-6 h-6 opacity-50" />
+                                        </div>
+                                        <p className="text-sm">No active users</p>
+                                        <p className="text-xs opacity-70">Waiting for location signals...</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Selected Marker Info */}
+                        {selectedMarker && (
+                            <div className="bg-card dark:bg-[#18181b] border border-border dark:border-zinc-800 rounded-2xl p-4 shadow-sm animate-in slide-in-from-bottom-5 fade-in duration-300">
+                                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                                    <Navigation className="w-4 h-4 text-zinc-500" />
+                                    <h3 className="font-semibold text-foreground text-sm">Selected Detail</h3>
+                                </div>
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">User</span>
+                                        <span className="font-medium text-foreground">{selectedMarker.user.name}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Coordinates</span>
+                                        <span className="font-mono text-xs bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                                            {selectedMarker.latitude.toFixed(6)}, {selectedMarker.longitude.toFixed(6)}
+                                        </span>
+                                    </div>
+                                    {selectedMarker.accuracy && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-muted-foreground">Accuracy</span>
+                                            <span className="text-xs text-emerald-600 dark:text-emerald-500 font-medium flex items-center gap-1">
+                                                <Radio className="w-3 h-3" />
+                                                ±{Math.round(selectedMarker.accuracy)} m
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             </div>
-
-                            {/* Selected Marker Info */}
-                            {selectedMarker && (
-                                <div className="bg-white dark:bg-black border dark:border-gray-800 rounded-lg shadow p-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                                        Selected Location
-                                    </h3>
-                                    <div className="space-y-2 text-sm">
-                                        <div>
-                                            <span className="text-gray-600 dark:text-gray-400">
-                                                User:
-                                            </span>
-                                            <p className="font-medium text-gray-900 dark:text-white">
-                                                {selectedMarker.user.name}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-600 dark:text-gray-400">
-                                                Coordinates:
-                                            </span>
-                                            <p className="font-mono text-gray-900 dark:text-white">
-                                                {selectedMarker.latitude.toFixed(6)},{' '}
-                                                {selectedMarker.longitude.toFixed(6)}
-                                            </p>
-                                        </div>
-                                        {selectedMarker.accuracy && (
-                                            <div>
-                                                <span className="text-gray-600 dark:text-gray-400">
-                                                    Accuracy:
-                                                </span>
-                                                <p className="font-mono text-gray-900 dark:text-white">
-                                                    ±{Math.round(selectedMarker.accuracy)} meters
-                                                </p>
-                                            </div>
-                                        )}
-                                        <div>
-                                            <span className="text-gray-600 dark:text-gray-400">
-                                                Last Update:
-                                            </span>
-                                            <p className="font-mono text-gray-900 dark:text-white">
-                                                {new Date(
-                                                    selectedMarker.captured_at
-                                                ).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>

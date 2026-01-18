@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, X, Users, Shield, Key, Eye, UserCheck } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CheckCircle, X, Users, Shield, Key, Eye, UserCheck, CreditCard, Phone, Building2, Clock, Mail, Briefcase, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface UserDetail {
     nia_nrp: string;
@@ -73,21 +75,21 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
             return;
         }
 
-        if (confirm(`Apakah Anda yakin ingin menolak user ${selectedUser?.name}?`)) {
-            postRejection(route('verification-queue.reject', selectedUser?.id), {
-                onSuccess: () => {
-                    toast.success('User berhasil ditolak');
-                    setIsRejectOpen(false);
-                    handleCloseReview();
-                    resetRejection();
-                },
-                onError: () => toast.error('Gagal menolak user'),
-            });
-        }
+        postRejection(route('verification-queue.reject', selectedUser?.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('User berhasil ditolak');
+                setIsRejectOpen(false);
+                handleCloseReview();
+                resetRejection();
+            },
+            onError: () => toast.error('Gagal menolak user'),
+        });
     };
 
     const handleVerify = (user: User) => {
         post(route('verification-queue.verify', user.id), {
+            preserveScroll: true,
             onSuccess: () => {
                 toast.success('User berhasil diverifikasi');
                 handleCloseReview();
@@ -100,6 +102,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
     const startReview = (user: User) => {
         // Lock the user first
         post(route('verification-queue.lock', user.id), {
+            preserveScroll: true,
             onSuccess: () => {
                 setSelectedUser(user);
                 setIsReviewOpen(true);
@@ -112,6 +115,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
         if (selectedUser) {
             // Unlock the user when closing
             post(route('verification-queue.unlock', selectedUser.id), {
+                preserveScroll: true,
                 onSuccess: () => {
                     setIsReviewOpen(false);
                     setSelectedUser(null);
@@ -124,7 +128,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
 
     const tabs = [
         { id: 'staff-list', label: 'Staff List', icon: Users, show: true, href: route('staff-mapping') },
-        { id: 'verification-queue', label: 'Verification Queue', icon: Shield, show: true, href: route('verification-queue.index') },
+        { id: 'verification-queue', label: 'Antrian', icon: Shield, show: true, href: route('verification-queue.index') },
     ].filter(tab => tab.show);
 
     const getFileUrl = (path?: string) => {
@@ -171,15 +175,15 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl font-bold">Verifikasi</h1>
+                    <h1 className="text-3xl font-bold">Mapping Staff & Verifikasi</h1>
                     <p className="text-muted-foreground mt-2">
-                        Validasi identitas user
+                        Kelola tim dan verifikasi akun karyawan baru oleh Direktorat Jendral Potensi Pertahanan
                     </p>
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="border-b border-border">
-                    <nav className="-mb-px flex gap-5">
+                <div className="flex justify-center">
+                    <nav className="grid grid-cols-2 p-1 bg-[#262626] shadow-lg rounded-full w-full">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = tab.id === 'verification-queue';
@@ -188,167 +192,257 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                 <button
                                     key={tab.id}
                                     onClick={() => router.get(tab.href)}
-                                    className={`${isActive
-                                        ? 'border-primary text-primary border-b-2'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                                        } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200`}
+                                    className={cn(
+                                        "relative flex items-center justify-center gap-2 py-2.5 px-6 rounded-full font-medium text-sm transition-all duration-300",
+                                        isActive
+                                            ? "bg-[#AC0021] text-white shadow-[0_0_20px_rgba(172,53,0,0.5)]"
+                                            : "text-gray-400 hover:text-white hover:bg-white/5"
+                                    )}
                                 >
                                     <Icon className="h-4 w-4" />
-                                    {tab.label}
+                                    <span>{tab.label}</span>
+                                    {tab.id === 'verification-queue' && users.length > 0 && (
+                                        <span className={cn(
+                                            "ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-bold",
+                                            isActive ? "bg-white text-[#AC0021]" : "bg-[#AC0021] text-white"
+                                        )}>
+                                            {users.length}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
                     </nav>
                 </div>
 
-                <div className="py-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Daftar User Menunggu Verifikasi</CardTitle>
-                            <CardDescription>
-                                Review hasil validasi data user.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Nama</TableHead>
-                                        <TableHead>NRP / NIK</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Aksi</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                                                Tidak ada antrian saat ini.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        users.map((user) => {
-                                            const isLocked = !!user.verification_locked_by;
-                                            const isLockedByMe = user.verification_locked_by === currentUserId;
-                                            const lockedByName = user.locker?.name;
-
-                                            return (
-                                                <TableRow key={user.id}>
-                                                    <TableCell className="font-medium">
-                                                        <div className="flex flex-col">
-                                                            <span>{user.name}</span>
-                                                            <span className="text-xs text-gray-500">{user.email}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-col text-sm">
-                                                            <span>NRP: {user.detail?.nia_nrp || '-'}</span>
-                                                            <span className="text-gray-500">NIK: {user.detail?.nik || '-'}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {isLocked ? (
-                                                            <Badge variant={isLockedByMe ? "default" : "destructive"}>
-                                                                {isLockedByMe ? "Sedang Anda Review" : `Direview oleh ${lockedByName}`}
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                                Menunggu
-                                                            </Badge>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right space-x-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => startReview(user)}
-                                                            className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
-                                                            disabled={isLocked && !isLockedByMe}
-                                                        >
-                                                            <Eye className="w-4 h-4 mr-2" />
-                                                            {isLockedByMe ? "Lanjutkan Review" : "Review Data"}
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })
-                                    )}
-                                </TableBody>
-                            </Table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Menunggu Verifikasi */}
+                    <Card className="bg-[#262626] border-none shadow-[0_4px_24px_-2px_rgba(0,0,0,0.4)] transition-all hover:bg-[#2a2a2a] group">
+                        <CardContent className="p-6 flex flex-col gap-4">
+                            <div className="p-3 rounded-2xl bg-[#007ee7]/10 w-fit group-hover:bg-[#007ee7]/20 transition-colors">
+                                <AlertCircle className="h-6 w-6 text-[#007ee7]" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-[#007ee7] mb-1">Menunggu Verifikasi</p>
+                                <p className="text-4xl font-bold text-white">{users.length}</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-neutral-500 mt-2">
+                                <Clock className="h-3 w-3" />
+                                <span>Menunggu review</span>
+                            </div>
                         </CardContent>
                     </Card>
+
+                    {/* Disetujui */}
+                    <Card className="bg-[#262626] border-none shadow-[0_4px_24px_-2px_rgba(0,0,0,0.4)] transition-all hover:bg-[#2a2a2a] group">
+                        <CardContent className="p-6 flex flex-col gap-4">
+                            <div className="p-3 rounded-2xl bg-[#659800]/10 w-fit group-hover:bg-[#659800]/20 transition-colors">
+                                <CheckCircle className="h-6 w-6 text-[#659800]" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-[#659800] mb-1">Disetujui</p>
+                                <p className="text-4xl font-bold text-white">0</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-neutral-500 mt-2">
+                                <UserCheck className="h-3 w-3" />
+                                <span>Akun aktif</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Ditolak */}
+                    <Card className="bg-[#262626] border-none shadow-[0_4px_24px_-2px_rgba(0,0,0,0.4)] transition-all hover:bg-[#2a2a2a] group">
+                        <CardContent className="p-6 flex flex-col gap-4">
+                            <div className="p-3 rounded-2xl bg-[#d04438]/10 w-fit group-hover:bg-[#d04438]/20 transition-colors">
+                                <X className="h-6 w-6 text-[#d04438]" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-[#d04438] mb-1">Ditolak</p>
+                                <p className="text-4xl font-bold text-white">0</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-neutral-500 mt-2">
+                                <Shield className="h-3 w-3" />
+                                <span>Verifikasi gagal</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="py-6 space-y-6">
+                    <div className="flex items-center gap-2 mb-6">
+                        <Shield className="h-5 w-5 text-[#007ee7]" />
+                        <h2 className="text-lg font-bold text-[#FEFCF8]">Permintaan Verifikasi Akun ({users.length})</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        {users.length === 0 ? (
+                            <Card className="bg-[#262626] border-white/5">
+                                <CardContent className="py-12 text-center text-gray-500">
+                                    Tidak ada antrian saat ini.
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            users.map((user) => {
+                                const isLocked = !!user.verification_locked_by;
+                                const isLockedByMe = user.verification_locked_by === currentUserId;
+                                const lockedByName = user.locker?.name;
+
+                                // Helper for time ago (simplified)
+                                const timeAgo = new Date(user.created_at).toLocaleDateString('id-ID', {
+                                    day: 'numeric', month: 'long', year: 'numeric'
+                                });
+
+                                return (
+                                    <div key={user.id} className="bg-[#262626] border-none rounded-xl p-6 flex flex-col md:flex-row gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.4)] transition-all duration-300 hover:shadow-2xl">
+                                        {/* Avatar */}
+                                        <div className="shrink-0">
+                                            <Avatar className="h-14 w-14 border-0">
+                                                {user.detail?.foto_profil && (
+                                                    <AvatarImage src={getFileUrl(user.detail.foto_profil) || ''} alt={user.name} className="object-cover" />
+                                                )}
+                                                <AvatarFallback className="text-white font-bold text-lg bg-[#AC0021]">
+                                                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </div>
+
+                                        {/* Main Content */}
+                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                            <div className="col-span-1 md:col-span-2 flex items-center gap-3">
+                                                <h3 className="text-white font-bold text-lg">{user.name}</h3>
+                                                {isLocked ? (
+                                                    <Badge className='bg-[#AC0021] hover:bg-[#8f2c00] text-white border-0 rounded-full px-3 font-normal'>
+                                                        {isLockedByMe ? "Sedang Anda Review" : `Direview oleh ${lockedByName}`}
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge className="bg-[#007ee7] text-white border-0 rounded-full px-3 font-normal">
+                                                        Menunggu
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            {/* Column 1 Details */}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
+                                                    <CreditCard className="h-4 w-4 shrink-0" />
+                                                    <span>{user.detail?.nia_nrp || user.detail?.nik || '-'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
+                                                    <Phone className="h-4 w-4 shrink-0" />
+                                                    <span>{user.detail?.alamat_domisili_lengkap || '+62 -'}</span> {/* Fallback if phone not available in detail */}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
+                                                    <Building2 className="h-4 w-4 shrink-0" />
+                                                    <span>{user.detail?.unit_kerja?.nama || 'Unit Kerja Belum Set'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-orange-500 text-sm mt-1">
+                                                    <Clock className="h-4 w-4 shrink-0" />
+                                                    <span>{timeAgo}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Column 2 Details */}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
+                                                    <Mail className="h-4 w-4 shrink-0" />
+                                                    <span>{user.email}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
+                                                    <Briefcase className="h-4 w-4 shrink-0" />
+                                                    <span>{user.detail?.jabatan?.nama || 'Staff'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Button */}
+                                        <div className="flex items-center justify-end md:justify-center shrink-0">
+                                            <Button
+                                                onClick={() => startReview(user)}
+                                                className="bg-[#AC0021] hover:bg-[#AC0021]/80 text-[#FEFCF8] border-0 h-10 px-6 font-medium"
+                                                disabled={isLocked && !isLockedByMe}
+                                            >
+                                                <Eye className="w-4 h-4 mr-2" />
+                                                {isLockedByMe ? "Lanjutkan Review" : "Lihat Detail"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* E-KYC Review Modal */}
             <Dialog open={isReviewOpen} onOpenChange={(open) => !open && handleCloseReview()}>
-                <DialogContent className="!max-w-5xl !w-full h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background border-border sm:rounded-xl">
-                    <DialogHeader className="p-6 border-b shrink-0 bg-background">
-                        <DialogTitle>Verifikasi Data</DialogTitle>
-                    </DialogHeader>
+                <DialogContent className="max-w-7xl h-[90vh] bg-[#262626] border-none shadow-2xl p-0 overflow-hidden flex flex-col text-white">
+                    <div className="px-6 py-4 flex items-center justify-between shrink-0">
+                        <DialogTitle className="text-lg font-semibold text-white">Verifikasi Data</DialogTitle>
+                        {/* Close button handled by Dialog primitive usually, or typical X icon */}
+                    </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
-                        <div className="grid grid-cols-2 gap-8 h-full">
-                            {/* Left: Photos Comparison */}
+                    <div className="flex-1 overflow-y-auto p-6 bg-[#1a1a1a]">
+                        <div className="grid grid-cols-[1.5fr_1fr] gap-6 h-full">
+                            {/* Left: Photos */}
                             <div className="space-y-6">
-                                <div className="bg-card p-4 rounded-xl border shadow-sm">
-                                    <h3 className="font-semibold mb-4 flex items-center justify-between text-foreground">
-                                        Perbandingan Wajah
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-muted-foreground text-center">E-KTP</p>
-                                            <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
+                                {/* Perbandingan Wajah */}
+                                <div className="bg-[#1f1f1f] p-5 rounded-xl shadow-lg">
+                                    <h3 className="font-semibold mb-6 text-white text-base">Perbandingan Wajah</h3>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-3">
+                                            <p className="text-sm text-neutral-400 text-center">E-KTP</p>
+                                            <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
                                                 {selectedUser?.detail?.scan_ktp ? (
                                                     <img
                                                         src={getFileUrl(selectedUser.detail.scan_ktp)!}
-                                                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                                        className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
                                                         onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_ktp)!, '_blank')}
                                                         alt="KTP"
                                                     />
                                                 ) : (
-                                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada foto</div>
+                                                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Image</div>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-muted-foreground text-center">Selfie </p>
-                                            <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
+                                        <div className="space-y-3">
+                                            <p className="text-sm text-neutral-400 text-center">Selfie</p>
+                                            <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
                                                 {selectedUser?.detail?.scan_selfie ? (
                                                     <img
                                                         src={getFileUrl(selectedUser.detail.scan_selfie)!}
-                                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                                        className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
                                                         onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_selfie)!, '_blank')}
                                                         alt="Selfie"
                                                     />
                                                 ) : (
-                                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada foto</div>
+                                                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Image</div>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-card p-4 rounded-xl border shadow-sm">
-                                    <h3 className="font-semibold mb-4 text-foreground">Dokumen Pendukung</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-muted-foreground text-center">KTA</p>
-                                            <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
+                                {/* Dokumen Pendukung */}
+                                <div className="bg-[#1f1f1f] p-5 rounded-xl shadow-lg">
+                                    <h3 className="font-semibold mb-6 text-white text-base">Dokumen Pendukung</h3>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-3">
+                                            <p className="text-sm text-neutral-400 text-center">KTA</p>
+                                            <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
                                                 {selectedUser?.detail?.scan_kta ? (
                                                     <FilePreview path={selectedUser.detail.scan_kta} alt="KTA" />
                                                 ) : (
-                                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada</div>
+                                                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Document</div>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-muted-foreground text-center">SK</p>
-                                            <div className="aspect-[3/2] bg-muted rounded-lg overflow-hidden border relative group">
+                                        <div className="space-y-3">
+                                            <p className="text-sm text-neutral-400 text-center">SK</p>
+                                            <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
                                                 {selectedUser?.detail?.scan_sk ? (
                                                     <FilePreview path={selectedUser.detail.scan_sk} alt="SK" />
                                                 ) : (
-                                                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Tidak ada</div>
+                                                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Document</div>
                                                 )}
                                             </div>
                                         </div>
@@ -356,68 +450,66 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                 </div>
                             </div>
 
-                            {/* Right: Data Verification */}
-                            <div className="bg-card p-6 rounded-xl border shadow-sm h-fit">
-                                <h3 className="font-semibold mb-4 text-lg border-b pb-2 text-foreground">Informasi User</h3>
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">Nama Lengkap</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.name}</span>
+                            {/* Right: Info */}
+                            <div className="bg-[#1f1f1f] p-6 rounded-xl shadow-lg h-fit">
+                                <h3 className="font-semibold mb-6 text-white text-lg">Informasi User</h3>
+                                <div className="space-y-0">
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                        <span className="text-neutral-400">Nama Lengkap</span>
+                                        <span className="text-white font-medium">{selectedUser?.name}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">NIK</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.nik}</span>
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                        <span className="text-neutral-400">NIK</span>
+                                        <span className="text-white font-medium">{selectedUser?.detail?.nik}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">NRP</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.nia_nrp}</span>
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                        <span className="text-neutral-400">NRP</span>
+                                        <span className="text-white font-medium">{selectedUser?.detail?.nia_nrp}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">TTL</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.tempat_lahir}, {selectedUser?.detail?.tanggal_lahir}</span>
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                        <span className="text-neutral-400">TTL</span>
+                                        <span className="text-white font-medium">{selectedUser?.detail?.tempat_lahir && selectedUser?.detail?.tanggal_lahir ? `${selectedUser.detail.tempat_lahir}, ${selectedUser.detail.tanggal_lahir}` : '-'}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">Jenis Kelamin</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.jenis_kelamin || '-'}</span>
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                        <span className="text-neutral-400">Jenis Kelamin</span>
+                                        <span className="text-white font-medium">{selectedUser?.detail?.jenis_kelamin || '-'}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">Alamat Lengkap</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.alamat_domisili_lengkap}</span>
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                        <span className="text-neutral-400">Alamat Lengkap</span>
+                                        <span className="text-white font-medium">{selectedUser?.detail?.alamat_domisili_lengkap}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">Jabatan</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.jabatan_role?.nama || ' '}{' - '}{selectedUser?.detail?.jabatan?.nama || ' '}</span>
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                        <span className="text-neutral-400">Jabatan</span>
+                                        <span className="text-white font-medium">{`${selectedUser?.detail?.jabatan_role?.nama || ''} - ${selectedUser?.detail?.jabatan?.nama || ''}`}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">Tanggal Pengangkatan</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.tanggal_pengangkatan || '-'}</span>
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                        <span className="text-neutral-400">Tanggal Pengangkatan</span>
+                                        <span className="text-white font-medium">{selectedUser?.detail?.tanggal_pengangkatan || '-'}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-sm border-b border-border pb-2 last:border-0">
-                                        <span className="text-muted-foreground">Nomor KTA</span>
-                                        <span className="col-span-2 font-medium">{selectedUser?.detail?.nomor_kta || selectedUser?.detail?.nomor_sk || '-'}</span>
+                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5 last:border-0">
+                                        <span className="text-neutral-400">Nomor KTA</span>
+                                        <span className="text-white font-medium">{selectedUser?.detail?.nomor_kta || selectedUser?.detail?.nomor_sk || '-'}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="p-4 border-t bg-card flex justify-end gap-3 shrink-0">
+                    <div className="p-4 bg-[#262626] flex justify-end gap-3 shrink-0">
                         <Button
                             variant="destructive"
-                            size="lg"
                             onClick={() => setIsRejectOpen(true)}
-                            className="min-w-[150px]"
+                            className="bg-[#d04438] hover:bg-[#b03025] text-white border border-red-900/30 px-6"
                             disabled={processing}
                         >
-                            <X className="w-5 h-5 mr-2" /> Tolak
+                            <X className="w-4 h-4 mr-2" /> Tolak
                         </Button>
                         <Button
-                            size="lg"
                             onClick={() => setIsApproveOpen(true)}
-                            className="min-w-[150px] bg-green-600 hover:bg-green-700"
+                            className="bg-[#659800] hover:bg-[#547f00] text-white font-semibold px-6"
                             disabled={processing}
                         >
-                            <UserCheck className="w-5 h-5 mr-2" /> Verifikasi & Setujui
+                            <UserCheck className="w-4 h-4 mr-2" /> Verifikasi & Setujui
                         </Button>
                     </div>
                 </DialogContent>
@@ -464,7 +556,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                         <div className="flex justify-end gap-2">
                             <Button variant="outline" onClick={() => setIsApproveOpen(false)}>Batal</Button>
                             <Button
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-[#659800] hover:bg-[#547f00] text-white"
                                 onClick={() => selectedUser && handleVerify(selectedUser)}
                                 disabled={processing}
                             >

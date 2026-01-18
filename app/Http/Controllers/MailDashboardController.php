@@ -91,6 +91,52 @@ class MailDashboardController extends Controller
 
         $totalUsers = User::count();
 
+        $adminStats = null;
+        if ($user->hasRole(['admin', 'super-admin'])) {
+            $globalTotalLetters = Letter::count(); 
+            $totalUnits = \App\Models\Jabatan::selectRaw(
+                'COUNT(DISTINCT nama) - SUM(level = 1) as total'
+            )->value('total');
+            // Mock Uptime or fetch
+            $uptime = '99.9%'; 
+            
+            // Top Senders
+            $topSenders = Letter::select('created_by', DB::raw('count(*) as total'))
+                ->groupBy('created_by')
+                ->orderByDesc('total')
+                ->limit(5)
+                ->with('creator:id,name,profile')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'name' => $item->creator->name ?? 'Unknown',
+                        'avatar' => $item->creator->avatar ?? null,
+                        'total' => $item->total
+                    ];
+                });
+
+            // Global Status Breakdown
+            $globalStatus = Letter::select('status', DB::raw('count(*) as total'))
+                ->groupBy('status')
+                ->get()
+                ->pluck('total', 'status');
+
+            $adminStats = [
+                'totalLetters' => $globalTotalLetters,
+                'totalUnits' => $totalUnits,
+                'topSenders' => $topSenders,
+                'status' => [
+                    'approved' => $globalStatus['approved'] ?? 0,
+                    'rejected' => $globalStatus['rejected'] ?? 0,
+                    'pending' => $globalStatus['pending'] ?? 0,
+                    'draft' => $globalStatus['draft'] ?? 0,
+                ],
+                'performance' => [
+                    'approvalRate' => $globalTotalLetters > 0 ? round(($globalStatus['approved'] ?? 0) / $globalTotalLetters * 100, 1) : 0,
+                ]
+            ];
+        }
+
         return Inertia::render('Dashboard/Index', [
             'stats' => [
                 'sent' => $totalSent,
@@ -101,6 +147,7 @@ class MailDashboardController extends Controller
             'activities' => $activities,
             'usersByProvince' => $usersByProvince,
             'totalUsers' => $totalUsers,
+            'adminStats' => $adminStats, // New prop
         ]);
     }
 }

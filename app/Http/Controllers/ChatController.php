@@ -41,6 +41,34 @@ class ChatController extends Controller
         ]);
     }
 
+    public function listConversations()
+    {
+        $user = Auth::user();
+        $limit = request()->query('limit', 20); // Optional limit
+
+        $conversations = Conversation::whereHas('participants', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })
+            ->whereHas('messages') // Only show active conversations in drawer initially
+            ->with(['lastMessage.sender', 'participants.roles', 'participants.jabatan'])
+            ->withCount(['messages as unread_count' => function ($query) use ($user) {
+                $query->where('user_id', '!=', $user->id)
+                      ->whereNull('read_at');
+            }])
+            ->get()
+            ->sortByDesc(function ($conversation) {
+                return $conversation->lastMessage ? $conversation->lastMessage->created_at : $conversation->created_at;
+            })
+            ->values();
+
+        $conversations->transform(function ($conversation) use ($user) {
+            $conversation->can_manage = $user->hasRole(['admin', 'super-admin']) || $conversation->created_by === $user->id;
+            return $conversation;
+        });
+
+        return response()->json($conversations);
+    }
+
     public function show(Conversation $conversation)
     {
         $this->authorize('view', $conversation);
@@ -67,6 +95,8 @@ class ChatController extends Controller
                 broadcast(new \App\Events\MessageStatusUpdated($message))->toOthers();
             }
         }
+
+        $conversation->can_manage = Auth::user()->hasRole(['admin', 'super-admin']) || $conversation->created_by === Auth::id();
 
         return response()->json([
             'conversation' => $conversation,
@@ -179,11 +209,6 @@ class ChatController extends Controller
         $otherUsers = $validated['users'];
         $isGroup = $request->boolean('is_group');
 
-        // Restrict group creation to Super Admin
-        if ($isGroup && ! Auth::user()->hasRole('super-admin')) {
-            abort(403, 'Only Super Admins can create group chats.');
-        }
-
         // Logic for Direct Message (1-on-1)
         if (! $isGroup && count($otherUsers) === 1) {
             $otherUserId = $otherUsers[0];
@@ -206,6 +231,13 @@ class ChatController extends Controller
             }
         }
 
+        // Logic for Group Chat
+        if ($isGroup) {
+            // Automatically add all Admins and Super Admins
+            $adminIds = \App\Models\User::role(['admin', 'super-admin'])->pluck('id')->toArray();
+            $otherUsers = array_unique(array_merge($otherUsers, $adminIds));
+        }
+
         // Create new conversation
         $conversation = Conversation::create([
             'name' => $isGroup ? $validated['name'] : null,
@@ -214,10 +246,12 @@ class ChatController extends Controller
         ]);
 
         // Attach participants (Auth user + selected users)
-        $conversation->participants()->attach(array_merge([Auth::id()], $otherUsers));
+        // Ensure we don't duplicate the auth user if they are also an admin
+        $allParticipants = array_unique(array_merge([Auth::id()], $otherUsers));
+        $conversation->participants()->attach($allParticipants);
 
         return response()->json([
-            'conversation' => $conversation->load(['participants', 'messages.sender']),
+            'conversation' => $conversation->load(['participants.roles', 'participants.jabatan', 'messages.sender']),
         ]);
     }
 
@@ -225,9 +259,11 @@ class ChatController extends Controller
     {
         $this->authorize('update', $conversation); // Ensure user is a participant
 
-        // Additional check: Only creator or super-admin knows the way
-        if ($conversation->is_group && $conversation->created_by !== Auth::id() && ! Auth::user()->hasRole('super-admin')) {
-            abort(403, 'Only the group admin can update group settings.');
+        // Additional check: Only creator, admin, or super-admin knows the way
+        if ($conversation->is_group && 
+            $conversation->created_by !== Auth::id() && 
+            ! Auth::user()->hasRole(['admin', 'super-admin'])) {
+            abort(403, 'Only the group admin or system administrators can update group settings.');
         }
 
         $validated = $request->validate([
@@ -263,14 +299,68 @@ class ChatController extends Controller
     public function searchUsers(Request $request)
     {
         $query = $request->get('query');
-        $users = \App\Models\User::where('id', '!=', Auth::id())
-            ->where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                    ->orWhere('email', 'like', "%{$query}%");
+        
+        $users = \App\Models\User::with(['staff.jabatan'])
+            ->where('id', '!=', Auth::id())
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($sub) use ($query) {
+                    $sub->where('name', 'like', "%{$query}%")
+                        ->orWhere('email', 'like', "%{$query}%");
+                });
             })
-            ->take(10)
-            ->get(['id', 'name', 'email']);
+            ->orderBy('name', 'asc')
+            ->take(50)
+            ->get(['id', 'name', 'email']); // Removed jabatan_id
+
+        // Map jabatan from staff to user object for frontend compatibility
+        $users->transform(function ($user) {
+            $user->jabatan = $user->staff?->jabatan;
+            unset($user->staff); // Optional: clean up if not needed
+            return $user;
+        });
 
         return response()->json($users);
+    }
+    public function addParticipants(Request $request, Conversation $conversation)
+    {
+        $this->authorize('update', $conversation);
+
+        if ($conversation->is_group && 
+            $conversation->created_by !== Auth::id() && 
+            ! Auth::user()->hasRole(['admin', 'super-admin'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        $validated = $request->validate([
+            'users' => 'required|array',
+            'users.*' => 'exists:users,id',
+        ]);
+
+        $conversation->participants()->syncWithoutDetaching($validated['users']);
+        
+        // Notify?
+        
+        return response()->json(['message' => 'Participants added']);
+    }
+
+    public function removeParticipant(Conversation $conversation, \App\Models\User $user)
+    {
+        $this->authorize('update', $conversation);
+
+        if ($conversation->is_group && 
+            $conversation->created_by !== Auth::id() && 
+            ! Auth::user()->hasRole(['admin', 'super-admin'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        // Prevent removing self if creator? Or standard logic.
+        // Protected users: Admin, Super Admin, and Group Creator
+        if ($user->hasRole(['admin', 'super-admin']) || $conversation->created_by === $user->id) {
+             return response()->json(['message' => 'Tidak dapat mengeluarkan Admin atau Pembuat Grup'], 403);
+        }
+        
+        $conversation->participants()->detach($user->id);
+
+        return response()->json(['message' => 'Participant removed']);
     }
 }

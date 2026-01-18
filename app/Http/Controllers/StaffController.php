@@ -28,6 +28,12 @@ class StaffController extends Controller implements HasMiddleware
             $query = User::with(['roles', 'detail.jabatan', 'detail.jabatanRole', 'detail.pangkat'])
                 ->whereDoesntHave('roles', function ($q) {
                     $q->where('name', 'super-admin');
+                })
+                // Exclude users currently in verification queue (pending verification)
+                // Queue = Not verified AND Not rejected (rejection_reason is null)
+                ->where(function ($q) {
+                    $q->where('verifikasi', true)
+                      ->orWhereNotNull('rejection_reason');
                 });
 
             // Search
@@ -87,11 +93,17 @@ class StaffController extends Controller implements HasMiddleware
                 ];
             });
 
+            $pendingCount = User::where('verifikasi', 0)
+                ->whereNull('rejection_reason')
+                ->whereHas('detail')
+                ->count();
+
             return Inertia::render('StaffMapping/Index', [
                 'staff' => $users,
                 'jabatan' => $jabatanList,
                 'roles' => $roles,
                 'filters' => $request->only(['search']),
+                'pendingCount' => $pendingCount,
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error in StaffController::index: ' . $e->getMessage());

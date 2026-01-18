@@ -26,10 +26,23 @@ class LetterController extends Controller
         $this->workflowService = $workflowService;
     }
 
+    public function getNextNumber(Request $request)
+    {
+        $year = now()->year;
+        // Count all letters in current year + 1
+        $currentMax = Letter::whereYear('created_at', $year)->max('sequence_number') ?? 0;
+        $nextNumber = $currentMax + 1;
+        
+        return response()->json([
+            'sequence_number' => $nextNumber
+        ]);
+    }
+
     private function transformLetter($letter)
     {
         return [
             'id' => $letter->id,
+            'code' => $letter->letter_number,
             'subject' => $letter->subject,
             'recipient' => $letter->recipients->map(function ($r) {
                 return $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name;
@@ -37,9 +50,13 @@ class LetterController extends Controller
             'sender' => [
                 'name' => $letter->creator->name,
                 'position' => ($letter->creator->detail?->jabatanRole?->nama ?? 'Staff') . ($letter->creator->detail?->jabatan?->nama ? ' (' . $letter->creator->detail?->jabatan?->nama . ')' : ''),
-                'unit' => $letter->creator->detail?->jabatan?->nama ?? 'Instansi',
+                'unit' => $letter->creator->detail?->jabatan?->parent?->nama ?? ($letter->creator->detail?->jabatan?->nama ?? 'Instansi'),
                 'role' => $letter->creator->detail?->jabatanRole?->nama ?? 'User',
+                'rank' => $letter->creator->detail?->pangkat?->nama,
+                'nip' => $letter->creator->detail?->nia_nrp,
                 'profile_photo_url' => $letter->creator->profile_photo_url,
+                'user_name' => $letter->creator->name,
+                'signature_url' => $letter->creator->detail?->tanda_tangan ? Storage::url($letter->creator->detail->tanda_tangan) : null,
             ],
             'status' => $letter->status,
             'priority' => $letter->priority,
@@ -60,9 +77,10 @@ class LetterController extends Controller
                 'user_id' => $a->user_id,
                 'approver_id' => $a->approver_id, // Add this line
                 'position' => ($a->user?->detail?->jabatanRole?->nama ?? 'Staff') . ($a->user?->detail?->jabatan?->nama ? ' (' . $a->user?->detail?->jabatan?->nama . ')' : ''),
-                'unit' => $a->user?->detail?->jabatan?->nama ?? 'Instansi',
+                'unit' => $a->user?->detail?->jabatan?->parent?->nama ?? ($a->user?->detail?->jabatan?->nama ?? 'Instansi'),
                 'role' => $a->user?->detail?->jabatanRole?->nama ?? 'Approver',
                 'rank' => $a->user?->detail?->pangkat?->nama,
+                'nip' => $a->user?->detail?->nia_nrp,
                 'status' => $a->status,
                 'order' => $a->order,
                 'remarks' => $a->remarks,
@@ -110,7 +128,7 @@ class LetterController extends Controller
         $letterTypeFilter = $request->input('letter_type');
 
         // Sent mails query
-        $sentQuery = Letter::with(['recipients', 'approvers.user.detail.jabatan', 'approvers.user.detail.jabatanRole', 'approvers.user.detail', 'attachments', 'creator.detail.jabatan', 'creator.detail.jabatanRole', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
+        $sentQuery = Letter::with(['recipients', 'approvers.user.detail.jabatan.parent', 'approvers.user.detail.jabatanRole', 'approvers.user.detail.pangkat', 'approvers.user.detail', 'attachments', 'creator.detail.jabatan.parent', 'creator.detail.jabatanRole', 'creator.detail.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where('created_by', $user->id);
 
         if ($search) {
@@ -149,7 +167,7 @@ class LetterController extends Controller
         // Inbox mails query
         $inboxQuery = LetterRecipient::where('recipient_type', 'user')
             ->where('recipient_id', $user->id)
-            ->with(['letter.creator.detail.jabatan', 'letter.creator.detail.jabatanRole', 'letter.attachments', 'letter.approvers.user.detail.jabatan', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.detail.jabatan.parent', 'letter.creator.detail.jabatanRole', 'letter.creator.detail.pangkat', 'letter.attachments', 'letter.approvers.user.detail.jabatan.parent', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail.pangkat', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $inboxQuery->whereHas('letter', function ($q) use ($search) {
@@ -186,7 +204,7 @@ class LetterController extends Controller
             }
         } else {
             $inboxQuery->whereHas('letter', function ($q) {
-                $q->where('status', '!=', 'archived');
+                $q->where('status', 'approved');
             });
         }
 
@@ -194,7 +212,7 @@ class LetterController extends Controller
             ->paginate(10, ['*'], 'inbox_page')
             ->through(function ($recipient) {
                 $data = $this->transformLetter($recipient->letter);
-                $data['status'] = $recipient->is_read ? 'read' : 'new';
+                $data['is_read'] = (bool) $recipient->is_read;
 
                 return $data;
             })
@@ -214,7 +232,7 @@ class LetterController extends Controller
                 AND prev.order < letter_approvers.order 
                 AND prev.status != "approved"
             )')
-            ->with(['letter.creator.detail.jabatan', 'letter.creator.detail.jabatanRole', 'letter.attachments', 'letter.approvers.user.detail.jabatan', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.detail.jabatan.parent', 'letter.creator.detail.jabatanRole', 'letter.creator.detail.pangkat', 'letter.attachments', 'letter.approvers.user.detail.jabatan.parent', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail.pangkat', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $approvalsQuery->whereHas('letter', function ($q) use ($search) {
@@ -242,7 +260,7 @@ class LetterController extends Controller
         // Already Approved Query
         $alreadyApprovedQuery = LetterApprover::where('user_id', $user->id)
             ->where('status', 'approved')
-            ->with(['letter.creator.detail.jabatan', 'letter.creator.detail.jabatanRole', 'letter.attachments', 'letter.approvers.user.detail.jabatan', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.detail.jabatan.parent', 'letter.creator.detail.jabatanRole', 'letter.creator.detail.pangkat', 'letter.attachments', 'letter.approvers.user.detail.jabatan.parent', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail.pangkat', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $alreadyApprovedQuery->whereHas('letter', function ($q) use ($search) {
@@ -269,7 +287,7 @@ class LetterController extends Controller
 
         $openedMail = null;
         if ($request->has('open_mail_id')) {
-            $mail = Letter::with(['recipients', 'approvers.user.staff.jabatan', 'approvers.user.detail', 'attachments', 'creator', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
+            $mail = Letter::with(['recipients', 'approvers.user.staff.jabatan.parent', 'approvers.user.detail.pangkat', 'approvers.user.detail', 'attachments', 'creator', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
                 ->find($request->input('open_mail_id'));
 
             if ($mail) {
@@ -281,6 +299,11 @@ class LetterController extends Controller
                 if ($recipient) {
                     $recipient->update(['is_read' => true, 'read_at' => now()]); // Fix: actually mark as read
                     $openedMail['status'] = 'read';
+                }
+
+                // Auto-archive: Mark as archived when viewed
+                if (!$mail->archived_at) {
+                    $mail->update(['archived_at' => now()]);
                 }
             }
         }
@@ -360,6 +383,7 @@ class LetterController extends Controller
             'signature_positions' => 'nullable|array', // Validate signature positions
             'reference_letter_id' => 'nullable|exists:letters,id',
             'workflow_steps' => 'nullable|array', // Allow dynamic workflow
+            'place' => 'nullable|string',
         ]);
 
         // Prevent self-sending
@@ -368,6 +392,20 @@ class LetterController extends Controller
                 return back()->withErrors(['recipient' => 'Anda tidak dapat mengirim surat kepada diri sendiri.']);
             }
         }
+
+        // Calculate sequence number immediately before creation
+        $year = now()->year;
+        $currentMax = Letter::whereYear('created_at', $year)->lockForUpdate()->max('sequence_number') ?? 0;
+        $nextSequence = $currentMax + 1;
+        
+        // Generate formatting if needed, though frontend does it. 
+        // We'll just save the sequence number for now, and maybe a simple letter number string
+        // Format: CODE/BCN/ROMAN/YEAR/SEQUENCE
+        $letterType = \App\Models\LetterType::find($validated['letter_type_id']);
+        $code = $letterType ? $letterType->code : 'SRT';
+        $romanMonth = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][now()->month - 1];
+        // Format: CODE/SEQUENCE/ROMAN/YEAR/BACADNAS
+        $formattedNumber = sprintf('%s/%s/%s/%s/BACADNAS', $code, str_pad($nextSequence, 3, '0', STR_PAD_LEFT), $romanMonth, $year);
 
         $letter = Letter::create([
             'subject' => $validated['subject'],
@@ -381,6 +419,9 @@ class LetterController extends Controller
             'created_by' => Auth::id(),
             'signature_positions' => $validated['signature_positions'] ?? null,
             'reference_letter_id' => $validated['reference_letter_id'] ?? null,
+            'sequence_number' => $nextSequence,
+            'letter_number' => $formattedNumber,
+            'place' => $validated['place'] ?? 'Jakarta',
         ]);
 
         // Start Workflow only if letter type is selected
@@ -626,7 +667,7 @@ class LetterController extends Controller
         };
 
         // Query for starred mails (both sent and received)
-        $starredQuery = Letter::with(['recipients', 'creator'])
+        $starredQuery = Letter::with(['recipients', 'approvers.user.detail.jabatan.parent', 'approvers.user.detail.jabatanRole', 'approvers.user.detail.pangkat', 'approvers.user.detail', 'attachments', 'creator.detail.jabatan.parent', 'creator.detail.jabatanRole', 'creator.detail.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id)
                     ->orWhereHas('recipients', function ($rq) use ($user) {
@@ -650,7 +691,7 @@ class LetterController extends Controller
 
         $starredMails = $starredQuery->orderBy('created_at', 'desc')
             ->paginate(10)
-            ->through($transformLetter)
+            ->through(fn ($l) => $this->transformLetter($l))
             ->withQueryString();
 
         return Inertia::render('MailManagement/StarredMails', [
@@ -664,27 +705,8 @@ class LetterController extends Controller
         $user = Auth::user();
         $search = $request->input('search');
         $category = $request->input('category');
-
-        // Helper for transforming letter data
-        $transformLetter = function ($letter) {
-            return [
-                'id' => $letter->id,
-                'subject' => $letter->subject,
-                'recipient' => $letter->recipients->map(function ($r) {
-                    return $r->recipient_type === 'division' ? $r->recipient_id : User::find($r->recipient_id)?->name;
-                })->join(', '),
-                'sender' => $letter->creator->name,
-                'status' => $letter->status,
-                'priority' => $letter->priority,
-                'category' => $letter->category,
-                'date' => $letter->created_at->format('Y-m-d'),
-                'description' => $letter->description,
-                'is_starred' => (bool) $letter->is_starred,
-            ];
-        };
-
-        // Query for archived mails (both sent and received)
-        $archivedQuery = Letter::with(['recipients', 'creator'])
+        // Query for archived mails (both sent and received) - filter by archived_at
+        $archivedQuery = Letter::with(['recipients', 'approvers.user.detail.jabatan.parent', 'approvers.user.detail.jabatanRole', 'approvers.user.detail.pangkat', 'approvers.user.detail', 'attachments', 'creator.detail.jabatan.parent', 'creator.detail.jabatanRole', 'creator.detail.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id)
                     ->orWhereHas('recipients', function ($rq) use ($user) {
@@ -692,8 +714,7 @@ class LetterController extends Controller
                             ->where('recipient_id', $user->id);
                     });
             })
-            ->whereIn('status', ['sent', 'received', 'read', 'disposed', 'in_progress', 'pending', 'approved', 'rejected', 'returned', 'archived', 'revision'])
-            ->where('status', '!=', 'draft');
+            ->whereIn('status', ['approved', 'sent', 'read', 'disposed', 'archived']); // Only finalized/accepted mails
 
         if ($search) {
             $archivedQuery->where(function ($q) use ($search) {
@@ -705,15 +726,17 @@ class LetterController extends Controller
         if ($category && $category !== 'all') {
             $archivedQuery->where('category', $category);
         }
-
         $archivedMails = $archivedQuery->orderBy('created_at', 'desc')
             ->paginate(10)
-            ->through($transformLetter)
+            ->through(fn ($l) => $this->transformLetter($l))
             ->withQueryString();
+
+        $letterTypes = \App\Models\LetterType::select('id', 'name')->get();
 
         return Inertia::render('MailManagement/ArchivedMails', [
             'archivedMails' => $archivedMails,
             'filters' => $request->only(['search', 'category']),
+            'letterTypes' => $letterTypes,
         ]);
     }
 
