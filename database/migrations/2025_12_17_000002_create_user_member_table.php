@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('user_details', function (Blueprint $table) {
+        Schema::create('user_member', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('nia_nrp')->nullable()->unique();
@@ -44,6 +44,10 @@ return new class extends Migration
             $table->date('tanggal_pengangkatan')->nullable();
             $table->string('nomor_sk')->nullable();
             $table->string('nomor_kta')->nullable();
+            // KTA validity fields (consolidated from incremental migrations)
+            $table->date('kta_start_date')->nullable();
+            $table->date('kta_expired_at')->nullable();
+            $table->boolean('is_kta_lifetime')->default(false);
             $table->timestamps();
         });
     }
@@ -53,6 +57,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('user_details');
+        Schema::dropIfExists('user_member');
     }
 };

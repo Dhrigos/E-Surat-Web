@@ -7,7 +7,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
-import { Activity, FileText, Home, List, Mail, Users, Share2, Star, Archive, MoreHorizontal, MapPin, Inbox, Clock, Send, CheckCircle, SquarePen, LogOut } from 'lucide-react';
+import { Activity, FileText, Home, List, Mail, Users, Share2, Star, Archive, MoreHorizontal, MapPin, Inbox, Clock, Send, CheckCircle, SquarePen, LogOut, Settings } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -47,7 +47,7 @@ export function AppSidebar() {
         },
     ];
 
-    const mainNavItems: NavItem[] = [
+    let mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
             href: dashboard(),
@@ -81,6 +81,17 @@ export function AppSidebar() {
         },
     ];
 
+    // RESTRICT MENU FOR CALON ANGGOTA
+    if (user?.member_type === 'calon_anggota') {
+        mainNavItems = [
+            {
+                title: 'Dashboard',
+                href: dashboard(),
+                icon: Home,
+            }
+        ];
+    }
+
     const isSuperAdmin = user?.roles?.some((role: any) => role.name === 'super-admin');
 
 
@@ -90,8 +101,13 @@ export function AppSidebar() {
 
     if (hasManagerRole) {
         mainNavItems.push({
-            title: 'Mapping Staff',
+            title: 'Data Anggota',
             href: '/staff-mapping',
+            icon: Users,
+        });
+        mainNavItems.push({
+            title: 'Data Calon Anggota',
+            href: '/calon-mapping',
             icon: Users,
         });
         mainNavItems.push({
@@ -99,6 +115,12 @@ export function AppSidebar() {
             href: '/data-master',
             icon: Users,
         });
+        mainNavItems.push({
+            title: 'Setting Pendaftaran',
+            href: '/settings/registration',
+            icon: Settings,
+        });
+
         mainNavItems.push({
             title: 'Audit Log',
             href: '/audit-logs',

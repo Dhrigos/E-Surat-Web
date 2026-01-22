@@ -92,8 +92,8 @@ class ProfileController extends Controller
         $detail = $user->detail;
 
         $rules = [
-            'nia_nrp' => 'required|string|max:255|unique:user_details,nia_nrp'.($detail ? ','.$detail->id : ''),
-            'nik' => 'required|string|max:255|unique:user_details,nik'.($detail ? ','.$detail->id : ''),
+            'nia_nrp' => 'required|string|max:255|unique:user_member,nia_nrp'.($detail ? ','.$detail->id : ''),
+            'nik' => 'required|string|max:255|unique:user_member,nik'.($detail ? ','.$detail->id : ''),
             'tempat_lahir' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|string|in:Laki-laki,Perempuan',
@@ -143,7 +143,9 @@ class ProfileController extends Controller
             $data['tanda_tangan'] = $request->file('tanda_tangan')->store('user-details/tanda-tangan', 'public');
         }
 
-        \App\Models\UserDetail::updateOrCreate(
+        // Use appropriate model based on member_type
+        $modelClass = $user->member_type === 'anggota' ? \App\Models\UserMember::class : \App\Models\UserCalon::class;
+        $modelClass::updateOrCreate(
             ['user_id' => $user->id],
             $data
         );

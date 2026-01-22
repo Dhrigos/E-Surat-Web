@@ -40,31 +40,7 @@
         </script>
 
         {{-- Inline script to detect system dark mode preference --}}
-        <script>
-            // Mobile "Desktop Mode" Detection
-            (function() {
-                // Check if current page is already the download app page to avoid infinite loop
-                if (window.location.pathname === '/download-app') return;
 
-                function isMobileDesktopMode() {
-                    var userAgent = navigator.userAgent;
-                    var maxTouchPoints = navigator.maxTouchPoints || 0;
-                    
-                    // iPadOS 13+ requests desktop site by default (Macintosh UA but has touch points)
-                    var isIPad = userAgent.includes('Macintosh') && maxTouchPoints > 0;
-                    
-                    // Specific check for Android/Other mobile devices requesting desktop site
-                    // They often hide "Mobile" from UA but still have touch points and mobile-like screen dimensions
-                    var isAndroidDesktop = !userAgent.includes('Mobile') && maxTouchPoints > 0 && (window.screen.width < 1024 || window.screen.height < 1024);
-
-                    return isIPad || isAndroidDesktop;
-                }
-
-                if (isMobileDesktopMode()) {
-                    window.location.href = '/download-app';
-                }
-            })();
-        </script>
 
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>

@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('user_details', function (Blueprint $table) {
-            $table->date('kta_start_date')->nullable()->after('nomor_kta');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('member_type')->nullable()->after('username');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('user_details', function (Blueprint $table) {
-            $table->dropColumn('kta_start_date');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('member_type');
         });
     }
 };

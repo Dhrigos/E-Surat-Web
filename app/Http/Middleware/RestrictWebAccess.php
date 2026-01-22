@@ -32,11 +32,11 @@ class RestrictWebAccess
 
         // Check for common mobile user agents
         $userAgent = strtolower($request->header('User-Agent'));
-        $isMobile = str_contains($userAgent, 'mobile') || 
-                    str_contains($userAgent, 'android') || 
+        $isMobile = (str_contains($userAgent, 'mobile') || 
                     str_contains($userAgent, 'iphone') || 
-                    str_contains($userAgent, 'ipad') || 
-                    str_contains($userAgent, 'ipod');
+                    str_contains($userAgent, 'ipod')) && 
+                    !str_contains($userAgent, 'ipad');
+                    // Removed 'android' (too broad, catches tablets) and excluded 'ipad'
 
         // IF it IS a mobile device, redirect to download page
         // Check for App/WebView specific strings

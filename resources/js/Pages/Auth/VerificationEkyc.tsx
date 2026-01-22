@@ -15,6 +15,7 @@ export default function VerificationEkyc() {
     const [ktpImg, setKtpImg] = useState<string | null>(null);
     const [selfieImg, setSelfieImg] = useState<string | null>(null);
     const [similarityScore, setSimilarityScore] = useState(0);
+    const [redirectUrl, setRedirectUrl] = useState<string>(route('complete-profile.create'));
 
     const handleKtpCapture = async (img: string) => {
         setKtpImg(img);
@@ -53,8 +54,10 @@ export default function VerificationEkyc() {
 
             if (response.data.status === 'success') {
                 setStep('success');
+                if (response.data.redirect) {
+                    setRedirectUrl(response.data.redirect);
+                }
                 toast.success('Foto berhasil diunggah!');
-                // Remove auto-redirect, let user click Next button
             }
         } catch (e: any) {
             toast.dismiss(tId);
@@ -92,8 +95,6 @@ export default function VerificationEkyc() {
             </div>
 
             {/* Background Effects */}
-            {/* <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-red-600/20 rounded-full blur-[120px] animate-pulse" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-red-900/20 rounded-full blur-[100px] animate-pulse delay-700" /> */}
             <style>{`
                 @keyframes glow-move-1 {
                     0% { transform: translate(0, 0) scale(1); opacity: 0.2; }
@@ -235,7 +236,7 @@ export default function VerificationEkyc() {
                             <h3 className="text-2xl font-bold text-white">Verifikasi Berhasil!</h3>
                             <p className="text-gray-400">Lanjutkan lengkapi data Anda</p>
                             <Button
-                                onClick={() => window.location.href = route('complete-profile.create')}
+                                onClick={() => window.location.href = redirectUrl}
                                 className="w-full max-w-xs bg-[#AC0021] hover:bg-[#AC0021]/80 text-white font-bold py-6 text-lg rounded-xl gap-2"
                             >
                                 Lanjutkan <ArrowRight className="w-5 h-5" />

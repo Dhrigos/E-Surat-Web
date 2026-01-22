@@ -10,7 +10,7 @@ interface AppLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
     <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
-        <ScreenProtection />
+        {/* <ScreenProtection /> */}
         {children}
     </AppLayoutTemplate>
 );

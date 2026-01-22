@@ -30,6 +30,7 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'phone_number' => ['required', 'string', 'max:255'],
+            'member_type' => ['required', 'string', 'max:255', Rule::in(['anggota', 'calon_anggota'])],
             'password' => $this->passwordRules(),
             'otp' => ['required', 'string', function ($attribute, $value, $fail) use ($input) {
                 if (!isset($input['email'])) {
@@ -47,13 +48,29 @@ class CreateNewUser implements CreatesNewUsers
             \Illuminate\Support\Facades\Cache::forget('otp_reg_' . $input['email']);
         }
 
-        return User::create([
+        $user = User::create([
             'name' => $input['name'],
+            'member_type' => $input['member_type'],
             'username' => $input['username'],
             'email' => $input['email'],
             'phone_number' => $input['phone_number'],
             'password' => Hash::make($input['password']),
             'is_active' => true,
         ]);
+
+        // Assign Role based on member_type
+        // Anggota -> Staff
+        // Calon Anggota -> Calon
+        $roleName = match ($input['member_type']) {
+            'anggota' => 'staff',
+            'calon_anggota' => 'calon',
+            default => 'user',
+        };
+
+        // Ensure role exists (safe guard)
+        $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+        $user->assignRole($role);
+
+        return $user;
     }
 }

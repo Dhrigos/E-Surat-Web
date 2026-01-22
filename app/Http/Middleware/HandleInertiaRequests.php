@@ -43,9 +43,18 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user() ? array_merge($request->user()->load('roles', 'detail.jabatan', 'detail.jabatanRole')->toArray(), [
-                    'can_dispose' => $request->user()->detail?->jabatan_id && \App\Models\Jabatan::where('parent_id', $request->user()->detail->jabatan_id)->exists()
-                ]) : null,
+                'user' => $request->user() ? (function ($user) {
+                    $user->load('roles');
+                    if ($user->member_type === 'anggota') {
+                        $user->load(['detail.jabatan', 'detail.jabatanRole']);
+                    } else {
+                        $user->load(['detail']);
+                    }
+                    
+                    return array_merge($user->toArray(), [
+                        'can_dispose' => $user->member_type === 'anggota' && $user->detail?->jabatan_id && \App\Models\Jabatan::where('parent_id', $user->detail->jabatan_id)->exists()
+                    ]);
+                })($request->user()) : null,
                 'notifications' => $request->user() ? $request->user()->notifications()->latest()->take(10)->get() : [],
             ],
             'flash' => [

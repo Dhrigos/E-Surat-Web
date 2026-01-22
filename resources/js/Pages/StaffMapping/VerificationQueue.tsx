@@ -34,13 +34,39 @@ interface UserDetail {
     nomor_sk: string;
     nomor_kta: string;
     tanggal_pengangkatan: string;
+    suku?: { id: number; nama: string };
+    bangsa?: { id: number; nama: string };
+    agama?: { id: number; nama: string };
+    statusPernikahan?: { id: number; nama: string };
+    nama_ibu_kandung?: string;
+    golonganDarah?: { id: number; nama: string };
+    tinggi_badan?: string;
+    berat_badan?: string;
+    warna_kulit?: string;
+    warna_rambut?: string;
+    bentuk_rambut?: string;
+    // Calon Documents
+    doc_surat_lamaran?: string;
+    doc_ktp?: string;
+    doc_kk?: string;
+    doc_sk_lurah?: string;
+    doc_skck?: string;
+    doc_ijazah?: string;
+    doc_sk_sehat?: string;
+    doc_drh?: string;
+    doc_latsarmil?: string;
+    doc_izin_instansi?: string;
+    doc_izin_ortu?: string;
 }
 
 interface User {
     id: number;
     name: string;
     email: string;
-    detail?: UserDetail;
+    member_type: 'anggota' | 'calon_anggota';
+    member?: UserDetail;
+    calon?: UserDetail;
+    detail?: UserDetail; // Legacy - for backward compatibility
     created_at: string;
     updated_at: string;
     verification_locked_at?: string;
@@ -54,9 +80,12 @@ interface User {
 interface Props {
     users: User[];
     currentUserId: number;
+    activeType?: string;
+    staffQueueCount?: number;
+    calonQueueCount?: number;
 }
 
-export default function VerificationQueue({ users, currentUserId }: Props) {
+export default function VerificationQueue({ users, currentUserId, activeType = 'staff', staffQueueCount = 0, calonQueueCount = 0 }: Props) {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isReviewOpen, setIsReviewOpen] = useState(false);
     const [isRejectOpen, setIsRejectOpen] = useState(false);
@@ -68,6 +97,12 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
     const { data: rejectionData, setData: setRejectionData, post: postRejection, processing: rejectionProcessing, reset: resetRejection } = useForm({
         reason: '',
     });
+
+    // Helper to get the correct detail based on member_type
+    const getDetail = (user: User | null) => {
+        if (!user) return null;
+        return user.member_type === 'anggota' ? user.member : user.calon;
+    };
 
     const handleReject = () => {
         if (!rejectionData.reason.trim()) {
@@ -127,9 +162,30 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
     };
 
     const tabs = [
-        { id: 'staff-list', label: 'Staff List', icon: Users, show: true, href: route('staff-mapping') },
-        { id: 'verification-queue', label: 'Antrian', icon: Shield, show: true, href: route('verification-queue.index') },
+        {
+            id: 'staff-list',
+            label: activeType === 'staff' ? 'Data Anggota' : 'Data Calon Anggota',
+            icon: Users,
+            show: true,
+            href: route(activeType === 'staff' ? 'staff-mapping' : 'calon-mapping'),
+            isActive: false  // Not active on verification queue page
+        },
+        {
+            id: 'verification-queue',
+            label: activeType === 'staff' ? 'Antrian Anggota' : 'Antrian Calon Anggota',
+            icon: Shield,
+            show: true,
+            href: route('verification-queue.index', { type: activeType }),
+            count: activeType === 'staff' ? staffQueueCount : calonQueueCount,
+            isActive: true  // Always active on verification queue page
+        },
     ].filter(tab => tab.show);
+
+    const formatGender = (value?: string) => {
+        if (value === '1') return 'Laki-laki';
+        if (value === '2') return 'Perempuan';
+        return value || '-';
+    };
 
     const getFileUrl = (path?: string) => {
         if (!path) return null;
@@ -140,53 +196,98 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
         const url = getFileUrl(path);
         if (!url) return null;
 
-        const isPdf = path.toLowerCase().endsWith('.pdf');
+        const extension = path.split('.').pop()?.toLowerCase();
+        const isPdf = extension === 'pdf';
+        const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension || '');
 
         if (isPdf) {
             return (
-                <div className="w-full h-full relative group">
-                    <iframe src={url} className="w-full h-full bg-white" title={alt}></iframe>
+                <div className="w-full h-full relative group bg-neutral-900">
+                    <iframe
+                        src={`${url}#view=FitH`}
+                        className="w-full h-full rounded-lg"
+                        title={alt}
+                    />
+                    {/* Overlay for "Open in New Tab" only on hover */}
                     <div
-                        className="absolute inset-0 bg-transparent hover:bg-black/5 transition-colors cursor-pointer flex items-center justify-center"
-                        onClick={() => window.open(url, '_blank')}
+                        className="absolute inset-0 bg-transparent hover:bg-black/10 transition-colors pointer-events-none flex items-center justify-center"
                     >
-                        <div className="bg-black/50 text-white px-3 py-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            Klik untuk Buka PDF
-                        </div>
+                        <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto flex items-center gap-2 hover:bg-black/90"
+                        >
+                            <Eye className="w-4 h-4" />
+                            Buka PDF
+                        </a>
                     </div>
                 </div>
             );
         }
 
+        if (isImage) {
+            return (
+                <div className="w-full h-full relative group">
+                    <img
+                        src={url}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer rounded-lg"
+                        onClick={() => window.open(url, '_blank')}
+                        alt={alt}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 rounded-lg pointer-events-none flex items-center justify-center">
+                        <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-50 group-hover:scale-100" />
+                    </div>
+                </div>
+            );
+        }
+
+        // Fallback for other file types (DOCX, etc)
         return (
-            <img
-                src={url}
-                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-                onClick={() => window.open(url, '_blank')}
-                alt={alt}
-            />
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#2a2a2a] rounded-lg p-4 border border-white/5 gap-3 group hover:bg-[#333] transition-colors">
+                <div className="p-3 bg-white/5 rounded-full group-hover:bg-white/10 transition-colors">
+                    <Briefcase className="w-8 h-8 text-neutral-400 group-hover:text-[#007ee7] transition-colors" />
+                </div>
+                <div className="text-center">
+                    <p className="text-xs text-neutral-400 mb-1 font-medium">{extension?.toUpperCase()} File</p>
+                    <p className="text-sm font-semibold text-white truncate max-w-[150px]">{alt}</p>
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white h-8 text-xs gap-2"
+                    onClick={() => window.open(url, '_blank')}
+                >
+                    <Eye className="w-3 h-3" /> Preview
+                </Button>
+            </div>
         );
     };
 
     return (
         <AppLayout>
-            <Head title="Antrian Verifikasi E-KYC" />
+            <Head title={`Antrian Verifikasi - ${activeType === 'staff' ? 'Staff' : 'Calon'}`} />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl font-bold">Mapping Staff & Verifikasi</h1>
+                    <h1 className="text-3xl font-bold">
+                        {activeType === 'staff' ? 'Data Anggota' : 'Data Calon Anggota'}
+                    </h1>
                     <p className="text-muted-foreground mt-2">
-                        Kelola tim dan verifikasi akun karyawan baru oleh Direktorat Jendral Potensi Pertahanan
+                        {activeType === 'staff'
+                            ? 'Kelola tim dan verifikasi akun anggota karyawan baru.'
+                            : 'Kelola dan verifikasi akun calon anggota baru.'}
                     </p>
                 </div>
 
                 {/* Tab Navigation */}
                 <div className="flex justify-center">
-                    <nav className="grid grid-cols-2 p-1 bg-[#262626] shadow-lg rounded-full w-full">
+                    <nav className="grid grid-cols-2 p-1 bg-[#262626] border border-white/5 rounded-full w-full">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
-                            const isActive = tab.id === 'verification-queue';
+                            // isActive logic handles highlighting
+                            const isActive = (tab as any).isActive || false;
 
                             return (
                                 <button
@@ -201,12 +302,12 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                 >
                                     <Icon className="h-4 w-4" />
                                     <span>{tab.label}</span>
-                                    {tab.id === 'verification-queue' && users.length > 0 && (
+                                    {((tab as any).count > 0) && (
                                         <span className={cn(
                                             "ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-bold",
                                             isActive ? "bg-white text-[#AC0021]" : "bg-[#AC0021] text-white"
                                         )}>
-                                            {users.length}
+                                            {(tab as any).count}
                                         </span>
                                     )}
                                 </button>
@@ -297,8 +398,8 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                         {/* Avatar */}
                                         <div className="shrink-0">
                                             <Avatar className="h-14 w-14 border-0">
-                                                {user.detail?.foto_profil && (
-                                                    <AvatarImage src={getFileUrl(user.detail.foto_profil) || ''} alt={user.name} className="object-cover" />
+                                                {getDetail(user)?.foto_profil && (
+                                                    <AvatarImage src={getFileUrl(getDetail(user)!.foto_profil) || ''} alt={user.name} className="object-cover" />
                                                 )}
                                                 <AvatarFallback className="text-white font-bold text-lg bg-[#AC0021]">
                                                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
@@ -325,15 +426,15 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                             <div className="space-y-3">
                                                 <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
                                                     <CreditCard className="h-4 w-4 shrink-0" />
-                                                    <span>{user.detail?.nia_nrp || user.detail?.nik || '-'}</span>
+                                                    <span>{getDetail(user)?.nia_nrp || getDetail(user)?.nik || '-'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
                                                     <Phone className="h-4 w-4 shrink-0" />
-                                                    <span>{user.detail?.alamat_domisili_lengkap || '+62 -'}</span> {/* Fallback if phone not available in detail */}
+                                                    <span>{getDetail(user)?.alamat_domisili_lengkap || '+62 -'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
                                                     <Building2 className="h-4 w-4 shrink-0" />
-                                                    <span>{user.detail?.unit_kerja?.nama || 'Unit Kerja Belum Set'}</span>
+                                                    <span>{getDetail(user)?.unit_kerja?.nama || 'Unit Kerja Belum Set'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-orange-500 text-sm mt-1">
                                                     <Clock className="h-4 w-4 shrink-0" />
@@ -349,7 +450,7 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                                 </div>
                                                 <div className="flex items-center gap-2 text-[#B0B0B0] text-sm">
                                                     <Briefcase className="h-4 w-4 shrink-0" />
-                                                    <span>{user.detail?.jabatan?.nama || 'Staff'}</span>
+                                                    <span>{getDetail(user)?.jabatan?.nama || 'Staff'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -392,11 +493,11 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                         <div className="space-y-3">
                                             <p className="text-sm text-neutral-400 text-center">E-KTP</p>
                                             <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
-                                                {selectedUser?.detail?.scan_ktp ? (
+                                                {getDetail(selectedUser)?.scan_ktp ? (
                                                     <img
-                                                        src={getFileUrl(selectedUser.detail.scan_ktp)!}
+                                                        src={getFileUrl(getDetail(selectedUser)!.scan_ktp)!}
                                                         className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
-                                                        onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_ktp)!, '_blank')}
+                                                        onClick={() => window.open(getFileUrl(getDetail(selectedUser)?.scan_ktp)!, '_blank')}
                                                         alt="KTP"
                                                     />
                                                 ) : (
@@ -407,11 +508,11 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                         <div className="space-y-3">
                                             <p className="text-sm text-neutral-400 text-center">Selfie</p>
                                             <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
-                                                {selectedUser?.detail?.scan_selfie ? (
+                                                {getDetail(selectedUser)?.scan_selfie ? (
                                                     <img
-                                                        src={getFileUrl(selectedUser.detail.scan_selfie)!}
+                                                        src={getFileUrl(getDetail(selectedUser)!.scan_selfie)!}
                                                         className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
-                                                        onClick={() => window.open(getFileUrl(selectedUser.detail?.scan_selfie)!, '_blank')}
+                                                        onClick={() => window.open(getFileUrl(getDetail(selectedUser)?.scan_selfie)!, '_blank')}
                                                         alt="Selfie"
                                                     />
                                                 ) : (
@@ -422,32 +523,69 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                     </div>
                                 </div>
 
-                                {/* Dokumen Pendukung */}
-                                <div className="bg-[#1f1f1f] p-5 rounded-xl shadow-lg">
-                                    <h3 className="font-semibold mb-6 text-white text-base">Dokumen Pendukung</h3>
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-3">
-                                            <p className="text-sm text-neutral-400 text-center">KTA</p>
-                                            <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
-                                                {selectedUser?.detail?.scan_kta ? (
-                                                    <FilePreview path={selectedUser.detail.scan_kta} alt="KTA" />
-                                                ) : (
-                                                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Document</div>
-                                                )}
+                                {/* Dokumen Pendukung - Only for Anggota */}
+                                {selectedUser?.member_type === 'anggota' && (
+                                    <div className="bg-[#1f1f1f] p-5 rounded-xl shadow-lg">
+                                        <h3 className="font-semibold mb-6 text-white text-base">Dokumen Pendukung</h3>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-3">
+                                                <p className="text-sm text-neutral-400 text-center">KTA</p>
+                                                <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
+                                                    {getDetail(selectedUser)?.scan_kta ? (
+                                                        <FilePreview path={getDetail(selectedUser)!.scan_kta} alt="KTA" />
+                                                    ) : (
+                                                        <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Document</div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <p className="text-sm text-neutral-400 text-center">SK</p>
-                                            <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
-                                                {selectedUser?.detail?.scan_sk ? (
-                                                    <FilePreview path={selectedUser.detail.scan_sk} alt="SK" />
-                                                ) : (
-                                                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Document</div>
-                                                )}
+                                            <div className="space-y-3">
+                                                <p className="text-sm text-neutral-400 text-center">SK</p>
+                                                <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
+                                                    {getDetail(selectedUser)?.scan_sk ? (
+                                                        <FilePreview path={getDetail(selectedUser)!.scan_sk} alt="SK" />
+                                                    ) : (
+                                                        <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Document</div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
+
+                                {selectedUser?.member_type === 'calon_anggota' && (
+                                    <div className="bg-[#1f1f1f] p-5 rounded-xl shadow-lg">
+                                        <h3 className="font-semibold mb-6 text-white text-base">Dokumen Pendukung</h3>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            {[
+                                                { label: 'Surat Lamaran', key: 'doc_surat_lamaran' },
+                                                { label: 'KTP', key: 'doc_ktp' },
+                                                { label: 'Kartu Keluarga', key: 'doc_kk' },
+                                                { label: 'SK Lurah', key: 'doc_sk_lurah' },
+                                                { label: 'SKCK', key: 'doc_skck' },
+                                                { label: 'Ijazah', key: 'doc_ijazah' },
+                                                { label: 'Surat Sehat', key: 'doc_sk_sehat' },
+                                                { label: 'DRH', key: 'doc_drh' },
+                                                { label: 'Latsarmil', key: 'doc_latsarmil' },
+                                                { label: 'Izin Instansi', key: 'doc_izin_instansi' },
+                                                { label: 'Izin Ortu', key: 'doc_izin_ortu' },
+                                            ].map((doc) => {
+                                                const path = (getDetail(selectedUser) as any)?.[doc.key];
+                                                return (
+                                                    <div key={doc.key} className="space-y-3">
+                                                        <p className="text-sm text-neutral-400 text-center">{doc.label}</p>
+                                                        <div className="aspect-video bg-[#262626] rounded-lg overflow-hidden shadow-inner relative group">
+                                                            {path ? (
+                                                                <FilePreview path={path} alt={doc.label} />
+                                                            ) : (
+                                                                <div className="flex items-center justify-center h-full text-neutral-500 text-sm">No Document</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Right: Info */}
@@ -460,36 +598,88 @@ export default function VerificationQueue({ users, currentUserId }: Props) {
                                     </div>
                                     <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
                                         <span className="text-neutral-400">NIK</span>
-                                        <span className="text-white font-medium">{selectedUser?.detail?.nik}</span>
+                                        <span className="text-white font-medium">{getDetail(selectedUser)?.nik}</span>
                                     </div>
-                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
-                                        <span className="text-neutral-400">NRP</span>
-                                        <span className="text-white font-medium">{selectedUser?.detail?.nia_nrp}</span>
-                                    </div>
+                                    {selectedUser?.member_type === 'anggota' && (
+                                        <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                            <span className="text-neutral-400">NRP</span>
+                                            <span className="text-white font-medium">{getDetail(selectedUser)?.nia_nrp}</span>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
                                         <span className="text-neutral-400">TTL</span>
-                                        <span className="text-white font-medium">{selectedUser?.detail?.tempat_lahir && selectedUser?.detail?.tanggal_lahir ? `${selectedUser.detail.tempat_lahir}, ${selectedUser.detail.tanggal_lahir}` : '-'}</span>
+                                        <span className="text-white font-medium">{getDetail(selectedUser)?.tempat_lahir && getDetail(selectedUser)?.tanggal_lahir ? `${getDetail(selectedUser)!.tempat_lahir}, ${getDetail(selectedUser)!.tanggal_lahir}` : '-'}</span>
                                     </div>
                                     <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
                                         <span className="text-neutral-400">Jenis Kelamin</span>
-                                        <span className="text-white font-medium">{selectedUser?.detail?.jenis_kelamin || '-'}</span>
+                                        <span className="text-white font-medium">{formatGender(getDetail(selectedUser)?.jenis_kelamin)}</span>
                                     </div>
                                     <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
                                         <span className="text-neutral-400">Alamat Lengkap</span>
-                                        <span className="text-white font-medium">{selectedUser?.detail?.alamat_domisili_lengkap}</span>
+                                        <span className="text-white font-medium">{getDetail(selectedUser)?.alamat_domisili_lengkap}</span>
                                     </div>
-                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
-                                        <span className="text-neutral-400">Jabatan</span>
-                                        <span className="text-white font-medium">{`${selectedUser?.detail?.jabatan_role?.nama || ''} - ${selectedUser?.detail?.jabatan?.nama || ''}`}</span>
-                                    </div>
-                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
-                                        <span className="text-neutral-400">Tanggal Pengangkatan</span>
-                                        <span className="text-white font-medium">{selectedUser?.detail?.tanggal_pengangkatan || '-'}</span>
-                                    </div>
-                                    <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5 last:border-0">
-                                        <span className="text-neutral-400">Nomor KTA</span>
-                                        <span className="text-white font-medium">{selectedUser?.detail?.nomor_kta || selectedUser?.detail?.nomor_sk || '-'}</span>
-                                    </div>
+                                    {selectedUser?.member_type === 'anggota' && (
+                                        <>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Jabatan</span>
+                                                <span className="text-white font-medium">{`${getDetail(selectedUser)?.jabatan_role?.nama || ''} - ${getDetail(selectedUser)?.jabatan?.nama || ''}`}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Tanggal Pengangkatan</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.tanggal_pengangkatan || '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Nomor KTA</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.nomor_kta || '-'}</span>
+                                            </div>
+                                        </>
+                                    )}
+                                    {selectedUser?.member_type === 'calon_anggota' && (
+                                        <>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Agama</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.agama?.nama || '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Suku & Bangsa</span>
+                                                <span className="text-white font-medium">
+                                                    {getDetail(selectedUser)?.suku?.nama || '-'} / {getDetail(selectedUser)?.bangsa?.nama || '-'}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Status Pernikahan</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.statusPernikahan?.nama || '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5 last:border-0">
+                                                <span className="text-neutral-400">Ibu Kandung</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.nama_ibu_kandung || '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Golongan Darah</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.golonganDarah?.nama || '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Tinggi Badan</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.tinggi_badan ? `${getDetail(selectedUser)?.tinggi_badan} cm` : '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Berat Badan</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.berat_badan ? `${getDetail(selectedUser)?.berat_badan} kg` : '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Warna Kulit</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.warna_kulit || '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5">
+                                                <span className="text-neutral-400">Warna Rambut</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.warna_rambut || '-'}</span>
+                                            </div>
+                                            <div className="grid grid-cols-[140px_1fr] gap-4 py-3 border-b border-white/5 last:border-0">
+                                                <span className="text-neutral-400">Bentuk Rambut</span>
+                                                <span className="text-white font-medium">{getDetail(selectedUser)?.bentuk_rambut || '-'}</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

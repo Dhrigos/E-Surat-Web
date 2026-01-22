@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class UserDetail extends Model
+class UserMember extends Model
 {
     use HasFactory;
+
+    protected $table = 'user_member';
 
     public $timestamps = false;
 
@@ -29,18 +31,16 @@ class UserDetail extends Model
         'scan_sk',
         'tanda_tangan',
         'tanggal_pengangkatan',
-        'nomor_sk',
         'nomor_kta',
         'province_id',
         'city_id',
         'district_id',
         'village_id',
         'jalan',
-        'scan_selfie',
-        'ekyc_score',
-        'office_province_id',
-        'office_city_id',
+        'scan_selfie',        
+        'office_province_id',        
         'mako_id',
+        'status_keanggotaan_id',
         'kta_start_date',
         'kta_expired_at',
         'is_kta_lifetime',
@@ -70,5 +70,15 @@ class UserDetail extends Model
     public function pangkat(): BelongsTo
     {
         return $this->belongsTo(Pangkat::class);
+    }
+
+    public function statusKeanggotaan(): BelongsTo
+    {
+        return $this->belongsTo(StatusKeanggotaan::class);
+    }
+
+    public function mako(): BelongsTo
+    {
+        return $this->belongsTo(Mako::class);
     }
 }

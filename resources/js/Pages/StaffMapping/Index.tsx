@@ -12,9 +12,11 @@ interface Props {
         search?: string;
     };
     pendingCount?: number;
+    pageTitle?: string;
+    pageDescription?: string;
 }
 
-export default function Index({ staff, jabatan, filters, pendingCount }: Props) {
+export default function Index({ staff, jabatan, filters, pendingCount, pageTitle, pageDescription }: Props) {
     const [activeTab, setActiveTab] = useState<'staff-list' | 'roles'>('staff-list');
     const { auth } = usePage().props as any;
     const isSuperAdmin = auth.user.roles.some((r: any) => r.name === 'super-admin');
@@ -26,7 +28,7 @@ export default function Index({ staff, jabatan, filters, pendingCount }: Props) 
 
     return (
         <AppLayout>
-            <Head title="Mapping Staff" />
+            <Head title={pageTitle || "Mapping Staff"} />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
 
@@ -39,6 +41,8 @@ export default function Index({ staff, jabatan, filters, pendingCount }: Props) 
                             jabatan={jabatan}
                             filters={filters}
                             pendingCount={pendingCount}
+                            title={pageTitle}
+                            description={pageDescription}
                         />
                     )}
                 </div>

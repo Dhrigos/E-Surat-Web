@@ -18,6 +18,7 @@ class EnsureUserIsVerified
         // Skip middleware for verification-related routes
         if ($request->routeIs('verification.*') ||
             $request->routeIs('complete-profile.*') ||
+            $request->routeIs('complete-profile-anggota.*') ||
             $request->routeIs('logout')) {
             return $next($request);
         }
@@ -36,6 +37,9 @@ class EnsureUserIsVerified
             // 2. Check Profile Details (Priority 2)
             // If E-KYC is verified but profile is incomplete, redirect to profile completion
             if (!$user->detail || empty($user->detail->nik) || empty($user->detail->nia_nrp)) {
+                 if ($user->member_type === 'anggota') {
+                    return redirect()->route('complete-profile-anggota.create');
+                }
                 return redirect()->route('complete-profile.create');
             }
 

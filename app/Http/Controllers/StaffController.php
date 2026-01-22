@@ -25,16 +25,15 @@ class StaffController extends Controller implements HasMiddleware
     {
         try {
             \Illuminate\Support\Facades\Log::info('StaffController::index accessed');
-            $query = User::with(['roles', 'detail.jabatan', 'detail.jabatanRole', 'detail.pangkat'])
+            $query = User::with(['roles', 'member.jabatan', 'member.jabatanRole', 'member.pangkat', 'member.mako'])
+                ->where('member_type', 'anggota')
                 ->whereDoesntHave('roles', function ($q) {
                     $q->where('name', 'super-admin');
                 })
                 // Exclude users currently in verification queue (pending verification)
                 // Queue = Not verified AND Not rejected (rejection_reason is null)
-                ->where(function ($q) {
-                    $q->where('verifikasi', true)
-                      ->orWhereNotNull('rejection_reason');
-                });
+                // Filter: Show only Verified users. Rejected users are hidden.
+                ->where('verifikasi', true);
 
             // Search
             if ($request->has('search')) {
@@ -56,7 +55,7 @@ class StaffController extends Controller implements HasMiddleware
             $roles = \App\Models\Role::orderBy('name')->get();
 
             $users = $query->orderBy('name')->get()->map(function ($user) {
-                $detail = $user->detail;
+                $detail = $user->member;
 
                 return [
                     'id' => $user->id,
@@ -82,6 +81,11 @@ class StaffController extends Controller implements HasMiddleware
                         'scan_kta' => $detail->scan_kta ? \Illuminate\Support\Facades\Storage::url($detail->scan_kta) : null,
                         'scan_sk' => $detail->scan_sk ? \Illuminate\Support\Facades\Storage::url($detail->scan_sk) : null,
                         'tanda_tangan' => $detail->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($detail->tanda_tangan) : null,
+                        'suku' => $detail->suku?->nama,
+                        'bangsa' => $detail->bangsa?->nama,
+                        'agama' => $detail->agama?->nama,
+                        'status_pernikahan' => $detail->statusPernikahan?->nama,
+                        'nama_ibu_kandung' => $detail->nama_ibu_kandung,
                     ] : null,
                     'jabatan' => [
                         'id' => $detail?->jabatan_id ?? 0,
@@ -93,9 +97,10 @@ class StaffController extends Controller implements HasMiddleware
                 ];
             });
 
-            $pendingCount = User::where('verifikasi', 0)
+            $pendingCount = User::where('member_type', 'anggota')
+                ->where('verifikasi', 0)
                 ->whereNull('rejection_reason')
-                ->whereHas('detail')
+                ->whereHas('member')
                 ->count();
 
             return Inertia::render('StaffMapping/Index', [
@@ -104,9 +109,102 @@ class StaffController extends Controller implements HasMiddleware
                 'roles' => $roles,
                 'filters' => $request->only(['search']),
                 'pendingCount' => $pendingCount,
+                'pageTitle' => 'Data Anggota',
+                'pageDescription' => 'Kelola tim dan verifikasi akun anggota karyawan baru.',
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error in StaffController::index: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function calonIndex(Request $request)
+    {
+        try {
+            \Illuminate\Support\Facades\Log::info('StaffController::calonIndex accessed');
+            $query = User::with(['roles', 'calon.suku', 'calon.bangsa', 'calon.agama', 'calon.statusPernikahan', 'calon.golonganDarah'])
+                ->where('member_type', 'calon_anggota')
+                ->whereDoesntHave('roles', function ($q) {
+                    $q->where('name', 'super-admin');
+                })
+                ->where('verifikasi', true);
+
+            // Search
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhereHas('detail', function ($q) use ($search) {
+                            $q->where('nip', 'like', "%{$search}%")
+                                ->orWhere('nia_nrp', 'like', "%{$search}%");
+                        });
+                });
+            }
+
+            // Get master data for dropdowns
+            $jabatanList = Jabatan::active()->orderBy('nama')->get();
+            $roles = \App\Models\Role::orderBy('name')->get();
+
+            $users = $query->orderBy('name')->get()->map(function ($user) {
+                $detail = $user->calon;
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone_number,
+                    'nip' => $user->nip_nik ?? '-',
+                    'nik' => $detail?->nik ?? '-',
+                    'nia' => $detail?->nia_nrp ?? '-',
+                    'position' => '-',
+                    'pangkat' => '-',
+                    'detail' => $detail ? [
+                        'tempat_lahir' => $detail->tempat_lahir,
+                        'tanggal_lahir' => $detail->tanggal_lahir,
+                        'jenis_kelamin' => $detail->jenis_kelamin,
+                        'alamat' => $detail->alamat_domisili_lengkap,
+                        'nomor_kta' => $detail->nomor_kta ?? '-',
+                        'kta_expired_at' => null,
+                        'is_kta_lifetime' => false,
+                        'foto_profil' => $detail->foto_profil ? \Illuminate\Support\Facades\Storage::url($detail->foto_profil) : null,
+                        'scan_ktp' => $detail->scan_ktp ? \Illuminate\Support\Facades\Storage::url($detail->scan_ktp) : null,
+                        'scan_kta' => null,
+                        'scan_sk' => null,
+                        'tanda_tangan' => $detail->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($detail->tanda_tangan) : null,
+                        'suku' => $detail->suku?->nama,
+                        'bangsa' => $detail->bangsa?->nama,
+                        'agama' => $detail->agama?->nama,
+                        'status_pernikahan' => $detail->statusPernikahan?->nama,
+                        'nama_ibu_kandung' => $detail->nama_ibu_kandung,
+                    ] : null,
+                    'jabatan' => [
+                        'id' => 0,
+                        'nama' => '-',
+                    ],
+                    'tanggal_masuk' => $user->created_at->format('Y-m-d'),
+                    'role' => $user->roles->first()?->name ?? 'user',
+                    'status' => $user->verifikasi == '1' ? 'active' : 'inactive',
+                ];
+            });
+
+             $pendingCount = User::where('member_type', 'calon_anggota')
+                ->where('verifikasi', 0)
+                ->whereNull('rejection_reason')
+                ->whereHas('calon')
+                ->count();
+
+            return Inertia::render('StaffMapping/Index', [
+                'staff' => $users,
+                'jabatan' => $jabatanList,
+                'roles' => $roles,
+                'filters' => $request->only(['search']),
+                'pendingCount' => $pendingCount,
+                'pageTitle' => 'Data Calon Anggota',
+                'pageDescription' => 'Kelola dan verifikasi akun untuk calon anggota.',
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error in StaffController::calonIndex: ' . $e->getMessage());
             throw $e;
         }
     }

@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\UserDetail;
+use App\Models\UserMember;
+use App\Models\UserCalon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,9 +18,16 @@ class ValidationController extends Controller
         $nik = $request->input('nik');
         $userId = Auth::id();
 
-        $exists = UserDetail::where('nik', $nik)
+        // Check both tables
+        $existsInMember = UserMember::where('nik', $nik)
             ->where('user_id', '!=', $userId)
             ->exists();
+            
+        $existsInCalon = UserCalon::where('nik', $nik)
+            ->where('user_id', '!=', $userId)
+            ->exists();
+
+        $exists = $existsInMember || $existsInCalon;
 
         return response()->json([
             'exists' => $exists,
@@ -35,7 +43,8 @@ class ValidationController extends Controller
         $niaNrp = $request->input('nia_nrp');
         $userId = Auth::id();
 
-        $exists = UserDetail::where('nia_nrp', $niaNrp)
+        // Only check UserMember table (anggota only)
+        $exists = UserMember::where('nia_nrp', $niaNrp)
             ->where('user_id', '!=', $userId)
             ->exists();
 
@@ -53,7 +62,8 @@ class ValidationController extends Controller
         $nomorKta = $request->input('nomor_kta');
         $userId = Auth::id();
 
-        $exists = UserDetail::where('nomor_kta', $nomorKta)
+        // Only check UserMember table (anggota only)
+        $exists = UserMember::where('nomor_kta', $nomorKta)
             ->where('user_id', '!=', $userId)
             ->exists();
 

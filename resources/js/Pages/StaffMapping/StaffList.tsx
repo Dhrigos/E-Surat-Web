@@ -62,6 +62,11 @@ interface Staff {
         scan_kta: string | null;
         scan_sk: string | null;
         tanda_tangan: string | null;
+        suku?: string;
+        bangsa?: string;
+        agama?: string;
+        status_pernikahan?: string;
+        nama_ibu_kandung?: string;
     };
 }
 
@@ -72,9 +77,11 @@ interface Props {
         search?: string;
     };
     pendingCount?: number;
+    title?: string;
+    description?: string;
 }
 
-export default function StaffList({ staff, jabatan = [], filters, pendingCount }: Props) {
+export default function StaffList({ staff, jabatan = [], filters, pendingCount, title, description }: Props) {
     const { auth } = usePage().props as any;
     const isSuperAdmin = auth.user.roles.some((r: any) => r.name === 'super-admin');
     const isAdmin = auth.user.roles.some((r: any) => r.name === 'admin');
@@ -219,17 +226,17 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount }
 
     // Tab Navigation
     const tabs = [
-        { id: 'staff-list', label: 'Mapping Staff', icon: Users, show: true, href: route('staff-mapping') }, // Updated label
-        { id: 'verification-queue', label: 'Antrian', icon: Shield, show: true, href: route('verification-queue.index') }, // Updated label
+        { id: 'staff-list', label: title || 'Mapping Staff', icon: Users, show: true, href: route(title?.includes('Calon') ? 'calon-mapping' : 'staff-mapping') },
+        { id: 'verification-queue', label: title?.includes('Calon') ? 'Antrian Calon Anggota' : 'Antrian Anggota', icon: Shield, show: true, href: route('verification-queue.index', { type: title?.includes('Calon') ? 'calon' : 'staff' }) },
     ].filter(tab => tab.show);
 
     return (
         <div className="space-y-6">
             {/* Header Section */}
             <div>
-                <h1 className="text-3xl font-bold">Mapping Staff & Verifikasi</h1>
+                <h1 className="text-3xl font-bold">{title || "Mapping Staff & Verifikasi"}</h1>
                 <p className="text-muted-foreground mt-2">
-                    Kelola tim dan verifikasi akun karyawan baru oleh Direktorat Jendral Potensi Pertahanan
+                    {description || "Kelola tim dan verifikasi akun karyawan baru oleh Direktorat Jendral Potensi Pertahanan"}
                 </p>
             </div>
 
@@ -585,6 +592,27 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount }
                                 </div>
                             </div>
 
+                            {/* Tambahan: Data Personal Detail */}
+                            <div className="space-y-3 pt-4 border-t border-white/10">
+                                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Data Tambahan</h4>
+                                <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                                    <span className="text-gray-500">Agama</span>
+                                    <span className="font-medium">{viewingStaff.detail?.agama || '-'}</span>
+
+                                    <span className="text-gray-500">Suku</span>
+                                    <span className="font-medium">{viewingStaff.detail?.suku || '-'}</span>
+
+                                    <span className="text-gray-500">Bangsa</span>
+                                    <span className="font-medium">{viewingStaff.detail?.bangsa || '-'}</span>
+
+                                    <span className="text-gray-500">Status Nikah</span>
+                                    <span className="font-medium">{viewingStaff.detail?.status_pernikahan || '-'}</span>
+
+                                    <span className="text-gray-500">Ibu Kandung</span>
+                                    <span className="font-medium">{viewingStaff.detail?.nama_ibu_kandung || '-'}</span>
+                                </div>
+                            </div>
+
                             {/* Documents */}
                             <div className="space-y-3 pt-2">
                                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Dokumen Digital</h4>
@@ -594,29 +622,57 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount }
                                         { label: 'KTA', file: viewingStaff.detail?.scan_kta },
                                         { label: 'SK', file: viewingStaff.detail?.scan_sk },
                                         { label: 'Foto Profil', file: viewingStaff.detail?.foto_profil },
-                                    ].map((doc, i) => (
-                                        <div key={i} className="bg-white/5 rounded p-3 text-center border border-white/5 hover:border-white/20 transition-colors">
-                                            <p className="text-xs text-gray-400 mb-2">{doc.label}</p>
-                                            {doc.file ? (
-                                                <a href={doc.file} target="_blank" rel="noreferrer" className="block">
-                                                    <div className="aspect-video bg-black/50 rounded flex items-center justify-center mb-2 overflow-hidden">
-                                                        {doc.file.endsWith('.pdf') ? (
-                                                            <div className="text-xs">PDF</div>
+                                    ].map((doc, i) => {
+                                        const isPdf = doc.file?.toLowerCase().endsWith('.pdf');
+                                        const fileUrl = doc.file ? (doc.file.startsWith('http') ? doc.file : `/storage/${doc.file.replace(/^\/?storage\//, '')}`) : '';
+
+                                        return (
+                                            <div key={i} className="bg-white/5 rounded-xl p-3 text-center border border-white/5 hover:border-white/20 transition-all flex flex-col h-full group">
+                                                <p className="text-xs text-gray-400 mb-2 font-medium">{doc.label}</p>
+                                                {fileUrl ? (
+                                                    <div className="flex-1 aspect-video relative rounded-lg overflow-hidden bg-black/20 group-preview">
+                                                        {isPdf ? (
+                                                            <div className="w-full h-full relative">
+                                                                <embed
+                                                                    src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                                                                    type="application/pdf"
+                                                                    className="w-full h-full"
+                                                                />
+                                                                <div
+                                                                    className="absolute inset-0 bg-transparent hover:bg-black/10 transition-colors cursor-pointer flex items-center justify-center"
+                                                                    onClick={() => window.open(fileUrl, '_blank')}
+                                                                >
+                                                                    <div className="bg-black/70 text-white px-3 py-1.5 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center gap-2 backdrop-blur-sm transform scale-95 group-hover:scale-100 duration-200">
+                                                                        <Eye className="w-3.5 h-3.5" />
+                                                                        Buka PDF
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         ) : (
-                                                            <img src={doc.file} className="w-full h-full object-cover opacity-70 hover:opacity-100" />
+                                                            <div
+                                                                className="w-full h-full relative cursor-pointer"
+                                                                onClick={() => window.open(fileUrl, '_blank')}
+                                                            >
+                                                                <img src={fileUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt={doc.label} />
+                                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                                    <span className="bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">Lihat Gambar</span>
+                                                                </div>
+                                                            </div>
                                                         )}
                                                     </div>
-                                                    <span className="text-xs text-blue-400 hover:underline">Lihat</span>
-                                                </a>
-                                            ) : (
-                                                <span className="text-xs text-gray-600 italic">Tidak ada</span>
-                                            )}
-                                        </div>
-                                    ))}
+                                                ) : (
+                                                    <div className="flex-1 aspect-video flex items-center justify-center bg-white/5 rounded-lg border border-dashed border-white/10">
+                                                        <span className="text-[10px] text-gray-600 italic">Tidak ada</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                             </div>
                         </div>
-                    )}
+                    )
+                    }
                     <DialogFooter className="border-t border-white/10 pt-4 mt-6 flex gap-2">
                         {viewingStaff && isSuperAdmin && (
                             <>
@@ -644,7 +700,7 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount }
                             Tutup
                         </Button>
                     </DialogFooter>
-                </DialogContent>
+                </DialogContent >
             </Dialog >
 
             {/* Confirmation Alert Dialog */}

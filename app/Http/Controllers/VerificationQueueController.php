@@ -11,23 +11,65 @@ use Inertia\Inertia;
 
 class VerificationQueueController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::query()
+        $type = $request->query('type', 'staff'); // Default to staff queue
+
+        // Counts for tabs
+        $staffQueueCount = User::where('member_type', 'anggota')
+            ->where('verifikasi', false)
+            ->whereNull('rejection_reason')
+            ->doesntHave('staff')
+            ->count();
+
+        $calonQueueCount = User::where('member_type', 'calon_anggota')
+            ->where('verifikasi', false)
+            ->whereNull('rejection_reason')
+            ->doesntHave('staff')
+            ->whereHas('calon', function ($q) {
+                $q->whereNotNull('nik')->where('nik', '!=', '');
+            })
+            ->count();
+
+        // Build base query
+        $query = User::query()
             ->where('verifikasi', false)
             ->whereNull('rejection_reason') // Only show pending queues (not rejected ones)
-            ->whereHas('detail') // Only users who have completed their profile
-            ->with([
-                'detail.jabatan',
-                'detail.jabatanRole',
-                'locker',
-            ])
-            ->orderBy('created_at', 'asc') // FIFO by registration time (Stable)
-            ->get();
+            ->doesntHave('staff') // Exclude users who are already mapped as Staff
+            ->with(['locker'])
+            ->orderBy('created_at', 'asc'); // FIFO by registration time (Stable)
+
+        // Filter by type and load appropriate relationships
+        if ($type === 'calon') {
+            $query->where('member_type', 'calon_anggota')
+                ->whereHas('calon', function ($q) {
+                    $q->whereNotNull('nik')->where('nik', '!=', '');
+                })
+                ->with([
+                    'calon.suku',
+                    'calon.bangsa',
+                    'calon.agama',
+                    'calon.statusPernikahan',
+                    'calon.golonganDarah',
+                ]);
+        } else {
+            $query->where('member_type', 'anggota')
+                ->with([
+                    'member.jabatan',
+                    'member.jabatanRole',
+                    'member.pangkat',
+                    'member.mako',
+                ]);
+        }
+
+        $users = $query->get();
 
         return Inertia::render('StaffMapping/VerificationQueue', [
             'users' => $users,
             'currentUserId' => auth()->id(),
+            'activeType' => $type,
+            'staffQueueCount' => $staffQueueCount,
+            'calonQueueCount' => $calonQueueCount,
         ]);
     }
 
@@ -45,9 +87,9 @@ class VerificationQueueController extends Controller
             'verified_by' => auth()->id(),
         ]);
 
-        // Automatically create or update Staff record
+        // Automatically create or update Staff record (Only for Anggota)
         $detail = $user->detail;
-        if ($detail) {
+        if ($detail && $user->member_type === 'anggota') {
             \App\Models\Staff::updateOrCreate(
                 [
                     'email' => $user->email, // Use email as unique identifier
@@ -120,6 +162,7 @@ class VerificationQueueController extends Controller
             'rejection_reason' => $request->reason,
             'verified_at' => now(), // Track when rejection happened
             'verified_by' => auth()->id(), // Track who rejected
+            'ekyc_verified_at' => null, // Reset E-KYC verification status
         ]);
 
         // Send Rejected Email

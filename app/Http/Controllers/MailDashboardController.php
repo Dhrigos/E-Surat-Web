@@ -71,21 +71,31 @@ class MailDashboardController extends Controller
             ->get();
 
         // 4. User Distribution by Province
-        $usersByProvince = DB::table('user_details')
-            ->join('indonesia_provinces', 'user_details.province_id', '=', 'indonesia_provinces.id')
+        // Combine data from both user_member and user_calon tables
+        $usersByProvince = DB::table('indonesia_provinces')
+            ->leftJoin(DB::raw('(
+                SELECT province_id, COUNT(*) as total 
+                FROM (
+                    SELECT province_id FROM user_member WHERE province_id IS NOT NULL
+                    UNION ALL
+                    SELECT province_id FROM user_calon WHERE province_id IS NOT NULL
+                ) as combined_users
+                GROUP BY province_id
+            ) as user_counts'), 'indonesia_provinces.id', '=', 'user_counts.province_id')
             ->select(
                 'indonesia_provinces.id as province_id',
                 'indonesia_provinces.name as province', 
-                DB::raw('count(user_details.user_id) as total')
+                DB::raw('COALESCE(user_counts.total, 0) as total')
             )
-            ->whereNotNull('user_details.province_id')
-            ->groupBy('indonesia_provinces.id', 'indonesia_provinces.name')
+            ->where('user_counts.total', '>', 0)
+            ->orWhereNotNull('user_counts.province_id')
+            ->groupBy('indonesia_provinces.id', 'indonesia_provinces.name', 'user_counts.total')
             ->get()
             ->map(function($item) {
                 return [
                     'province_code' => (string)$item->province_id, // Use ID as code for GeoJSON matching
                     'province' => $item->province,
-                    'total' => $item->total,
+                    'total' => (int)$item->total,
                 ];
             });
 

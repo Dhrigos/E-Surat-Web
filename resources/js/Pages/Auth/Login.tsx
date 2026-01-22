@@ -59,7 +59,7 @@ export default function Login() {
             <div className="relative z-10 min-h-[100dvh] w-full snap-start hidden md:flex flex-col justify-between px-4 py-6 md:px-12 md:py-12 overflow-hidden">
                 {/* Header Logos */}
                 <div className="flex justify-center items-center w-full gap-4 md:gap-0 mt-4 md:mt-0">
-                    <div className="flex flex-col items-center gap-2">
+                    {/* <div className="flex flex-col items-center gap-2">
                         <div className="h-20 w-20 sm:h-40 sm:w-40 md:h-40 md:w-40 flex items-center justify-center transition-all duration-300">
                             <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Logo Kemhan" className="h-full w-full object-contain drop-shadow-2xl" />
                         </div>
@@ -68,6 +68,10 @@ export default function Login() {
                         <div className="h-20 w-20 sm:h-28 sm:w-28 md:h-24 md:w-24 flex items-center justify-center transition-all duration-300">
                             <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Logo Bacan" className="h-full w-full object-contain drop-shadow-2xl scale-125" />
                         </div>
+                    </div> */}
+                    <div className="flex justify-center items-center gap-1 mb-1 -mt-8 transform group-hover:scale-105 transition-transform duration-700">
+                        <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
+                        <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-20 w-auto md:h-28 md:w-28 object-contain drop-shadow-2xl" />
                     </div>
                 </div>
 
@@ -129,8 +133,8 @@ export default function Login() {
 
                     {/* Title Card */}
                     <div className="text-center mb-10 -mt-2">
-                        <h2 className="text-lg sm:text-xl md:text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Sistem Informasi<br />Badan Cadangan Nasional</h2>
-                        <p className="text-gray-400 text-xs font-medium tracking-wide">Sistem ini hanya diperuntukkan bagi personel BACADNAS</p>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-black text-[#AC0021] mb-2 uppercase tracking-tight leading-tight">Sistem Informasi<br />Komponen Cadangan</h2>
+                        <p className="text-gray-400 text-xs font-medium tracking-wide">Sistem ini hanya diperuntukkan bagi personel KOMCAD</p>
                     </div>
 
                     {/* Form */}
@@ -202,7 +206,7 @@ export default function Login() {
                         © {new Date().getFullYear()} Kementerian Pertahanan Republik Indonesia
                     </p>
                     <p className="text-[#FEFCF8] text-[10px]">
-                        Badan Cadangan Nasional • Sistem Manajemen Dokumen Digital
+                        Komponen Cadangan • Sistem Manajemen Dokumen Digital
                     </p>
                 </div>
             </div>

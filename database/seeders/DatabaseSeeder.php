@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             GolonganPangkatSeeder::class,
             LetterTypeSeeder::class,
             MakoSeeder::class,
+            DataMasterUmumSeeder::class,
+            SystemSettingSeeder::class,
         ]);
     }
 }

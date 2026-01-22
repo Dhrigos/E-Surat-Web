@@ -39,17 +39,14 @@ export default function VerificationPending() {
 
                 <Card className="bg-[#1a1a1a]/95 border-yellow-500/30 backdrop-blur-xl shadow-2xl">
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl font-bold text-white">Menunggu Validasi Admin</CardTitle>
+                        <CardTitle className="text-2xl font-bold text-white">Menunggu Keputusan <br /> Diterima atau Tidak</CardTitle>
                         <CardDescription className="text-gray-400">
                             Terima kasih telah melakukan pelengkapan data.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6 text-center">
-                        <p className="text-gray-300">
-                            Data Anda sedang ditinjau oleh tim Admin kami. Proses ini biasanya memakan waktu <span className="font-bold text-yellow-500">1x24 jam</span>.
-                        </p>
                         <div className="bg-white/5 p-4 rounded-lg border border-white/10 text-sm text-gray-400">
-                            <p>Mohon cek berkala atau tunggu notifikasi email jika tersedia.</p>
+                            <p>Mohon cek berkala atau tunggu notifikasi email.</p>
                         </div>
                     </CardContent>
                 </Card>

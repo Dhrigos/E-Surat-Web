@@ -56,15 +56,15 @@ export function SearchableSelect({
                     role="combobox"
                     aria-expanded={open}
                     className={cn(
-                        "w-full justify-between bg-[#2a2a2a] border-white/10 text-white hover:bg-[#333] hover:text-white",
-                        error && "border-red-500",
+                        "w-full justify-between bg-[#2a2a2a] border-white/10 text-white hover:bg-[#333] hover:text-white overflow-hidden",
+                        error && "border-[#AC0021]",
                         className
                     )}
                     disabled={disabled}
                 >
                     {value
-                        ? selectedLabel || value
-                        : <span className="text-gray-400 font-normal">{placeholder}</span>}
+                        ? <span className="truncate text-left flex-1">{selectedLabel || value}</span>
+                        : <span className="text-gray-400 font-normal truncate text-left flex-1">{placeholder}</span>}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>

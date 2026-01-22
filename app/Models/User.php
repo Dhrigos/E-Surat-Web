@@ -43,11 +43,35 @@ class User extends Authenticatable
         'ekyc_verified_at',
         'verified_at',
         'verified_by',
+        'member_type',
     ];
 
     public function detail(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(UserDetail::class);
+        // Legacy relationship - use member() or calon() instead
+        return $this->member_type === 'anggota' 
+            ? $this->member() 
+            : $this->calon();
+    }
+
+    public function member(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserMember::class);
+    }
+
+    public function calon(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserCalon::class);
+    }
+
+    public function prestasi(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserPrestasi::class);
+    }
+
+    public function organisasis(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserOrganisasi::class);
     }
 
     public function staff(): \Illuminate\Database\Eloquent\Relations\HasOne

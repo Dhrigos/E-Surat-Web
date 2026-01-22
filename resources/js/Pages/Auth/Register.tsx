@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Mail, Lock, Phone, Shield, ArrowRight, Check, X, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -12,6 +13,7 @@ import axios from 'axios';
 export default function Register() {
     const { data, setData, post, processing, errors, transform } = useForm({
         name: '',
+        member_type: '',
         username: '',
         email: '',
         phone_number: '',
@@ -39,7 +41,7 @@ export default function Register() {
 
     const handleNextStep = () => {
         if (step === 1) {
-            if (!data.name || !data.username || !data.email || !data.phone_number) {
+            if (!data.name || !data.member_type || !data.username || !data.email || !data.phone_number) {
                 toast.error('Harap lengkapi data diri');
                 return;
             }
@@ -126,6 +128,7 @@ export default function Register() {
         transform((data) => ({
             ...data,
             phone_number: formatPhoneNumberForApi(data.phone_number),
+            member_type: data.member_type === 'aparatur_pengelola' ? 'anggota' : data.member_type,
             otp: otpInput,
         }));
 
@@ -297,6 +300,29 @@ export default function Register() {
                                     {step === 1 && (
                                         <div className="space-y-4">
                                             <div className="space-y-3">
+                                                <Label htmlFor="member_type" className={labelClasses}>Jenis Anggota</Label>
+                                                <div className="relative">
+                                                    <Select
+                                                        onValueChange={(value) => setData('member_type', value)}
+                                                        value={data.member_type}
+                                                    >
+                                                        <SelectTrigger className="w-full bg-black border-2 border-white/10 text-white focus:border-red-600 pl-10 h-10">
+                                                            <div className="absolute left-3 top-2.5 h-4 w-4 text-gray-400">
+                                                                <User className="h-4 w-4" />
+                                                            </div>
+                                                            <SelectValue placeholder="Pilih Jenis Anggota" />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="bg-[#252525] border-white/20 text-white">
+                                                            <SelectItem value="anggota" showIndicator={false}>Anggota Komponen Cadangan</SelectItem>
+                                                            <SelectItem value="calon_anggota" showIndicator={false}>Calon Anggota Komponen Cadangan</SelectItem>
+                                                            <SelectItem value="aparatur_pengelola" showIndicator={false}>Aparatur Pengelola Komponen Cadangan</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                {errors.member_type && <p className="text-[#AC0021] text-sm">{errors.member_type}</p>}
+                                            </div>
+
+                                            <div className="space-y-3">
                                                 <Label htmlFor="name" className={labelClasses}>Nama Lengkap</Label>
                                                 <div className="relative">
                                                     <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -386,7 +412,7 @@ export default function Register() {
                                                 type="button"
                                                 onClick={handleNextStep}
                                                 className="w-full bg-[#AC0021] hover:bg-[#AC0021]/90 text-white font-bold mt-2 h-12"
-                                                disabled={!!validationErrors.username || !!validationErrors.email || !!validationErrors.phone_number}
+                                                disabled={!!validationErrors.username || !!validationErrors.email || !!validationErrors.phone_number || !data.member_type}
                                             >
                                                 Lanjut
                                                 <ArrowRight className="ml-2 h-4 w-4" />

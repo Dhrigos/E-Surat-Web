@@ -30,6 +30,7 @@ Route::get('/regions/makos', [\App\Http\Controllers\RegionController::class, 'ma
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/complete-profile', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'create'])->name('complete-profile.create');
+    Route::get('/complete-profile-anggota', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'create'])->name('complete-profile-anggota.create');
     Route::post('/complete-profile', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'store'])->name('complete-profile.store');
 
     // E-KYC Routes
@@ -92,10 +93,17 @@ Route::middleware(['auth'])->group(function () {
         Route::middleware(['role:admin|super-admin'])->group(function () {
             Route::get('data-master', [\App\Http\Controllers\DataMaster\DataMasterController::class, 'index'])->name('data-master.index');
             Route::get('staff-mapping', [\App\Http\Controllers\StaffController::class, 'index'])->name('staff-mapping');
+            Route::get('calon-mapping', [\App\Http\Controllers\StaffController::class, 'calonIndex'])->name('calon-mapping');
             Route::resource('staff', \App\Http\Controllers\StaffController::class)->except(['create', 'edit', 'show']);
             Route::put('staff/{staff}/toggle-status', [\App\Http\Controllers\StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
             Route::put('staff/{staff}/role', [\App\Http\Controllers\StaffController::class, 'updateRole'])->name('staff.update-role');
             Route::resource('roles', \App\Http\Controllers\RoleController::class)->except(['create', 'edit', 'show']);
+
+            // System Settings
+            Route::prefix('settings')->name('settings.')->group(function () {
+                Route::get('/registration', [\App\Http\Controllers\SystemSettingController::class, 'registration'])->name('registration');
+                Route::post('/update', [\App\Http\Controllers\SystemSettingController::class, 'update'])->name('update');
+            });
 
             // Verification Queue
             Route::get('verification-queue', [\App\Http\Controllers\VerificationQueueController::class, 'index'])->name('verification-queue.index');

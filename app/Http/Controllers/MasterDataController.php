@@ -214,19 +214,19 @@ class MasterDataController extends Controller
         
         if ($userId) {
              // Retrieve re-fresh user with roles
-             // FIX: Use detail.jabatan_id instead of staff.jabatan_id
-             $currentUser = \App\Models\User::with(['detail.jabatanRole', 'detail.jabatan'])->find($userId);
-             $myJabatanId = $currentUser->detail?->jabatan_id;
-             $myLevel = $currentUser->detail?->jabatanRole?->level ?? 999;
+             // FIX: Use member.jabatan_id for anggota users
+             $currentUser = \App\Models\User::with(['member.jabatanRole', 'member.jabatan'])->find($userId);
+             $myJabatanId = $currentUser->member?->jabatan_id;
+             $myLevel = $currentUser->member?->jabatanRole?->level ?? 999;
 
              if ($myJabatanId) {
                   // Find the minimum level (highest rank) in THIS unit
-                  // FIX: Query user_details.jabatan_id instead of staff.jabatan_id
-                  $minLevelInUnit = \App\Models\User::whereHas('detail', function($q) use ($myJabatanId) {
+                  // FIX: Query user_member.jabatan_id instead of staff.jabatan_id
+                  $minLevelInUnit = \App\Models\User::whereHas('member', function($q) use ($myJabatanId) {
                             $q->where('jabatan_id', $myJabatanId);
                       })
-                      ->join('user_details', 'users.id', '=', 'user_details.user_id')
-                      ->join('jabatan_roles', 'user_details.jabatan_role_id', '=', 'jabatan_roles.id')
+                      ->join('user_member', 'users.id', '=', 'user_member.user_id')
+                      ->join('jabatan_roles', 'user_member.jabatan_role_id', '=', 'jabatan_roles.id')
                       ->min('jabatan_roles.level');
 
                   \Log::info("DEBUG SUPERIOR: Unit Check", [
@@ -238,7 +238,7 @@ class MasterDataController extends Controller
                   // If I am NOT the highest in my unit (myLevel > minLevelInUnit), 
                   // then my superior is the person in MY unit with minLevel.
                   if (!is_null($minLevelInUnit) && $myLevel > $minLevelInUnit) {
-                       $targetJabatan = $currentUser->detail->jabatan; // Stay in same unit
+                       $targetJabatan = $currentUser->member->jabatan; // Stay in same unit
                        // Override parentJabatan variable for subsequent query to target THIS unit
                        $parentJabatan = $targetJabatan; 
                        \Log::info("DEBUG SUPERIOR: Switching target to Same Unit: {$targetJabatan->nama} (ID: {$targetJabatan->id})");
@@ -254,16 +254,16 @@ class MasterDataController extends Controller
 
         // Find users holding the TARGET jabatan (either my unit's head OR parent unit's head)
         // We need to look for users who are active in this Jabatan
-        // FIX: Query user_details.jabatan_id instead of staff.jabatan_id
-        $potentialSuperiors = \App\Models\User::whereHas('detail', function ($q) use ($targetJabatan) {
+        // FIX: Query user_member.jabatan_id for anggota users
+        $potentialSuperiors = \App\Models\User::where('member_type', 'anggota')
+            ->whereHas('member', function ($q) use ($targetJabatan) {
                 $q->where('jabatan_id', $targetJabatan->id);
             })
-            // Exclude users pending verification (same logic as StaffController)
             ->where(function ($q) {
                 $q->where('verifikasi', true)
                   ->orWhereNotNull('rejection_reason');
             })
-            ->with(['detail.jabatanRole', 'staff.jabatan.parent', 'detail.pangkat', 'detail.jabatan'])
+            ->with(['member.jabatanRole', 'staff.jabatan.parent', 'member.pangkat', 'member.jabatan'])
             ->get();
 
         \Log::info("DEBUG SUPERIOR: Potential Superiors Found", [
@@ -273,15 +273,15 @@ class MasterDataController extends Controller
             'users' => $potentialSuperiors->map(fn($u) => [
                 'id' => $u->id,
                 'name' => $u->name,
-                'has_role' => !is_null($u->detail?->jabatanRole),
-                'role_level' => $u->detail?->jabatanRole?->level ?? 'null',
+                'has_role' => !is_null($u->member?->jabatanRole),
+                'role_level' => $u->member?->jabatanRole?->level ?? 'null',
                 'staff_status' => $u->staff?->status
             ])
         ]);
 
         // Calculate Min Level (Highest Rank) available in this set
         $minLevel = $potentialSuperiors->map(function ($u) {
-            return $u->detail?->jabatanRole?->level ?? 999;
+            return $u->member?->jabatanRole?->level ?? 999;
         })->min();
 
         \Log::info("DEBUG SUPERIOR: Min Level Calculation", [
@@ -294,7 +294,7 @@ class MasterDataController extends Controller
              $filteredSuperiors = $potentialSuperiors;
         } else {
              $filteredSuperiors = $potentialSuperiors->filter(function ($u) use ($minLevel) {
-                 $level = $u->detail?->jabatanRole?->level ?? 999;
+                 $level = $u->member?->jabatanRole?->level ?? 999;
                  return $level === $minLevel;
              });
         }
@@ -306,7 +306,7 @@ class MasterDataController extends Controller
 
         $superiors = $filteredSuperiors->values()->map(function ($user) {
               // Fix: Add Role Name to Position Name
-              $roleName = $user->detail?->jabatanRole?->nama;
+              $roleName = $user->member?->jabatanRole?->nama;
               $unitName = $user->staff?->jabatan?->nama;
               $positionName = $roleName ? "$roleName $unitName" : $unitName;
 
@@ -314,11 +314,11 @@ class MasterDataController extends Controller
                   'id' => $user->id,
                   'name' => $user->name,
                   'username' => $user->username,
-                  'rank' => $user->detail?->pangkat?->nama,
+                  'rank' => $user->member?->pangkat?->nama,
                   'unit' => $user->staff?->jabatan?->parent?->nama,
                   'position_name' => $positionName, // Updated
-                  'role_level' => $user->detail?->jabatanRole?->level,
-                  'signature_url' => $user->detail?->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($user->detail->tanda_tangan) : null,
+                  'role_level' => $user->member?->jabatanRole?->level,
+                  'signature_url' => $user->member?->tanda_tangan ? \Illuminate\Support\Facades\Storage::url($user->member->tanda_tangan) : null,
               ];
           });
 

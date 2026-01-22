@@ -128,7 +128,7 @@ class LetterController extends Controller
         $letterTypeFilter = $request->input('letter_type');
 
         // Sent mails query
-        $sentQuery = Letter::with(['recipients', 'approvers.user.detail.jabatan.parent', 'approvers.user.detail.jabatanRole', 'approvers.user.detail.pangkat', 'approvers.user.detail', 'attachments', 'creator.detail.jabatan.parent', 'creator.detail.jabatanRole', 'creator.detail.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
+        $sentQuery = Letter::with(['recipients', 'approvers.user.member.jabatan.parent', 'approvers.user.member.jabatanRole', 'approvers.user.member.pangkat', 'approvers.user.calon.pangkat', 'attachments', 'creator.member.jabatan.parent', 'creator.member.jabatanRole', 'creator.member.pangkat', 'creator.calon.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where('created_by', $user->id);
 
         if ($search) {
@@ -167,7 +167,7 @@ class LetterController extends Controller
         // Inbox mails query
         $inboxQuery = LetterRecipient::where('recipient_type', 'user')
             ->where('recipient_id', $user->id)
-            ->with(['letter.creator.detail.jabatan.parent', 'letter.creator.detail.jabatanRole', 'letter.creator.detail.pangkat', 'letter.attachments', 'letter.approvers.user.detail.jabatan.parent', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail.pangkat', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.member.jabatan.parent', 'letter.creator.member.jabatanRole', 'letter.creator.member.pangkat', 'letter.creator.calon.pangkat', 'letter.attachments', 'letter.approvers.user.member.jabatan.parent', 'letter.approvers.user.member.jabatanRole', 'letter.approvers.user.member.pangkat', 'letter.approvers.user.calon.pangkat', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $inboxQuery->whereHas('letter', function ($q) use ($search) {
@@ -232,7 +232,7 @@ class LetterController extends Controller
                 AND prev.order < letter_approvers.order 
                 AND prev.status != "approved"
             )')
-            ->with(['letter.creator.detail.jabatan.parent', 'letter.creator.detail.jabatanRole', 'letter.creator.detail.pangkat', 'letter.attachments', 'letter.approvers.user.detail.jabatan.parent', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail.pangkat', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.member.jabatan.parent', 'letter.creator.member.jabatanRole', 'letter.creator.member.pangkat', 'letter.creator.calon.pangkat', 'letter.attachments', 'letter.approvers.user.member.jabatan.parent', 'letter.approvers.user.member.jabatanRole', 'letter.approvers.user.member.pangkat', 'letter.approvers.user.calon.pangkat', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $approvalsQuery->whereHas('letter', function ($q) use ($search) {
@@ -260,7 +260,7 @@ class LetterController extends Controller
         // Already Approved Query
         $alreadyApprovedQuery = LetterApprover::where('user_id', $user->id)
             ->where('status', 'approved')
-            ->with(['letter.creator.detail.jabatan.parent', 'letter.creator.detail.jabatanRole', 'letter.creator.detail.pangkat', 'letter.attachments', 'letter.approvers.user.detail.jabatan.parent', 'letter.approvers.user.detail.jabatanRole', 'letter.approvers.user.detail.pangkat', 'letter.approvers.user.detail', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
+            ->with(['letter.creator.member.jabatan.parent', 'letter.creator.member.jabatanRole', 'letter.creator.member.pangkat', 'letter.creator.calon.pangkat', 'letter.attachments', 'letter.approvers.user.member.jabatan.parent', 'letter.approvers.user.member.jabatanRole', 'letter.approvers.user.member.pangkat', 'letter.approvers.user.calon.pangkat', 'letter.recipients', 'letter.letterType', 'letter.dispositions.sender', 'letter.dispositions.recipient']);
 
         if ($search) {
             $alreadyApprovedQuery->whereHas('letter', function ($q) use ($search) {
@@ -287,7 +287,7 @@ class LetterController extends Controller
 
         $openedMail = null;
         if ($request->has('open_mail_id')) {
-            $mail = Letter::with(['recipients', 'approvers.user.staff.jabatan.parent', 'approvers.user.detail.pangkat', 'approvers.user.detail', 'attachments', 'creator', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
+            $mail = Letter::with(['recipients', 'approvers.user.member.jabatan.parent', 'approvers.user.member.pangkat', 'approvers.user.calon.pangkat', 'attachments', 'creator', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
                 ->find($request->input('open_mail_id'));
 
             if ($mail) {
@@ -323,21 +323,22 @@ class LetterController extends Controller
 
     public function create(Request $request)
     {
-        $users = User::with(['detail.jabatan.parent', 'detail.jabatanRole', 'detail.pangkat'])
+        $users = User::with(['member.jabatan.parent', 'member.jabatanRole', 'member.pangkat', 'calon.pangkat'])
             ->get()
             ->map(function ($user) {
+                $detail = $user->member ?? $user->calon;
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
                     'username' => $user->username,
-                    'position_name' => ($user->detail?->jabatanRole?->nama ?? 'Staff') . ($user->detail?->jabatan?->nama ? ' (' . $user->detail?->jabatan?->nama . ')' : ''),
-                    'rank' => $user->detail?->pangkat?->nama,
-                    'unit' => $user->detail?->jabatan?->parent?->nama,
-                    'signature_url' => $user->detail?->tanda_tangan ? Storage::url($user->detail->tanda_tangan) : null,
+                    'position_name' => ($detail?->jabatanRole?->nama ?? 'Staff') . ($detail?->jabatan?->nama ? ' (' . $detail?->jabatan?->nama . ')' : ''),
+                    'rank' => $detail?->pangkat?->nama,
+                    'unit' => $detail?->jabatan?->parent?->nama,
+                    'signature_url' => $detail?->tanda_tangan ? Storage::url($detail->tanda_tangan) : null,
                     // Allow nested access if frontend expects it
-                    'staff' => $user->detail ? [
-                        'jabatan' => $user->detail->jabatan ? [
-                            'nama' => $user->detail->jabatan->nama
+                    'staff' => $detail ? [
+                        'jabatan' => $detail->jabatan ? [
+                            'nama' => $detail->jabatan->nama
                         ] : null
                     ] : null
                 ];
@@ -667,7 +668,7 @@ class LetterController extends Controller
         };
 
         // Query for starred mails (both sent and received)
-        $starredQuery = Letter::with(['recipients', 'approvers.user.detail.jabatan.parent', 'approvers.user.detail.jabatanRole', 'approvers.user.detail.pangkat', 'approvers.user.detail', 'attachments', 'creator.detail.jabatan.parent', 'creator.detail.jabatanRole', 'creator.detail.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
+        $starredQuery = Letter::with(['recipients', 'approvers.user.member.jabatan.parent', 'approvers.user.member.jabatanRole', 'approvers.user.member.pangkat', 'approvers.user.calon.pangkat', 'attachments', 'creator.member.jabatan.parent', 'creator.member.jabatanRole', 'creator.member.pangkat', 'creator.calon.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id)
                     ->orWhereHas('recipients', function ($rq) use ($user) {
@@ -706,7 +707,7 @@ class LetterController extends Controller
         $search = $request->input('search');
         $category = $request->input('category');
         // Query for archived mails (both sent and received) - filter by archived_at
-        $archivedQuery = Letter::with(['recipients', 'approvers.user.detail.jabatan.parent', 'approvers.user.detail.jabatanRole', 'approvers.user.detail.pangkat', 'approvers.user.detail', 'attachments', 'creator.detail.jabatan.parent', 'creator.detail.jabatanRole', 'creator.detail.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
+        $archivedQuery = Letter::with(['recipients', 'approvers.user.member.jabatan.parent', 'approvers.user.member.jabatanRole', 'approvers.user.member.pangkat', 'approvers.user.calon.pangkat', 'attachments', 'creator.member.jabatan.parent', 'creator.member.jabatanRole', 'creator.member.pangkat', 'creator.calon.pangkat', 'letterType', 'dispositions.sender', 'dispositions.recipient'])
             ->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id)
                     ->orWhereHas('recipients', function ($rq) use ($user) {

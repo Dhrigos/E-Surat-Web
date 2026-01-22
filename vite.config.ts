@@ -57,15 +57,15 @@ export default defineConfig({
     },
     server: {
         host: '0.0.0.0',
-        port: 5173,
+        port: 5175,
         strictPort: true,
         cors: {
             origin: '*',
             credentials: true,
         },
-        allowedHosts: ['api.bacadnas.com', 'wss.bacadnas.com'],
+        allowedHosts: ['api-komcad.bacadnas.com', 'wss.bacadnas.com'],
         hmr: {
-            host: 'api.bacadnas.com',
+            host: 'api-komcad.bacadnas.com',
             clientPort: 443,
             protocol: 'wss',
         },
