@@ -47,6 +47,8 @@ class FortifyServiceProvider extends ServiceProvider
             ]);
         });
 
+        $this->app->instance(\Laravel\Fortify\Contracts\LogoutResponse::class, new \App\Http\Responses\LogoutResponse);
+
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();

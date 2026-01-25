@@ -137,7 +137,11 @@
                             <td class="wrapper">
                                 <!-- Standardized Header -->
                                 <div class="logo-container">
-                                    <img src="{{ $message->embed(public_path('/images/KEMENTERIAN-PERTAHANAN.png')) }}" alt="Lambang Kementerian Pertahanan" class="logo">
+                                    @if(isset($message))
+                                        <img src="{{ $message->embed(public_path('/images/KEMENTERIAN-PERTAHANAN.png')) }}" alt="Lambang Kementerian Pertahanan" class="logo">
+                                    @else
+                                        <img src="cid:logo_kemhan" alt="Lambang Kementerian Pertahanan" class="logo">
+                                    @endif
                                     <h2 class="ministry-title">Kementerian Pertahanan</h2>
                                     <h3 class="ministry-subtitle">Republik Indonesia</h3>
                                 </div>

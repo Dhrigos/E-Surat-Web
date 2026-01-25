@@ -65,7 +65,7 @@ export default function Pagination({ links }: PaginationProps) {
                     }
 
                     return (
-                        <PaginationItem key={index}>
+                        <PaginationItem key={index} className={!link.active ? "hidden md:block" : ""}>
                             <PaginationLink
                                 href={link.url || '#'}
                                 isActive={link.active}

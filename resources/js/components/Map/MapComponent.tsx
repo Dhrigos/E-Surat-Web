@@ -80,19 +80,31 @@ export default function MapComponent({
 }: MapComponentProps) {
     const mapRef = useRef<L.Map | null>(null);
 
+    // Indonesia Bounds
+    const indonesiaBounds: L.LatLngBoundsExpression = [
+        [-11.007625, 95.011198], // Southwest
+        [6.274449, 141.019444]   // Northeast
+    ];
+
     return (
-        <div className="relative" style={{ height }}>
+        <div className="relative group" style={{ height }}>
             <MapContainer
                 center={center}
                 zoom={zoom}
                 style={{ height: '100%', width: '100%' }}
                 className="rounded-lg shadow-lg z-0"
                 ref={mapRef}
+                minZoom={5}
+                maxBounds={indonesiaBounds}
+                maxBoundsViscosity={1.0}
+                attributionControl={false}
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+
+
 
                 {markers.map((marker) => {
                     const isCurrentUser = marker.user.id === currentUserId;
@@ -159,3 +171,5 @@ export default function MapComponent({
         </div>
     );
 }
+
+

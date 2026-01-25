@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Send, Mail, Clock, BarChart2, History, Map as MapIcon, Database, Grid, ChevronRight } from 'lucide-react';
 import DashboardIcon from '@/components/DashboardIcon';
+import IndonesiaMap from '@/components/IndonesiaMap-calon';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -47,9 +48,11 @@ interface MobileDashboardProps {
         performance: { approvalRate: number };
     };
     totalUsers: number;
+    usersByProvince?: any[];
+    onProvinceClick?: (province: string, code: string) => void;
 }
 
-export default function MobileDashboard({ stats, chartData, activities, isSuperAdmin, adminStats, totalUsers }: MobileDashboardProps) {
+export default function MobileDashboard({ stats, chartData, activities, isSuperAdmin, adminStats, totalUsers, usersByProvince, onProvinceClick }: MobileDashboardProps) {
     const { auth } = usePage<SharedData>().props;
     const [openDrawer, setOpenDrawer] = useState<string | null>(null);
 
@@ -157,6 +160,27 @@ export default function MobileDashboard({ stats, chartData, activities, isSuperA
                 </div>
             </div>
 
+            {/* Map Section - Only for Super Admin */}
+            {isSuperAdmin && usersByProvince && (
+                <div className="px-4 mt-2 mb-4">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Distribusi Calon Anggota</h3>
+                    <div className="rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-zinc-800">
+                        <Suspense fallback={
+                            <div className="w-full h-[250px] flex items-center justify-center bg-gray-100 dark:bg-[#1F2937]">
+                                <p className="text-xs text-muted-foreground">Memuat peta...</p>
+                            </div>
+                        }>
+                            <IndonesiaMap
+                                data={usersByProvince}
+                                totalUsers={totalUsers}
+                                onProvinceClick={onProvinceClick}
+                                enableZoom={true}
+                            />
+                        </Suspense>
+                    </div>
+                </div>
+            )}
+
             {/* Quick Activity Feed */}
             <div className="px-4 mt-2">
                 <div className="flex items-center justify-between mb-2">
@@ -167,10 +191,10 @@ export default function MobileDashboard({ stats, chartData, activities, isSuperA
                 </div>
 
                 <div className="space-y-3">
-                    {activities.slice(0, 3).map((activity) => {
+                    {activities.slice(0, 3).map((activity, index) => {
                         const { title, desc } = formatActivity(activity.action, activity.description);
                         return (
-                            <div key={activity.id} className="flex gap-3 items-start bg-white dark:bg-[#262626] p-3 rounded-xl shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4),0_4px_6px_-2px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-zinc-800/50">
+                            <div key={activity.id || `activity-recent-${index}`} className="flex gap-3 items-start bg-white dark:bg-[#262626] p-3 rounded-xl shadow-[0_10px_15px_-3px_rgba(0,0,0,0.4),0_4px_6px_-2px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-zinc-800/50">
                                 <div className="mt-0.5 min-w-[32px] min-h-[32px] rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                                     <History className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 </div>
@@ -246,7 +270,7 @@ export default function MobileDashboard({ stats, chartData, activities, isSuperA
                                 <>
                                     {/* 4-Grid Summary */}
                                     <div className="grid grid-cols-2 gap-3">
-                                        <Card className="border-none shadow-sm bg-blue-50 dark:bg-blue-900/10">
+                                        <Card className="border-none shadow-sm bg-blue-50 dark:bg-blue-900/10 cursor-pointer active:scale-95 transition-transform" onClick={() => router.visit('/staff-mapping')}>
                                             <CardContent className="p-3 flex flex-col justify-between h-full">
                                                 <div className="flex justify-between items-start">
                                                     <p className="text-[10px] text-blue-600/80 dark:text-blue-400/80 uppercase font-semibold">Pengguna</p>
@@ -259,7 +283,7 @@ export default function MobileDashboard({ stats, chartData, activities, isSuperA
                                                 </p>
                                             </CardContent>
                                         </Card>
-                                        <Card className="border-none shadow-sm bg-purple-50 dark:bg-purple-900/10">
+                                        <Card className="border-none shadow-sm bg-purple-50 dark:bg-purple-900/10 cursor-pointer active:scale-95 transition-transform" onClick={() => router.visit('/list-surat')}>
                                             <CardContent className="p-3 flex flex-col justify-between h-full">
                                                 <div className="flex justify-between items-start">
                                                     <p className="text-[10px] text-purple-600/80 dark:text-purple-400/80 uppercase font-semibold">Total Surat</p>
@@ -270,7 +294,7 @@ export default function MobileDashboard({ stats, chartData, activities, isSuperA
                                                 <p className="text-xl font-bold text-purple-700 dark:text-purple-400">{adminStats.totalLetters}</p>
                                             </CardContent>
                                         </Card>
-                                        <Card className="border-none shadow-sm bg-orange-50 dark:bg-orange-900/10 col-span-2">
+                                        <Card className="border-none shadow-sm bg-orange-50 dark:bg-orange-900/10 col-span-2 cursor-pointer active:scale-95 transition-transform" onClick={() => router.visit('/data-master')}>
                                             <CardContent className="p-3 flex items-center justify-between">
                                                 <div>
                                                     <p className="text-[10px] text-orange-600/80 dark:text-orange-400/80 uppercase font-semibold">Unit Kerja Aktif</p>
@@ -289,26 +313,32 @@ export default function MobileDashboard({ stats, chartData, activities, isSuperA
                                             <Send className="w-3 h-3" /> Top Pengirim Minggu Ini
                                         </h4>
                                         <div className="space-y-3 bg-white dark:bg-zinc-900/50 p-3 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800">
-                                            {adminStats.topSenders.map((sender, i) => (
-                                                <div key={i} className="flex items-center justify-between text-sm">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2
-                                                            ${i === 0 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                                                                i === 1 ? 'bg-gray-100 text-gray-700 border-gray-200' :
-                                                                    'bg-orange-100 text-orange-700 border-orange-200'}`}>
-                                                            {sender.name.charAt(0)}
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium text-xs truncate max-w-[150px]">{sender.name}</span>
-                                                            <span className="text-[10px] text-muted-foreground">Peringkat #{i + 1}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="font-mono font-bold text-sm">{sender.total}</span>
-                                                        <span className="text-[10px] text-muted-foreground">surat</span>
-                                                    </div>
+                                            {adminStats.topSenders.length === 0 ? (
+                                                <div className="flex flex-col items-center justify-center py-4 text-center">
+                                                    <p className="text-xs text-muted-foreground italic">Belum ada data pengiriman surat minggu ini.</p>
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                adminStats.topSenders.map((sender, i) => (
+                                                    <div key={i} className="flex items-center justify-between text-sm">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2
+                                                                ${i === 0 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                                                    i === 1 ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                                                                        'bg-orange-100 text-orange-700 border-orange-200'}`}>
+                                                                {sender.name.charAt(0)}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium text-xs truncate max-w-[150px]">{sender.name}</span>
+                                                                <span className="text-[10px] text-muted-foreground">Peringkat #{i + 1}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-mono font-bold text-sm">{sender.total}</span>
+                                                            <span className="text-[10px] text-muted-foreground">surat</span>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
                                         </div>
                                     </div>
 
@@ -411,10 +441,10 @@ export default function MobileDashboard({ stats, chartData, activities, isSuperA
                                 {activities.length === 0 ? (
                                     <p className="text-center text-muted-foreground">Tidak ada aktivitas.</p>
                                 ) : (
-                                    activities.map((activity) => {
+                                    activities.map((activity, index) => {
                                         const { title, desc } = formatActivity(activity.action, activity.description);
                                         return (
-                                            <div key={activity.id} className="relative pl-4 border-l border-zinc-200 dark:border-zinc-800">
+                                            <div key={activity.id || `activity-all-${index}`} className="relative pl-4 border-l border-zinc-200 dark:border-zinc-800">
                                                 <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-blue-500 ring-4 ring-white dark:ring-zinc-950" />
                                                 <div className="flex flex-col gap-1 ml-2">
                                                     <div className="flex items-center justify-between">
@@ -511,12 +541,7 @@ export default function MobileDashboard({ stats, chartData, activities, isSuperA
                         <DrawerTitle>Menu Lainnya</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 grid grid-cols-3 gap-4">
-                        <Link href="/profile" className="flex flex-col items-center gap-2 p-2">
-                            <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center">
-                                <Activity className="w-5 h-5" />
-                            </div>
-                            <span className="text-xs text-center">Profil</span>
-                        </Link>
+
                         <Link href="/settings" className="flex flex-col items-center gap-2 p-2">
                             <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center">
                                 <Activity className="w-5 h-5" />

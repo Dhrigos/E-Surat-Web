@@ -7,7 +7,7 @@ import { SharedData } from '@/types';
 import Echo from 'laravel-echo';
 import DashboardBackground from '@/components/DashboardBackground';
 import { Badge } from '@/components/ui/badge';
-import { Map, Navigation, Users, Clock, Radio } from 'lucide-react';
+import { Map, Navigation, Users, Clock, Radio, X } from 'lucide-react';
 
 interface LocationMapProps extends SharedData {
     activeUsers: Array<{
@@ -158,7 +158,7 @@ export default function LocationMap({ auth, activeUsers: initialActiveUsers }: L
                     {/* Map Section */}
                     <div className="lg:col-span-2 h-full flex flex-col">
                         <div className="bg-card dark:bg-[#18181b] border border-border dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex-1 relative">
-                            <div className="absolute top-4 left-4 z-10 bg-white/80 dark:bg-black/80 backdrop-blur-md p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-lg">
+                            <div className="hidden md:block absolute top-4 right-4 z-10 bg-white/80 dark:bg-black/80 backdrop-blur-md p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-lg">
                                 <div className="flex items-center gap-2">
                                     <div className="p-2 bg-zinc-500/10 rounded-lg text-zinc-600 dark:text-zinc-400">
                                         <Map className="w-5 h-5" />
@@ -210,8 +210,8 @@ export default function LocationMap({ auth, activeUsers: initialActiveUsers }: L
                                         <div
                                             key={user.id}
                                             className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer border ${selectedMarker?.user.id === user.id
-                                                    ? 'bg-zinc-500/10 border-zinc-500/20 shadow-sm'
-                                                    : 'bg-zinc-50/50 dark:bg-zinc-900/50 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700'
+                                                ? 'bg-zinc-500/10 border-zinc-500/20 shadow-sm'
+                                                : 'bg-zinc-50/50 dark:bg-zinc-900/50 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700'
                                                 }`}
                                             onClick={() => {
                                                 const marker = markers.find(
@@ -273,9 +273,17 @@ export default function LocationMap({ auth, activeUsers: initialActiveUsers }: L
                         {/* Selected Marker Info */}
                         {selectedMarker && (
                             <div className="bg-card dark:bg-[#18181b] border border-border dark:border-zinc-800 rounded-2xl p-4 shadow-sm animate-in slide-in-from-bottom-5 fade-in duration-300">
-                                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-zinc-100 dark:border-zinc-800">
-                                    <Navigation className="w-4 h-4 text-zinc-500" />
-                                    <h3 className="font-semibold text-foreground text-sm">Selected Detail</h3>
+                                <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex items-center gap-2">
+                                        <Navigation className="w-4 h-4 text-zinc-500" />
+                                        <h3 className="font-semibold text-foreground text-sm">Selected Detail</h3>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedMarker(null)}
+                                        className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
                                 </div>
                                 <div className="space-y-3 text-sm">
                                     <div className="flex justify-between items-center">

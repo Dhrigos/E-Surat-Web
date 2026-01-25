@@ -50,7 +50,7 @@ export function AppSidebar() {
     let mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
-            href: dashboard(),
+            href: dashboard.url(),
             icon: Home,
         },
         {
@@ -86,7 +86,7 @@ export function AppSidebar() {
         mainNavItems = [
             {
                 title: 'Dashboard',
-                href: dashboard(),
+                href: dashboard.url(),
                 icon: Home,
             }
         ];

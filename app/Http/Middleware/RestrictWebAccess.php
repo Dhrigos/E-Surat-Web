@@ -20,6 +20,16 @@ class RestrictWebAccess
             return $next($request);
         }
 
+        // Check for bypass query parameter
+        if ($request->query('bypass')) {
+            session(['bypass_mobile_redirect' => true]);
+        }
+
+        // Allow if bypass session exists
+        if (session('bypass_mobile_redirect')) {
+            return $next($request);
+        }
+
         // Check for Capacitor App header
         if ($request->header('X-Capacitor-App')) {
             return $next($request);

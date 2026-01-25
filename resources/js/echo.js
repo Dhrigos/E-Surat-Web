@@ -1,7 +1,10 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import axios from 'axios';
 
 window.Pusher = Pusher;
+// Axios is already configured in bootstrap.ts
+
 
 window.Echo = new Echo({
     broadcaster: 'reverb',
@@ -11,4 +14,24 @@ window.Echo = new Echo({
     wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
     forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
     enabledTransports: ['ws', 'wss'],
+    authorizer: (channel, options) => {
+        return {
+            authorize: (socketId, callback) => {
+                axios.post('/broadcasting/auth', {
+                    socket_id: socketId,
+                    channel_name: channel.name
+                }, {
+                    headers: {
+                        'X-CSRF-TOKEN': document.head.querySelector('meta[name="csrf-token"]')?.content
+                    }
+                })
+                    .then(response => {
+                        callback(false, response.data);
+                    })
+                    .catch(error => {
+                        callback(true, error);
+                    });
+            }
+        };
+    },
 });

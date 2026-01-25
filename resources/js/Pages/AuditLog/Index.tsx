@@ -138,7 +138,7 @@ export default function AuditLogIndex({ logs, filters, actions, stats }: AuditLo
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                     <Card className="bg-[#262626] border-none shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-all duration-300">
                         <CardContent className="p-6 flex items-center justify-between">
                             <div className="space-y-1">
@@ -197,32 +197,34 @@ export default function AuditLogIndex({ logs, filters, actions, stats }: AuditLo
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <div className="w-full md:w-[200px]">
-                        <Select value={action} onValueChange={(value) => { setAction(value); setTimeout(applyFilters, 100); }}>
-                            <SelectTrigger className="bg-[#1a1a1a] border-none text-white focus:ring-gray-700">
-                                <SelectValue placeholder="Semua Tipe" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#262626] border-gray-800 text-white">
-                                <SelectItem value="all">Semua Tipe</SelectItem>
-                                {actions.map((act) => (
-                                    <SelectItem key={act} value={act} className="capitalize">
-                                        {act}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="w-full md:w-[200px]">
-                        <Select defaultValue="all">
-                            <SelectTrigger className="bg-[#1a1a1a] border-none text-white focus:ring-gray-700">
-                                <SelectValue placeholder="Semua Status" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#262626] border-gray-800 text-white">
-                                <SelectItem value="all">Semua Status</SelectItem>
-                                <SelectItem value="success">Success</SelectItem>
-                                <SelectItem value="failed">Failed</SelectItem>
-                            </SelectContent>
-                        </Select>
+                    <div className="flex gap-4 w-full md:w-auto">
+                        <div className="flex-1 md:w-[200px]">
+                            <Select value={action} onValueChange={(value) => { setAction(value); setTimeout(applyFilters, 100); }}>
+                                <SelectTrigger className="bg-[#1a1a1a] border-none text-white focus:ring-gray-700">
+                                    <SelectValue placeholder="Semua Tipe" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#262626] border-gray-800 text-white">
+                                    <SelectItem value="all">Semua Tipe</SelectItem>
+                                    {actions.map((act) => (
+                                        <SelectItem key={act} value={act} className="capitalize">
+                                            {act}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex-1 md:w-[200px]">
+                            <Select defaultValue="all">
+                                <SelectTrigger className="bg-[#1a1a1a] border-none text-white focus:ring-gray-700">
+                                    <SelectValue placeholder="Semua Status" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#262626] border-gray-800 text-white">
+                                    <SelectItem value="all">Semua Status</SelectItem>
+                                    <SelectItem value="success">Success</SelectItem>
+                                    <SelectItem value="failed">Failed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
 

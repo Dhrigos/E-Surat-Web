@@ -71,35 +71,57 @@ class MailDashboardController extends Controller
             ->get();
 
         // 4. User Distribution by Province
-        // Combine data from both user_member and user_calon tables
-        $usersByProvince = DB::table('indonesia_provinces')
-            ->leftJoin(DB::raw('(
-                SELECT province_id, COUNT(*) as total 
-                FROM (
-                    SELECT province_id FROM user_member WHERE province_id IS NOT NULL
-                    UNION ALL
-                    SELECT province_id FROM user_calon WHERE province_id IS NOT NULL
-                ) as combined_users
-                GROUP BY province_id
-            ) as user_counts'), 'indonesia_provinces.id', '=', 'user_counts.province_id')
-            ->select(
-                'indonesia_provinces.id as province_id',
-                'indonesia_provinces.name as province', 
-                DB::raw('COALESCE(user_counts.total, 0) as total')
-            )
-            ->where('user_counts.total', '>', 0)
-            ->orWhereNotNull('user_counts.province_id')
-            ->groupBy('indonesia_provinces.id', 'indonesia_provinces.name', 'user_counts.total')
-            ->get()
-            ->map(function($item) {
-                return [
+            // Data for user_calon only
+            $usersByProvince = DB::table('indonesia_provinces')
+                ->leftJoin(DB::raw('(
+                    SELECT province_id, COUNT(*) as total 
+                    FROM user_calon 
+                    WHERE province_id IS NOT NULL
+                    GROUP BY province_id
+                ) as user_counts'), 'indonesia_provinces.id', '=', 'user_counts.province_id')
+                ->select(
+                    'indonesia_provinces.id as province_id',
+                    'indonesia_provinces.name as province', 
+                    DB::raw('COALESCE(user_counts.total, 0) as total')
+                )
+                ->where('user_counts.total', '>', 0)
+                ->groupBy('indonesia_provinces.id', 'indonesia_provinces.name', 'user_counts.total')
+                ->get()
+                ->map(function($item) {
+                    return [
                     'province_code' => (string)$item->province_id, // Use ID as code for GeoJSON matching
-                    'province' => $item->province,
-                    'total' => (int)$item->total,
-                ];
-            });
+                        'province' => $item->province,
+                        'total' => (int)$item->total,
+                    ];
+                });
+        // $usersByProvince = DB::table('indonesia_provinces')
+        //     ->leftJoin(DB::raw('(
+        //         SELECT province_id, COUNT(*) as total 
+        //         FROM (
+        //             SELECT province_id FROM user_member WHERE province_id IS NOT NULL
+        //             UNION ALL
+        //             SELECT province_id FROM user_calon WHERE province_id IS NOT NULL
+        //         ) as combined_users
+        //         GROUP BY province_id
+        //     ) as user_counts'), 'indonesia_provinces.id', '=', 'user_counts.province_id')
+        //     ->select(
+        //         'indonesia_provinces.id as province_id',
+        //         'indonesia_provinces.name as province', 
+        //         DB::raw('COALESCE(user_counts.total, 0) as total')
+        //     )
+        //     ->where('user_counts.total', '>', 0)
+        //     ->orWhereNotNull('user_counts.province_id')
+        //     ->groupBy('indonesia_provinces.id', 'indonesia_provinces.name', 'user_counts.total')
+        //     ->get()
+        //     ->map(function($item) {
+        //         return [
+        //             'province_code' => (string)$item->province_id, // Use ID as code for GeoJSON matching
+        //             'province' => $item->province,
+        //             'total' => (int)$item->total,
+        //         ];
+        //     });
 
-        $totalUsers = User::count();
+        $totalUsers = User::where('member_type', 'calon_anggota')->count();
 
         $adminStats = null;
         if ($user->hasRole(['admin', 'super-admin'])) {
@@ -147,7 +169,68 @@ class MailDashboardController extends Controller
             ];
         }
 
-        return Inertia::render('Dashboard/Index', [
+        $matraCounts = [
+            'AD' => 0,
+            'AL' => 0,
+            'AU' => 0,
+        ];
+
+        $matraCounts = [
+            'AD' => \App\Models\UserCalon::where('matra', 'AD')->count(),
+            'AL' => \App\Models\UserCalon::where('matra', 'AL')->count(),
+            'AU' => \App\Models\UserCalon::where('matra', 'AU')->count(),
+        ];
+
+        // Assuming $isCalonDashboard is determined elsewhere, or we can infer it from the current render target
+        $isCalonDashboard = true; // For the purpose of this edit, assuming it's true based on the original render 'Dashboard/Index-calon'
+
+        $provinceDetails = [];
+
+        $provinceDetailsRaw = \App\Models\UserCalon::query()
+            ->leftJoin('pekerjaans', 'user_calon.pekerjaan_id', '=', 'pekerjaans.id')
+            ->select(
+                'user_calon.province_id',
+                \Illuminate\Support\Facades\DB::raw('COALESCE(pekerjaans.name, "Lainnya") as pekerjaan'),
+                'user_calon.jenis_kelamin',
+                \Illuminate\Support\Facades\DB::raw('count(*) as total')
+            )
+            ->whereNotNull('user_calon.province_id')
+            ->groupBy('user_calon.province_id', 'pekerjaans.name', 'user_calon.jenis_kelamin')
+            ->get();
+
+        foreach ($provinceDetailsRaw as $row) {
+            $pid = $row->province_id;
+            $pekerjaan = $row->pekerjaan;
+            
+            if (!isset($provinceDetails[$pid])) {
+                $provinceDetails[$pid] = [];
+            }
+        
+            // Find existing entry for this job or create new
+            $found = false;
+            foreach ($provinceDetails[$pid] as &$entry) {
+                if ($entry['name'] === $pekerjaan) {
+                    $genderKey = ($row->jenis_kelamin === 'L' || $row->jenis_kelamin === 'Laki-laki') ? 'L' : 'P';
+                    $entry[$genderKey] += $row->total;
+                    $entry['total'] += $row->total;
+                    $found = true;
+                    break;
+                }
+            }
+            
+            if (!$found) {
+                $genderKey = ($row->jenis_kelamin === 'L' || $row->jenis_kelamin === 'Laki-laki') ? 'L' : 'P';
+                $provinceDetails[$pid][] = [
+                    'name' => $pekerjaan,
+                    'L' => $genderKey === 'L' ? $row->total : 0,
+                    'P' => $genderKey === 'P' ? $row->total : 0,
+                    'total' => $row->total,
+                ];
+            }
+        }
+        
+        return Inertia::render('Dashboard/Index-calon', [
+            'matraCounts' => $matraCounts,
             'stats' => [
                 'sent' => $totalSent,
                 'inbox' => $totalInbox,
@@ -156,8 +239,21 @@ class MailDashboardController extends Controller
             'chartData' => $lettersPerMonth,
             'activities' => $activities,
             'usersByProvince' => $usersByProvince,
+            'provinceDetails' => $provinceDetails,
             'totalUsers' => $totalUsers,
-            'adminStats' => $adminStats, // New prop
+            'adminStats' => $adminStats,
         ]);
+        // return Inertia::render('Dashboard/Index', [
+        //     'stats' => [
+        //         'sent' => $totalSent,
+        //         'inbox' => $totalInbox,
+        //         'pending' => $pendingApprovals,
+        //     ],
+        //     'chartData' => $lettersPerMonth,
+        //     'activities' => $activities,
+        //     'usersByProvince' => $usersByProvince,
+        //     'totalUsers' => $totalUsers,
+        //     'adminStats' => $adminStats, // New prop
+        // ]);
     }
 }

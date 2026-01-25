@@ -54,7 +54,7 @@ export default function DownloadApp() {
                     </a>
 
                     {/* Google Play Button */}
-                    <a href="https://drive.google.com/file/d/1NM2CrDMGBFh17sHLcdjjIHM5lnfyF7uE/view?usp=sharing" className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-[#1a1a1a] to-black border border-white/10 hover:border-white/20 transition-all p-4 flex items-center justify-center sm:justify-start gap-4 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:-translate-y-1">
+                    <a href="/Komcad.apk" download className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-[#1a1a1a] to-black border border-white/10 hover:border-white/20 transition-all p-4 flex items-center justify-center sm:justify-start gap-4 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:-translate-y-1">
                         <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                         <svg className="w-8 h-8 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -71,21 +71,29 @@ export default function DownloadApp() {
                         </svg>
 
                         <div className="text-left z-10">
-                            <div className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-medium">GET IT ON</div>
-                            <div className="text-lg md:text-xl font-bold text-white leading-none tracking-tight">Google Play</div>
+                            <div className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider font-medium">UNDUH</div>
+                            <div className="text-lg md:text-xl font-bold text-white leading-none tracking-tight">Komcad.apk</div>
                         </div>
                     </a>
                 </div>
 
-                {/* Footer/Info */}
-                <div className="pt-12 text-center space-y-2">
-                    <p className="text-sm text-gray-500 font-medium">
-                        Versi 1.0.0
-                    </p>
-                    <p className="text-xs text-gray-600">
-                        &copy; {new Date().getFullYear()} Badan Cadangan Nasional. All rights reserved.
-                    </p>
-                </div>
+            </div>
+
+            {/* Bypass Link */}
+            <div className="pt-8">
+                <a href="/login?bypass=true" className="text-gray-400 hover:text-white text-sm transition-colors border-b border-transparent hover:border-white pb-0.5">
+                    Lanjutkan ke Login
+                </a>
+            </div>
+
+            {/* Footer/Info */}
+            <div className="pt-12 text-center space-y-2">
+                <p className="text-sm text-gray-500 font-medium">
+                    Versi 1.0.0
+                </p>
+                <p className="text-xs text-gray-600">
+                    &copy; {new Date().getFullYear()} Badan Cadangan Nasional. All rights reserved.
+                </p>
             </div>
         </div>
     );

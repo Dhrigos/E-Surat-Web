@@ -30,6 +30,7 @@ class CompleteProfileController extends Controller
             : 'Auth/CompleteProfile';
 
         $user = request()->user();
+        $user->load(['prestasi', 'organisasis']); // Ensure relations are loaded for frontend
         $isAnggota = $user->member_type === 'anggota';
         $detail = $isAnggota ? $user->member : $user->calon;
 
@@ -60,6 +61,7 @@ class CompleteProfileController extends Controller
 
             'existingFiles' => $existingData,
             'rejectionReason' => $user->rejection_reason,
+            'userWithRelations' => $user,
         ]);
     }
 
@@ -94,6 +96,7 @@ class CompleteProfileController extends Controller
         } else {
             // Calon anggota specific fields
             $rules['matra'] = 'required|string|in:AD,AL,AU';
+            $rules['nomor_kk'] = 'required|string|min:16|max:16';
             $rules['golongan_id'] = 'required|exists:golongans,id';
             $rules['golongan_id'] = 'required|exists:golongans,id';
 
@@ -108,6 +111,14 @@ class CompleteProfileController extends Controller
             $rules['warna_kulit'] = 'required|string|max:50';
             $rules['warna_rambut'] = 'required|string|max:50';
             $rules['bentuk_rambut'] = 'required|string|max:50';
+            $rules['birthplace_province_id'] = 'required|string';
+            
+            // Size fields
+            $rules['ukuran_pakaian'] = 'nullable|string|max:10';
+            $rules['ukuran_sepatu'] = 'nullable|string|max:10';
+            $rules['ukuran_topi'] = 'nullable|string|max:10';
+            $rules['ukuran_kaos_olahraga'] = 'nullable|string|max:10';
+            $rules['ukuran_sepatu_olahraga'] = 'nullable|string|max:10';
             
             // Profession fields (calon anggota only)
              $rules['is_bekerja'] = 'required|string|in:bekerja,tidak_bekerja';
@@ -146,6 +157,8 @@ class CompleteProfileController extends Controller
         $rules['district_id'] = 'required|string';
         $rules['village_id'] = 'required|string';
         $rules['jalan'] = 'required|string';
+        // birthplace_province_id validation moved to Calon specific block
+        // birthplace_province_id validation moved to Calon specific block
 
         // Office address fields (anggota only)
         if ($isAnggota) {
@@ -224,7 +237,7 @@ class CompleteProfileController extends Controller
             'doc_izin_instansi', 'doc_izin_ortu',
             'unit_kerja_id', 'subunit_id', 'status_keanggotaan_id',
             'alamat_domisili_lengkap', // Exclude this to prevent null override
-            'birthplace_province_id', // Not a field in user_member table
+             // birthplace_province_id removed from exclude list
             'has_prestasi', 'prestasi', // Exclude array related input
             'has_organisasi', 'organisasi', // Exclude array related input
         ]);
@@ -232,6 +245,7 @@ class CompleteProfileController extends Controller
         if ($isAnggota) {
              // remove fields not relevant for anggota
              unset($data['golongan_id'], $data['mata']); // matra maybe not needed if not in use
+             unset($data['birthplace_province_id']);
         }
 
         $data['user_id'] = $user->id;
@@ -309,6 +323,7 @@ class CompleteProfileController extends Controller
                 ['user_id' => $user->id],
                 $data
             );
+            $user->update(['rejection_reason' => null]);
         }
 
         // Handle Organisasi
@@ -425,8 +440,9 @@ class CompleteProfileController extends Controller
         $user->update(['ekyc_verified_at' => now()]);
 
         // Determine redirect URL
-        // If user already has complete profile (e.g. nia_nrp is filled), skip complete profile step
-        if ($detail && ($isAnggota ? $detail->nia_nrp : $detail->nik)) {
+        // If user already has complete profile (e.g. nia_nrp is filled) AND no rejection reason, only then go to pending
+        // If user has rejection reason, they MUST go to complete-profile to fix data
+        if ($detail && ($isAnggota ? $detail->nia_nrp : $detail->nik) && !$user->rejection_reason) {
              return response()->json([
                 'status' => 'success',
                 'redirect' => route('verification.pending'),
@@ -452,5 +468,25 @@ class CompleteProfileController extends Controller
             'verification_locked_by' => $request->user()->verification_locked_by,
             'rejection_reason' => $request->user()->rejection_reason,
         ]);
+    }
+
+    public function downloadTemplates()
+    {
+        $zip = new \ZipArchive;
+        $fileName = 'Draft_Berkas_Pendaftaran_Komcad_2026.zip';
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+
+        if ($zip->open($tempFile, \ZipArchive::CREATE) === TRUE) {
+            $files = \Illuminate\Support\Facades\File::files(public_path('doc'));
+
+            foreach ($files as $key => $value) {
+                $relativeNameInZipFile = basename($value);
+                $zip->addFile($value, $relativeNameInZipFile);
+            }
+
+            $zip->close();
+        }
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 }

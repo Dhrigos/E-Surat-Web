@@ -200,7 +200,7 @@ export default function Register() {
 
     // Unified Render
     return (
-        <div className="fixed inset-0 bg-black overflow-hidden font-sans flex flex-col overscroll-none">
+        <div className="fixed inset-0 bg-black overflow-hidden font-sans flex flex-col">
             <Head title={step === 3 ? "Verifikasi OTP" : "Register"} />
 
             {/* Background Image with Dark Overlay */}
@@ -233,9 +233,9 @@ export default function Register() {
                 .delay-300 { animation-delay: 300ms; opacity: 0; }
             `}</style>
 
-            <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 flex items-center justify-center p-4">
-                    <Card className="w-full max-w-lg bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl animate-scale-in">
+            <div className="relative z-10 flex-1 overflow-y-auto">
+                <div className="min-h-full flex items-center justify-center p-4 md:p-6">
+                    <Card className="w-full max-w-md md:max-w-lg bg-[#252525]/95 backdrop-blur-xl border-2 border-white/20 text-white shadow-2xl animate-scale-in">
                         <CardHeader className="text-center animate-fade-in-up delay-100">
                             {/* Logos (Only show on Steps 1 & 2 for cleaner look, or small on Step 3? Let's keep consistent) */}
                             {/* <div className="flex justify-center items-center gap-3 mb-2 -mt-4 transform group-hover:scale-105 transition-transform duration-700">
@@ -243,8 +243,8 @@ export default function Register() {
                                 <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-16 w-16 md:h-20 md:w-20 object-contain drop-shadow-2xl" />
                             </div> */}
                             <div className="flex justify-center items-center gap-8 mb-1 -mt-8 transform group-hover:scale-105 transition-transform duration-700">
-                                <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-40 md:w-40 object-contain drop-shadow-2xl" />
-                                <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-20 w-auto md:h-28 md:w-28 object-contain drop-shadow-2xl" />
+                                <img src="/images/KEMENTERIAN-PERTAHANAN.png" alt="Kemhan" className="h-28 w-28 md:h-32 md:w-32 object-contain drop-shadow-2xl" />
+                                <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="Bacan" className="h-20 w-auto md:h-24 md:w-auto object-contain drop-shadow-2xl" />
                             </div>
 
                             <CardTitle className="text-xl md:text-2xl font-black text-[#AC0021] mb-2 -mt-6 tracking-tight whitespace-nowrap">
@@ -364,7 +364,7 @@ export default function Register() {
                                                     <Input
                                                         id="email"
                                                         type="email"
-                                                        placeholder="nama@bacanas.go.id"
+                                                        placeholder="nama@komcad.go.id"
                                                         value={data.email}
                                                         onChange={(e) => setData('email', e.target.value)}
                                                         onBlur={(e) => checkAvailability('email', e.target.value)}
@@ -615,7 +615,7 @@ export default function Register() {
                             )}
 
                             {/* Login Link  */}
-                            <div className="mt-8 text-center border-t border-white/10 pt-4">
+                            <div className="mt-4 text-center border-t border-white/10 pt-4">
                                 <div className="text-sm text-gray-400">
                                     Sudah punya akun?{' '}
                                     <Link

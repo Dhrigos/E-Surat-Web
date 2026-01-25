@@ -368,10 +368,10 @@ export default function Dashboard({ stats, chartData, activities, usersByProvinc
                                             </div>
                                         ) : (
                                             <div className="relative pl-4 border-l border-border space-y-8 my-2">
-                                                {activities.map((activity) => {
+                                                {activities.map((activity, index) => {
                                                     const { title, desc } = formatActivity(activity.action, activity.description);
                                                     return (
-                                                        <div key={activity.id} className="relative group">
+                                                        <div key={activity.id || `activity-${index}`} className="relative group">
                                                             <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-[#262626] bg-blue-500 ring-2 ring-gray-700 group-hover:scale-110 transition-transform" />
                                                             <div className="flex flex-col gap-1.5 -mt-0.5 ml-2">
                                                                 <div className="flex items-center justify-between">

@@ -47,6 +47,7 @@ interface Props {
     goldars: Array<{ id: number; nama: string; rhesus?: string }>; // Added
     pendidikans: Array<{ id: number; nama: string }>;
     pekerjaans: Array<{ id: number; name: string }>;
+    userWithRelations?: any;
 }
 
 export default function CompleteProfile({
@@ -63,6 +64,7 @@ export default function CompleteProfile({
     goldars = [], // Added
     pendidikans = [],
     pekerjaans = [],
+    userWithRelations,
 }: Props) {
     // Main Form Step (starts after E-KYC)
     const [step, setStep] = useState(1);
@@ -78,6 +80,7 @@ export default function CompleteProfile({
 
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         nia_nrp: auth.user?.detail?.nia_nrp || '',
+        nomor_kk: auth.user?.detail?.nomor_kk || '', // Added nomor_kk
         nik: auth.user?.detail?.nik || '',
         matra: auth.user?.detail?.matra || '', // Added
         tempat_lahir: auth.user?.detail?.tempat_lahir || '',
@@ -98,7 +101,7 @@ export default function CompleteProfile({
         warna_rambut: auth.user?.detail?.warna_rambut || '',
         bentuk_rambut: auth.user?.detail?.bentuk_rambut || '',
 
-        // Clothing Sizes
+        // Sizes
         ukuran_pakaian: auth.user?.detail?.ukuran_pakaian || '',
         ukuran_sepatu: auth.user?.detail?.ukuran_sepatu || '',
         ukuran_topi: auth.user?.detail?.ukuran_topi || '',
@@ -115,8 +118,8 @@ export default function CompleteProfile({
         status_lulus: auth.user?.detail?.status_lulus || '',
 
         // Prestasi
-        has_prestasi: auth.user?.prestasi?.length ? 'ada' : 'tidak_ada',
-        prestasi: auth.user?.prestasi || [],
+        has_prestasi: userWithRelations?.prestasi?.length ? 'ada' : (auth.user?.prestasi?.length ? 'ada' : 'tidak_ada'),
+        prestasi: userWithRelations?.prestasi || auth.user?.prestasi || [],
 
         // Profesi
         is_bekerja: auth.user?.detail?.is_bekerja || 'tidak_bekerja',
@@ -125,8 +128,8 @@ export default function CompleteProfile({
         nama_profesi: auth.user?.detail?.nama_profesi || '',
 
         // Organisasi
-        has_organisasi: auth.user?.organisasi?.length ? 'ada' : 'tidak_ada',
-        organisasi: (auth.user?.organisasi || []) as Array<{
+        has_organisasi: userWithRelations?.organisasis?.length ? 'ada' : (auth.user?.organisasis?.length ? 'ada' : 'tidak_ada'),
+        organisasi: (userWithRelations?.organisasis || auth.user?.organisasis || []) as Array<{
             nama_organisasi: string;
             posisi: string;
             tanggal_mulai: string;
@@ -138,7 +141,7 @@ export default function CompleteProfile({
         jabatan_id: auth.user?.detail?.jabatan_id || '',
         jabatan_role_id: auth.user?.detail?.jabatan_role_id || '',
 
-        golongan_id: initialGolonganId,
+        golongan_id: initialGolonganId || auth.user?.detail?.golongan_id || '',
         pangkat_id: initialPangkatId,
 
         tanggal_pengangkatan: auth.user?.detail?.tanggal_pengangkatan ? new Date(auth.user.detail.tanggal_pengangkatan) : undefined,
@@ -228,6 +231,16 @@ export default function CompleteProfile({
 
     // Jabatan Modal State
     const [isJabatanModalOpen, setIsJabatanModalOpen] = useState(false);
+
+    // Scroll container ref
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Reset scroll on step change
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [step]);
 
     // Derived Display Logic for the Input Trigger
     const selectedJabatanObj = useMemo(() =>
@@ -384,7 +397,7 @@ export default function CompleteProfile({
         if (detail) {
             // Load existing documents
             const docFields = [
-                'scan_ktp', 'doc_surat_lamaran', 'doc_ktp', 'doc_kk', 'doc_sk_lurah',
+                'scan_ktp', 'foto_profil', 'doc_surat_lamaran', 'doc_ktp', 'doc_kk', 'doc_sk_lurah',
                 'doc_skck', 'doc_ijazah', 'doc_sk_sehat', 'doc_drh', 'doc_latsarmil',
                 'doc_izin_instansi', 'doc_izin_ortu'
             ];
@@ -406,6 +419,14 @@ export default function CompleteProfile({
                 setSignatureFilename('Tanda Tangan Tersimpan');
             }
         }
+
+        // Trigger fetches for populated region fields
+        if (data.birthplace_province_id) fetchBirthplaceCities(data.birthplace_province_id);
+        if (data.province_id) fetchCities(data.province_id);
+        if (data.city_id) fetchDistricts(data.city_id);
+        if (data.district_id) fetchVillages(data.district_id);
+        if (data.office_province_id) fetchOfficeCities(data.office_province_id);
+
     }, []);
 
     const fetchCities = (provinceCode: string) => {
@@ -670,7 +691,7 @@ export default function CompleteProfile({
             }
         } else if (step === 2) {
             const requiredFields = [
-                'nia_nrp', 'nik', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+                'nomor_kk', 'nik', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
                 'suku_id', 'bangsa_id', 'agama_id', 'status_pernikahan_id', 'nama_ibu_kandung',
                 'golongan_darah_id', 'tinggi_badan', 'berat_badan', 'warna_kulit', 'warna_rambut', 'bentuk_rambut'
             ];
@@ -681,7 +702,8 @@ export default function CompleteProfile({
                 }
             });
 
-            if (!data.foto_profil) {
+            // Allow if has new file OR has existing preview
+            if (!data.foto_profil && !previews.foto_profil) {
                 setError('foto_profil', 'Wajib diupload');
                 hasError = true;
             }
@@ -870,7 +892,7 @@ export default function CompleteProfile({
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-2 md:p-8 -mt-4 md:-mt-8 flex-1 overflow-y-auto">
+                <CardContent ref={scrollContainerRef} className="p-2 md:p-8 -mt-4 md:-mt-8 flex-1 overflow-y-auto">
                     {rejectionReason && (
                         <Alert variant="destructive" className="mb-6 border-[#AC0021]/50 bg-red-500/10 text-red-200">
                             <AlertCircle className="h-4 w-4" />
@@ -1187,24 +1209,30 @@ export default function CompleteProfile({
                                                     Kartu Keluarga <span className="text-[#B0B0B0] text-xs font-normal ml-1">(Min. 16 digit)</span>
                                                 </Label>
                                                 <FastInput
-                                                    value={data.nia_nrp}
+                                                    value={data.nomor_kk}
                                                     onBlur={(e) => {
-                                                        setData('nia_nrp', e.target.value);
-                                                        validateNiaNrp(e.target.value);
+                                                        setData('nomor_kk', e.target.value);
+                                                        // validateNiaNrp(e.target.value); // Removed validation for now
                                                     }}
                                                     onPaste={(e) => e.preventDefault()}
                                                     onCopy={(e) => e.preventDefault()}
                                                     onCut={(e) => e.preventDefault()}
                                                     minLength={16}
                                                     maxLength={16}
-                                                    name="nia_nrp_field_no_autofill"
-                                                    id="nia_nrp_field_no_autofill"
+                                                    name="nomor_kk_field"
+                                                    id="nomor_kk_field"
                                                     autoComplete="off"
                                                     data-lpignore="true"
-                                                    className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-[#AC0021] ${errors.nia_nrp || niaNrpExists ? 'border-[#AC0021]' : ''}`}
+                                                    className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-[#AC0021] ${errors.nomor_kk ? 'border-[#AC0021]' : ''}`}
                                                     placeholder="Nomor KK (16 Digit)"
+                                                    onKeyPress={(e) => {
+                                                        if (!/[0-9]/.test(e.key)) {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                    inputMode="numeric"
                                                 />
-                                                {errors.nia_nrp && <p className="text-[#AC0021] text-sm">{errors.nia_nrp}</p>}
+                                                {errors.nomor_kk && <span className="text-red-500 text-sm">{errors.nomor_kk}</span>}
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-[#FEFCF8] font-medium">
@@ -1226,6 +1254,12 @@ export default function CompleteProfile({
                                                     data-lpignore="true"
                                                     className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-[#AC0021] ${errors.nik || nikExists ? 'border-[#AC0021]' : ''}`}
                                                     placeholder="Nomor Induk Kependudukan"
+                                                    onKeyPress={(e) => {
+                                                        if (!/[0-9]/.test(e.key)) {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                    inputMode="numeric"
                                                 />
                                                 {errors.nik && <p className="text-[#AC0021] text-sm">{errors.nik}</p>}
                                             </div>
@@ -1363,7 +1397,7 @@ export default function CompleteProfile({
                                                 <SearchableSelect
                                                     value={data.tempat_lahir}
                                                     onValueChange={val => { setData('tempat_lahir', val); clearErrors('tempat_lahir'); }}
-                                                    options={birthplaceCities.map(c => ({ value: c.name, label: c.name }))}
+                                                    options={birthplaceCities.map(c => ({ value: c.code, label: c.name }))}
                                                     placeholder="Pilih Kota"
                                                     searchPlaceholder="Cari Kota..."
                                                     disabled={birthplaceCities.length === 0}
@@ -1474,43 +1508,64 @@ export default function CompleteProfile({
 
                                         <div className="space-y-2">
                                             <Label className="text-[#FEFCF8] font-medium">Warna Kulit</Label>
-                                            <FastInput
+                                            <Select
                                                 value={data.warna_kulit}
-                                                onBlur={(e) => {
-                                                    setData('warna_kulit', e.target.value);
+                                                onValueChange={(val) => {
+                                                    setData('warna_kulit', val);
                                                     clearErrors('warna_kulit');
                                                 }}
-                                                className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]"
-                                                placeholder="Warna Kulit"
-                                            />
+                                            >
+                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
+                                                    <SelectValue placeholder="Pilih Warna Kulit" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {['Sawo Matang', 'Kuning Langsat', 'Putih', 'Hitam', 'Coklat'].map((opt) => (
+                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             {errors.warna_kulit && <p className="text-[#AC0021] text-sm">{errors.warna_kulit}</p>}
                                         </div>
 
                                         <div className="space-y-2">
                                             <Label className="text-[#FEFCF8] font-medium">Warna Rambut</Label>
-                                            <FastInput
+                                            <Select
                                                 value={data.warna_rambut}
-                                                onBlur={(e) => {
-                                                    setData('warna_rambut', e.target.value);
+                                                onValueChange={(val) => {
+                                                    setData('warna_rambut', val);
                                                     clearErrors('warna_rambut');
                                                 }}
-                                                className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]"
-                                                placeholder="Warna Rambut"
-                                            />
+                                            >
+                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
+                                                    <SelectValue placeholder="Pilih Warna Rambut" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {['Hitam', 'Coklat', 'Pirang', 'Putih/Uban', 'Merah'].map((opt) => (
+                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             {errors.warna_rambut && <p className="text-[#AC0021] text-sm">{errors.warna_rambut}</p>}
                                         </div>
 
                                         <div className="space-y-2">
                                             <Label className="text-[#FEFCF8] font-medium">Bentuk Rambut</Label>
-                                            <FastInput
+                                            <Select
                                                 value={data.bentuk_rambut}
-                                                onBlur={(e) => {
-                                                    setData('bentuk_rambut', e.target.value);
+                                                onValueChange={(val) => {
+                                                    setData('bentuk_rambut', val);
                                                     clearErrors('bentuk_rambut');
                                                 }}
-                                                className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]"
-                                                placeholder="Bentuk Rambut"
-                                            />
+                                            >
+                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
+                                                    <SelectValue placeholder="Pilih Bentuk Rambut" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {['Lurus', 'Ikal', 'Bergelombang', 'Keriting'].map((opt) => (
+                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             {errors.bentuk_rambut && <p className="text-[#AC0021] text-sm">{errors.bentuk_rambut}</p>}
                                         </div>
                                     </div>
@@ -1527,10 +1582,10 @@ export default function CompleteProfile({
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                         {[
                                             { key: 'ukuran_pakaian', label: 'Ukuran Pakaian', options: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] },
-                                            { key: 'ukuran_sepatu', label: 'Ukuran Sepatu', options: Array.from({ length: 13 }, (_, i) => (36 + i).toString()) },
+                                            { key: 'ukuran_sepatu', label: 'Ukuran Sepatu', options: Array.from({ length: 14 }, (_, i) => (35 + i).toString()) },
                                             { key: 'ukuran_topi', label: 'Ukuran Topi', options: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] },
                                             { key: 'ukuran_kaos_olahraga', label: 'Ukuran Kaos Olahraga', options: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] },
-                                            { key: 'ukuran_sepatu_olahraga', label: 'Ukuran Sepatu Olahraga', options: Array.from({ length: 13 }, (_, i) => (36 + i).toString()) }
+                                            { key: 'ukuran_sepatu_olahraga', label: 'Ukuran Sepatu Olahraga', options: Array.from({ length: 14 }, (_, i) => (35 + i).toString()) }
                                         ].map((field) => (
                                             <div key={field.key} className="space-y-2">
                                                 <Label className="text-[#FEFCF8] text-sm font-normal">{field.label}</Label>
@@ -2158,10 +2213,11 @@ export default function CompleteProfile({
                                                             </Label>
                                                             <FastInput
                                                                 type="month"
-                                                                value={item.tanggal_mulai}
+                                                                value={item.tanggal_mulai?.substring(0, 7)}
                                                                 onChange={(e) => {
                                                                     const newList = [...data.organisasi];
-                                                                    newList[index].tanggal_mulai = e.target.value;
+                                                                    const val = e.target.value;
+                                                                    newList[index].tanggal_mulai = val ? `${val}-01` : '';
                                                                     setData('organisasi', newList);
                                                                 }}
                                                                 className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]"
@@ -2175,10 +2231,11 @@ export default function CompleteProfile({
                                                             </Label>
                                                             <FastInput
                                                                 type="month"
-                                                                value={item.tanggal_berakhir}
+                                                                value={item.tanggal_berakhir?.substring(0, 7)}
                                                                 onChange={(e) => {
                                                                     const newList = [...data.organisasi];
-                                                                    newList[index].tanggal_berakhir = e.target.value;
+                                                                    const val = e.target.value;
+                                                                    newList[index].tanggal_berakhir = val ? `${val}-01` : '';
                                                                     setData('organisasi', newList);
                                                                 }}
                                                                 disabled={item.is_active}
@@ -2254,9 +2311,9 @@ export default function CompleteProfile({
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 ease-out">
                                 {/* New Document Inputs */}
                                 <div className="flex justify-center pb-4 pt-1">
-                                    <a href="/doc/Surat-Lamaran.pdf" target="_blank" download className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 bg-[#2a2a2a] border-white/10 text-[#FEFCF8] hover:bg-white/10 gap-2">
+                                    <a href={route('complete-profile.download-templates')} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 bg-[#2a2a2a] border-white/10 text-[#FEFCF8] hover:bg-white/10 gap-2">
                                         <Download className="w-4 h-4" />
-                                        Download Template Surat Lamaran
+                                        Download Semua Template
                                     </a>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-0">

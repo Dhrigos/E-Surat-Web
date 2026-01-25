@@ -84,7 +84,7 @@ class ApprovalTrackingController extends Controller
         $totalRejected = $rejectedQuery->count();
 
         // Recent Verifications
-        $recentVerifications = User::with(['verifier:id,name', 'detail:user_id,nia_nrp'])
+        $recentVerifications = User::with(['verifier:id,name', 'detail'])
             ->whereNotNull('verified_at')
             ->whereBetween('verified_at', [$startDate, $endDate])
             ->when($adminFilter, fn ($q) => $q->where('verified_by', $adminFilter))
@@ -102,7 +102,7 @@ class ApprovalTrackingController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'nia_nrp' => $user->detail?->nia_nrp,
+                'nia_nrp' => $user->detail?->nia_nrp ?? $user->detail?->nomor_anggota,
                 'verified_at' => $user->verified_at,
                 'verified_by_name' => $user->verifier?->name,
                 'status' => $user->rejection_reason ? 'rejected' : 'approved',

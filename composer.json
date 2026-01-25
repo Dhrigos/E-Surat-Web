@@ -19,6 +19,8 @@
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
         "laravolt/indonesia": "^0.38.0",
+        "maatwebsite/excel": "^3.1",
+        "phpmailer/phpmailer": "^7.0",
         "spatie/laravel-permission": "^6.24",
         "tightenco/ziggy": "^2.6"
     },

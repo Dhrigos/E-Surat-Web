@@ -4,8 +4,24 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return redirect()->route('login');
-});
+    return Inertia::render('Welcome/Index');
+})->name('welcome');
+
+Route::get('/news', function () {
+    return Inertia::render('News/Index');
+})->name('news.index');
+
+Route::get('/news/{id}', function ($id) {
+    return Inertia::render('News/Show', ['id' => $id]);
+})->name('news.show');
+
+Route::get('/about', function () {
+    return Inertia::render('About/Index');
+})->name('about');
+
+Route::get('/contact', function () {
+    return Inertia::render('Contact/Index');
+})->name('contact');
 
 Route::get('/download-app', function () {
     return Inertia::render('DownloadApp');
@@ -39,6 +55,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pending-verification', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'pending'])->name('verification.pending');
 
     Route::get('/complete-profile/verification-status', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'verificationStatus'])->name('complete-profile.verification-status');
+    Route::get('/complete-profile/download-templates', [\App\Http\Controllers\Auth\CompleteProfileController::class, 'downloadTemplates'])->name('complete-profile.download-templates');
 
     // API Routes for Letter Creation
     Route::get('/api/users-by-jabatan', [\App\Http\Controllers\MasterDataController::class, 'getUsersByJabatan'])->name('api.users-by-jabatan');
@@ -92,10 +109,12 @@ Route::middleware(['auth'])->group(function () {
         // Staff Mapping Routes
         Route::middleware(['role:admin|super-admin'])->group(function () {
             Route::get('data-master', [\App\Http\Controllers\DataMaster\DataMasterController::class, 'index'])->name('data-master.index');
+            Route::get('export/calon-anggota', [\App\Http\Controllers\ExportController::class, 'exportCalonAnggota'])->name('export.calon-anggota');
             Route::get('staff-mapping', [\App\Http\Controllers\StaffController::class, 'index'])->name('staff-mapping');
             Route::get('calon-mapping', [\App\Http\Controllers\StaffController::class, 'calonIndex'])->name('calon-mapping');
             Route::resource('staff', \App\Http\Controllers\StaffController::class)->except(['create', 'edit', 'show']);
             Route::put('staff/{staff}/toggle-status', [\App\Http\Controllers\StaffController::class, 'toggleStatus'])->name('staff.toggle-status');
+            Route::put('staff/{staff}/promote', [\App\Http\Controllers\StaffController::class, 'promoteToMember'])->name('staff.promote');
             Route::put('staff/{staff}/role', [\App\Http\Controllers\StaffController::class, 'updateRole'])->name('staff.update-role');
             Route::resource('roles', \App\Http\Controllers\RoleController::class)->except(['create', 'edit', 'show']);
 
@@ -110,7 +129,9 @@ Route::middleware(['auth'])->group(function () {
             Route::post('verification-queue/{user}/verify', [\App\Http\Controllers\VerificationQueueController::class, 'verify'])->name('verification-queue.verify');
             Route::post('verification-queue/{user}/lock', [\App\Http\Controllers\VerificationQueueController::class, 'lock'])->name('verification-queue.lock');
             Route::post('verification-queue/{user}/unlock', [\App\Http\Controllers\VerificationQueueController::class, 'unlock'])->name('verification-queue.unlock');
-            Route::post('verification-queue/{user}/reject', [\App\Http\Controllers\VerificationQueueController::class, 'reject'])->name('verification-queue.reject');
+            Route::post('verification-queue/{user}/reject', [\App\Http\Controllers\VerificationQueueController::class, 'reject'])->name('verification-queue.reject')->withTrashed();
+            Route::delete('verification-queue/{user}/disqualify', [\App\Http\Controllers\VerificationQueueController::class, 'disqualify'])->name('verification-queue.disqualify')->withTrashed();
+            Route::get('verification-queue/{user}/download', [\App\Http\Controllers\VerificationQueueController::class, 'download'])->name('verification-queue.download');
 
             // Approval Tracking (Super Admin Only)
             Route::get('approval-tracking', [\App\Http\Controllers\ApprovalTrackingController::class, 'index'])->name('approval-tracking.index');

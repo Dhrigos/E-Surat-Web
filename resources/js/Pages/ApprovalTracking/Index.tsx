@@ -55,6 +55,7 @@ interface Props {
 export default function Index({ statistics, recent_verifications, recent_letter_approvals, filters }: Props) {
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
+    const [showFilters, setShowFilters] = useState(false);
 
     const handleFilter = () => {
         router.get(route('approval-tracking.index'), {
@@ -97,42 +98,55 @@ export default function Index({ statistics, recent_verifications, recent_letter_
                 </div>
 
                 {/* Filters */}
+                {/* Filters */}
                 <Card className="border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-white dark:bg-[#262626] text-zinc-900 dark:text-zinc-100">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+                    <CardHeader
+                        className="cursor-pointer select-none flex flex-row items-center justify-between p-6"
+                        onClick={() => setShowFilters(!showFilters)}
+                    >
+                        <CardTitle className="flex items-center gap-2 text-base">
                             <Filter className="h-5 w-5" />
                             Filters
                         </CardTitle>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            {showFilters ? (
+                                <span className="text-xl">−</span>
+                            ) : (
+                                <span className="text-xl">+</span>
+                            )}
+                        </Button>
                     </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col md:flex-row gap-4 md:items-end">
-                            <div className="space-y-2 flex-1 w-full">
-                                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Start Date</label>
-                                <Input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 w-full"
-                                />
+                    {showFilters && (
+                        <CardContent className="pt-0 transition-all animation-expand">
+                            <div className="flex flex-col md:flex-row gap-4 md:items-end">
+                                <div className="space-y-2 flex-1 w-full">
+                                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Start Date</label>
+                                    <Input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 w-full"
+                                    />
+                                </div>
+                                <div className="space-y-2 flex-1 w-full">
+                                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">End Date</label>
+                                    <Input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 w-full"
+                                    />
+                                </div>
+                                <Button onClick={handleFilter} className="w-full md:w-auto bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900 hover:bg-zinc-900/90 dark:hover:bg-zinc-100/90">
+                                    Apply Filters
+                                </Button>
                             </div>
-                            <div className="space-y-2 flex-1 w-full">
-                                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">End Date</label>
-                                <Input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 w-full"
-                                />
-                            </div>
-                            <Button onClick={handleFilter} className="w-full md:w-auto bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900 hover:bg-zinc-900/90 dark:hover:bg-zinc-100/90">
-                                Apply Filters
-                            </Button>
-                        </div>
-                    </CardContent>
+                        </CardContent>
+                    )}
                 </Card>
 
                 {/* Statistics Cards */}
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                     <Card className="border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-white dark:bg-[#262626] text-zinc-900 dark:text-zinc-100">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-zinc-700 dark:text-zinc-400">Total Verifications</CardTitle>
@@ -195,10 +209,10 @@ export default function Index({ statistics, recent_verifications, recent_letter_
                                     <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50">
                                         <TableHead className="text-zinc-500 dark:text-zinc-400">User</TableHead>
                                         <TableHead className="text-zinc-500 dark:text-zinc-400">NRP</TableHead>
-                                        <TableHead className="text-zinc-500 dark:text-zinc-400">Verified By</TableHead>
+                                        <TableHead className="text-zinc-500 dark:text-zinc-400 hidden md:table-cell">Verified By</TableHead>
                                         <TableHead className="text-zinc-500 dark:text-zinc-400">Status</TableHead>
-                                        <TableHead className="text-zinc-500 dark:text-zinc-400">Time</TableHead>
-                                        <TableHead className="text-zinc-500 dark:text-zinc-400">Handling Time</TableHead>
+                                        <TableHead className="text-zinc-500 dark:text-zinc-400 hidden lg:table-cell">Time</TableHead>
+                                        <TableHead className="text-zinc-500 dark:text-zinc-400 hidden sm:table-cell">Handling Time</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -209,12 +223,22 @@ export default function Index({ statistics, recent_verifications, recent_letter_
                                     ) : (
                                         recent_verifications.map((verification) => (
                                             <TableRow key={verification.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800/50">
-                                                <TableCell className="font-medium text-zinc-900 dark:text-zinc-200">{verification.name}</TableCell>
-                                                <TableCell className="text-zinc-700 dark:text-zinc-300">{verification.nia_nrp}</TableCell>
-                                                <TableCell className="text-zinc-700 dark:text-zinc-300">{verification.verified_by_name}</TableCell>
+                                                <TableCell className="font-medium text-zinc-900 dark:text-zinc-200">
+                                                    <div>{verification.name}</div>
+                                                    <div className="md:hidden text-xs text-zinc-500 mt-0.5">
+                                                        <span className="opacity-70">Verified:</span> {new Date(verification.verified_at).toLocaleDateString()}
+                                                        <span className="mx-1">•</span>
+                                                        <span className="opacity-70">Time:</span> {verification.time_taken_hours < 1
+                                                            ? `${Math.round(verification.time_taken_hours * 60)}m`
+                                                            : `${verification.time_taken_hours.toFixed(1)}h`
+                                                        }
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-zinc-700 dark:text-zinc-300">{verification.nia_nrp || '-'}</TableCell>
+                                                <TableCell className="text-zinc-700 dark:text-zinc-300 hidden md:table-cell">{verification.verified_by_name}</TableCell>
                                                 <TableCell>{getStatusBadge(verification.status)}</TableCell>
-                                                <TableCell className="text-zinc-700 dark:text-zinc-300">{new Date(verification.verified_at).toLocaleString()}</TableCell>
-                                                <TableCell className="text-zinc-700 dark:text-zinc-300">
+                                                <TableCell className="text-zinc-700 dark:text-zinc-300 hidden lg:table-cell">{new Date(verification.verified_at).toLocaleString()}</TableCell>
+                                                <TableCell className="text-zinc-700 dark:text-zinc-300 hidden sm:table-cell">
                                                     {verification.time_taken_hours < 1
                                                         ? `${Math.round(verification.time_taken_hours * 60)}m`
                                                         : `${verification.time_taken_hours.toFixed(1)}h`

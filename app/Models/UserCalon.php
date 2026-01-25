@@ -20,6 +20,7 @@ class UserCalon extends Model
         'golongan_id',
         'pangkat_id',
         'nik',
+        'nomor_kk',
         'tempat_lahir',
         'tanggal_lahir',
         'jenis_kelamin',
@@ -35,6 +36,7 @@ class UserCalon extends Model
         'warna_rambut',
         'bentuk_rambut',
         'alamat_domisili_lengkap',
+        'birthplace_province_id',
         'province_id',
         'city_id',
         'district_id',
@@ -56,7 +58,18 @@ class UserCalon extends Model
         'doc_latsarmil',
         'doc_izin_instansi',
         'doc_izin_ortu',
+        'ukuran_pakaian',
+        'ukuran_sepatu',
+        'ukuran_topi',
+        'ukuran_kaos_olahraga',
+        'ukuran_sepatu_olahraga',
+        'pendidikan_id',
+        'nama_sekolah',
+        'nama_prodi',
+        'nilai_akhir',
+        'status_lulus',
         'tanda_tangan',
+        'scan_ktp',
         'scan_selfie',
         'ekyc_score',
     ];
@@ -99,5 +112,40 @@ class UserCalon extends Model
     public function golonganDarah(): BelongsTo
     {
         return $this->belongsTo(Goldar::class, 'golongan_darah_id');
+    }
+
+    public function birthplace(): BelongsTo
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\City::class, 'tempat_lahir', 'code');
+    }
+
+    public function pendidikan(): BelongsTo
+    {
+        return $this->belongsTo(Pendidikan::class);
+    }
+
+    public function pekerjaan(): BelongsTo
+    {
+        return $this->belongsTo(Pekerjaan::class);
+    }
+
+    public function provinsi(): BelongsTo
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\Province::class, 'province_id', 'code');
+    }
+
+    public function kabupaten(): BelongsTo
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\City::class, 'city_id', 'code');
+    }
+
+    public function kecamatan(): BelongsTo
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\District::class, 'district_id', 'code');
+    }
+
+    public function desa(): BelongsTo
+    {
+        return $this->belongsTo(\Laravolt\Indonesia\Models\Village::class, 'village_id', 'code');
     }
 }

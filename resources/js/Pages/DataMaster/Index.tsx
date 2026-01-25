@@ -79,7 +79,7 @@ export default function Index({ activeTab, stats, data, filters }: Props) {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {statsCards.map((stat, index) => (
                         <Card key={index} className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-white dark:bg-[#262626] text-zinc-900 dark:text-[#FEFCF8]">
                             <CardContent className="p-6">

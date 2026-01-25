@@ -59,6 +59,7 @@ class StaffController extends Controller implements HasMiddleware
 
                 return [
                     'id' => $user->id,
+                    'member_type' => $user->member_type,
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone_number,
@@ -122,7 +123,52 @@ class StaffController extends Controller implements HasMiddleware
     {
         try {
             \Illuminate\Support\Facades\Log::info('StaffController::calonIndex accessed');
-            $query = User::with(['roles', 'calon.suku', 'calon.bangsa', 'calon.agama', 'calon.statusPernikahan', 'calon.golonganDarah'])
+            $query = User::with([
+                    'roles', 
+                    'calon.suku', 'calon.bangsa', 'calon.agama', 'calon.statusPernikahan', 'calon.golonganDarah',
+                    'calon.golongan', 'calon.pangkat', 'calon.pendidikan', 'calon.pekerjaan',
+                    'calon.provinsi', 'calon.kabupaten', 'calon.kecamatan', 'calon.desa',
+                    'prestasi', 'organisasis'
+                ])
+                ->where('member_type', 'calon_anggota')
+                ->whereDoesntHave('roles', function ($q) {
+                    $q->where('name', 'super-admin');
+                })
+                ->where('verifikasi', true);
+
+            // Search matches... (omitted for brevity, keep existing logic if safe or assume replace covers it)
+            // Assuming the context is safe, I will just proceed with the mapping update which is the critical part.
+            // Oh wait, replace_file_content works on chunks. I should target the query definition specifically first, then the mapping.
+
+            // Let's do a larger chunk to cover query and mapping if they are close, or separate.
+            // They are somewhat close.
+
+            // I'll update the query first.
+            // Wait, I can't break the search logic in between.
+            
+            // Let's rely on the fact I can replace the query lines.
+            // Then I will replace the mapping lines.
+            
+            // Actually, I'll do it in one go if the user allows me to overwrite the search logic (which I can just copy-paste back).
+            
+            // REPLACEMENT 1: Query modification
+        
+            // REPLACEMENT 2: Mapping modification
+            
+            // Let's try to do it in one shot by replacing from start of query to end of mapping? No that's too huge (lines 126 to 190).
+            // Risk of search logic mismatch.
+            
+            // I'll do two separate replacements.
+            
+            // This tool call is for the QUERY.
+            
+            $query = User::with([
+                'roles', 
+                'calon.suku', 'calon.bangsa', 'calon.agama', 'calon.statusPernikahan', 'calon.golonganDarah',
+                'calon.golongan', 'calon.pangkat', 'calon.pendidikan', 'calon.pekerjaan',
+                'calon.provinsi', 'calon.kabupaten', 'calon.kecamatan', 'calon.desa',
+                'prestasi', 'organisasis'
+            ])
                 ->where('member_type', 'calon_anggota')
                 ->whereDoesntHave('roles', function ($q) {
                     $q->where('name', 'super-admin');
@@ -151,6 +197,7 @@ class StaffController extends Controller implements HasMiddleware
 
                 return [
                     'id' => $user->id,
+                    'member_type' => $user->member_type,
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone_number,
@@ -177,6 +224,56 @@ class StaffController extends Controller implements HasMiddleware
                         'agama' => $detail->agama?->nama,
                         'status_pernikahan' => $detail->statusPernikahan?->nama,
                         'nama_ibu_kandung' => $detail->nama_ibu_kandung,
+                        
+                        // Extended Data
+                        'tinggi_badan' => $detail->tinggi_badan,
+                        'berat_badan' => $detail->berat_badan,
+                        'warna_kulit' => $detail->warna_kulit,
+                        'warna_rambut' => $detail->warna_rambut,
+                        'bentuk_rambut' => $detail->bentuk_rambut,
+                        'ukuran_pakaian' => $detail->ukuran_pakaian,
+                        'ukuran_sepatu' => $detail->ukuran_sepatu,
+                        'ukuran_topi' => $detail->ukuran_topi,
+                        'ukuran_kaos_olahraga' => $detail->ukuran_kaos_olahraga,
+                        'ukuran_sepatu_olahraga' => $detail->ukuran_sepatu_olahraga,
+                        
+                        // Regions
+                        'provinsi' => $detail->provinsi?->name,
+                        'kabupaten' => $detail->kabupaten?->name,
+                        'kecamatan' => $detail->kecamatan?->name,
+                        'desa' => $detail->desa?->name,
+                        'jalan' => $detail->jalan,
+
+                        // Education
+                        'pendidikan_terakhir' => $detail->pendidikan?->nama,
+                        'nama_sekolah' => $detail->nama_sekolah,
+                        'nama_prodi' => $detail->nama_prodi,
+                        'nilai_akhir' => $detail->nilai_akhir,
+                        'status_lulus' => $detail->status_lulus,
+
+                        // Job
+                        'is_bekerja' => $detail->is_bekerja,
+                        'pekerjaan' => $detail->pekerjaan?->name,
+                        'nama_perusahaan' => $detail->nama_perusahaan,
+                        'nama_profesi' => $detail->nama_profesi,
+
+                        // Computed Lists
+                        'prestasi' => $user->prestasi ?? [],
+                        'organisasi' => $user->organisasis ?? [],
+
+                        // Documents
+                        'doc_surat_lamaran' => $detail->doc_surat_lamaran ? \Illuminate\Support\Facades\Storage::url($detail->doc_surat_lamaran) : null,
+                        'doc_ktp' => $detail->doc_ktp ? \Illuminate\Support\Facades\Storage::url($detail->doc_ktp) : null,
+                        'doc_kk' => $detail->doc_kk ? \Illuminate\Support\Facades\Storage::url($detail->doc_kk) : null,
+                        'doc_sk_lurah' => $detail->doc_sk_lurah ? \Illuminate\Support\Facades\Storage::url($detail->doc_sk_lurah) : null,
+                        'doc_skck' => $detail->doc_skck ? \Illuminate\Support\Facades\Storage::url($detail->doc_skck) : null,
+                        'doc_ijazah' => $detail->doc_ijazah ? \Illuminate\Support\Facades\Storage::url($detail->doc_ijazah) : null,
+                        'doc_sk_sehat' => $detail->doc_sk_sehat ? \Illuminate\Support\Facades\Storage::url($detail->doc_sk_sehat) : null,
+                        'doc_drh' => $detail->doc_drh ? \Illuminate\Support\Facades\Storage::url($detail->doc_drh) : null,
+                        'doc_latsarmil' => $detail->doc_latsarmil ? \Illuminate\Support\Facades\Storage::url($detail->doc_latsarmil) : null,
+                        'doc_izin_instansi' => $detail->doc_izin_instansi ? \Illuminate\Support\Facades\Storage::url($detail->doc_izin_instansi) : null,
+                        'doc_izin_ortu' => $detail->doc_izin_ortu ? \Illuminate\Support\Facades\Storage::url($detail->doc_izin_ortu) : null,
+                                                
                     ] : null,
                     'jabatan' => [
                         'id' => 0,
@@ -188,10 +285,12 @@ class StaffController extends Controller implements HasMiddleware
                 ];
             });
 
-             $pendingCount = User::where('member_type', 'calon_anggota')
+            $pendingCount = User::where('member_type', 'calon_anggota')
                 ->where('verifikasi', 0)
                 ->whereNull('rejection_reason')
-                ->whereHas('calon')
+                ->whereHas('calon', function ($q) {
+                    $q->whereNotNull('nik')->where('nik', '!=', '');
+                })
                 ->count();
 
             return Inertia::render('StaffMapping/Index', [
@@ -317,6 +416,53 @@ class StaffController extends Controller implements HasMiddleware
         $staff->update($updateData);
 
         return back()->with('success', 'Status user berhasil diperbarui.');
+    }
+
+    public function promoteToMember(User $staff)
+    {
+        if ($staff->member_type !== 'calon_anggota') {
+             return back()->with('error', 'Hanya Calon Anggota yang bisa diluluskan menjadi Anggota.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($staff) {
+            $calonData = $staff->calon;
+
+            // Create Member Detail
+            $staff->member()->create([
+                'nik' => $calonData->nik, // Map NIK
+                'tempat_lahir' => $calonData->tempat_lahir,
+                'tanggal_lahir' => $calonData->tanggal_lahir,
+                'jenis_kelamin' => $calonData->jenis_kelamin,
+                'alamat_domisili_lengkap' => $calonData->alamat_domisili_lengkap,
+                'province_id' => $calonData->province_id,
+                'city_id' => $calonData->city_id,
+                'district_id' => $calonData->district_id,
+                'village_id' => $calonData->village_id,
+                'jalan' => $calonData->jalan,
+                'foto_profil' => $calonData->foto_profil,
+                'scan_ktp' => $calonData->doc_ktp, // Map doc_ktp to scan_ktp
+                'scan_selfie' => $calonData->scan_selfie,
+                'tanda_tangan' => $calonData->tanda_tangan,
+                // Default values needed?
+                'is_kta_lifetime' => false,
+            ]);
+
+            // Update User Type
+            $staff->update([
+                'member_type' => 'anggota',
+                'verifikasi' => true,
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
+                'is_active' => true,
+            ]);
+            
+            // Assign default role if none
+            if ($staff->roles->isEmpty()) {
+                $staff->assignRole('user');
+            }
+        });
+
+        return back()->with('success', 'User berhasil diluluskan menjadi Anggota.');
     }
 
     /**

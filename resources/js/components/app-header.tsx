@@ -156,11 +156,11 @@ export function AppHeader({ breadcrumbs = [], showSidebarTrigger = true }: AppHe
                         <img src="/images/BADAN-CADANGAN-NASIONAL.png" alt="BCN Logo" className="h-10 w-10 md:h-14 md:w-14 object-contain" />
                     </div>
                     <div className="hidden sm:block">
-                        <h1 className="text-lg md:text-2xl lg:text-3xl font-bold text-foreground">Badan Cadangan Nasional</h1>
+                        <h1 className="text-lg md:text-2xl lg:text-3xl font-bold text-foreground">KOMPONEN CADANGAN RI</h1>
                         <p className="text-muted-foreground text-xs md:text-sm lg:text-base">Sistem Manajemen Dokumen Elektronik</p>
                     </div>
                     <div className="sm:hidden">
-                        <h1 className="text-sm font-bold text-foreground">BCN</h1>
+                        <h1 className="text-sm font-bold text-foreground">KOMCAD RI</h1>
                         <p className="text-muted-foreground text-xs">Sistem Dokumen</p>
                     </div>
                 </div>
