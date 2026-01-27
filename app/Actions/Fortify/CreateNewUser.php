@@ -30,7 +30,7 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'phone_number' => ['required', 'string', 'max:255'],
-            'member_type' => ['required', 'string', 'max:255', Rule::in(['anggota', 'calon_anggota'])],
+            'member_type' => ['required', 'string', 'max:255', Rule::in(['calon_anggota', 'aparatur_pengelola'])],
             'password' => $this->passwordRules(),
             'otp' => ['required', 'string', function ($attribute, $value, $fail) use ($input) {
                 if (!isset($input['email'])) {
@@ -59,11 +59,11 @@ class CreateNewUser implements CreatesNewUsers
         ]);
 
         // Assign Role based on member_type
-        // Anggota -> Staff
         // Calon Anggota -> Calon
+        // Aparatur Pengelola -> Staff
         $roleName = match ($input['member_type']) {
-            'anggota' => 'staff',
             'calon_anggota' => 'calon',
+            'aparatur_pengelola' => 'staff',
             default => 'user',
         };
 

@@ -18,8 +18,11 @@ class SystemSettingController extends Controller
                 return [$item->key => $item->cast_value];
             });
 
+        $golongans = \App\Models\Golongan::all();
+
         return Inertia::render('Settings/Registration', [
             'settings' => $settings,
+            'golongans' => $golongans,
         ]);
     }
 
@@ -30,22 +33,35 @@ class SystemSettingController extends Controller
     {
         $data = $request->validate([
             'settings' => 'required|array',
-            'settings.*.key' => 'required|exists:system_settings,key',
-            'settings.*.value' => 'nullable',
         ]);
 
         foreach ($data['settings'] as $key => $value) {
-            // Handle boolean specifically if it comes as boolean from frontend but stored as string 'true'/'false'
-            // or just update directly if model handles casting.
-            // For simplicity, we assume frontend sends the correct value format or we convert.
+            $type = 'string';
             
-            $setting = SystemSetting::where('key', $key)->firstOrFail();
-
-            if ($setting->type === 'boolean') {
-                 $value = filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+            if (is_array($value)) {
+                $type = 'json';
+                $value = json_encode($value);
+            } elseif (is_bool($value) || $value === 'true' || $value === 'false') {
+                $type = 'boolean';
+                $value = filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+            } elseif (is_numeric($value)) {
+                // If it looks like an integer, likely number. But string is safer for generic storage unless we need strict types.
+                // Quotas are numbers.
+                // Leave as string storage for numeric is usually fine unless we strictly want 'integer' type.
             }
 
-            $setting->update(['value' => $value]);
+            // Generate human-readable label from key
+            $label = ucwords(str_replace('_', ' ', $key));
+
+            SystemSetting::updateOrCreate(
+                ['key' => $key],
+                [
+                    'value' => $value,
+                    'type' => $type,
+                    'group' => 'registration',
+                    'label' => $label,
+                ]
+            );
         }
 
         return back()->with('success', 'Pengaturan berhasil disimpan.');

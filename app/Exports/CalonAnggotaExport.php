@@ -36,6 +36,11 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
                 'calon.kabupaten',
                 'calon.kecamatan',
                 'calon.desa',
+                'calon.domisiliProvinsi',
+                'calon.domisiliKabupaten',
+                'calon.domisiliKecamatan',
+                'calon.domisiliDesa',
+                'calon.birthplace',
                 'prestasi',
                 'organisasis'
             ]);
@@ -60,6 +65,7 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
         return [
             ++$this->rowNumber,
             $user->name,
+            $calon?->nomor_registrasi ?? '-',
             $user->email,
             "'" . ($calon?->nik ?? $user->nik ?? '-'),
             "'" . ($calon?->nomor_kk ?? '-'),
@@ -68,7 +74,7 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
             $calon?->golongan?->nama ?? '-',                        
             $user->status === 'active' ? 'Terverifikasi' : 'Belum Terverifikasi',
             $tanggalMasuk,
-            $calon?->tempat_lahir ?? '-',
+            $calon?->birthplace?->name ?? $calon?->tempat_lahir ?? '-',
             $calon?->tanggal_lahir ? date('d-m-Y', strtotime($calon->tanggal_lahir)) : '-',
             $calon?->jenis_kelamin ?? '-',
             $calon?->golonganDarah?->nama ?? '-',
@@ -82,6 +88,7 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
             $calon?->tinggi_badan ?? '-',
             $calon?->berat_badan ?? '-',
             $calon?->warna_kulit ?? '-',
+            $calon?->warna_mata ?? '-',
             $calon?->warna_rambut ?? '-',
             $calon?->bentuk_rambut ?? '-',
             
@@ -91,13 +98,26 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
             $calon?->ukuran_topi ?? '-',
             $calon?->ukuran_kaos_olahraga ?? '-',
             $calon?->ukuran_sepatu_olahraga ?? '-',
+            $calon?->ukuran_kaos_pdl ?? '-',
+            $calon?->ukuran_seragam_tactical ?? '-',
+            $calon?->ukuran_baju_tidur ?? '-',
+            $calon?->ukuran_training_pack ?? '-',
+            $calon?->ukuran_baju_renang ?? '-',
+            $calon?->ukuran_sepatu_tactical ?? '-',
             
-            // Address
-            $calon?->jalan . '-' . $calon?->alamat_domisili_lengkap ?? '-',
+            // Address KTP
+            $calon?->jalan ?? '-',
             $calon?->provinsi?->name ?? '-',
             $calon?->kabupaten?->name ?? '-',
             $calon?->kecamatan?->name ?? '-',
             $calon?->desa?->name ?? '-',
+
+            // Address Domisili
+            $calon?->domisili_jalan ?? $calon?->alamat_domisili_lengkap ?? '-',
+            $calon?->domisiliProvinsi?->name ?? '-',
+            $calon?->domisiliKabupaten?->name ?? '-',
+            $calon?->domisiliKecamatan?->name ?? '-',
+            $calon?->domisiliDesa?->name ?? '-',
             
             // Education
             $calon?->pendidikan?->nama ?? '-',
@@ -124,6 +144,7 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
         return [
             'No',
             'Nama Lengkap',
+            'No Registrasi',
             'Email',
             'NIK',
             'Nomor KK',
@@ -145,6 +166,7 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
             'Tinggi Badan (cm)',
             'Berat Badan (kg)',
             'Warna Kulit',
+            'Warna Mata',
             'Warna Rambut',
             'Bentuk Rambut',
             
@@ -153,12 +175,24 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
             'Ukuran Topi',
             'Ukuran Kaos Olahraga',
             'Ukuran Sepatu Olahraga',
+            'Ukuran Kaos PDL',
+            'Ukuran Seragam Tactical',
+            'Ukuran Baju Tidur',
+            'Ukuran Training Pack',
+            'Ukuran Baju Renang',
+            'Ukuran Sepatu Tactical',
             
-            'Alamat Domisili',
-            'Provinsi',
-            'Kabupaten/Kota',
-            'Kecamatan',
-            'Desa/Kelurahan',
+            'Alamat KTP (Jalan)',
+            'Provinsi (KTP)',
+            'Kabupaten/Kota (KTP)',
+            'Kecamatan (KTP)',
+            'Desa/Kelurahan (KTP)',
+
+            'Alamat Domisili (Jalan)',
+            'Provinsi (Domisili)',
+            'Kabupaten/Kota (Domisili)',
+            'Kecamatan (Domisili)',
+            'Desa/Kelurahan (Domisili)',
             
             'Pendidikan Terakhir',
             'Nama Sekolah/Kampus',
@@ -178,7 +212,7 @@ class CalonAnggotaExport implements FromQuery, WithHeadings, WithMapping, Should
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->getStyle('AT:AU')->getAlignment()->setWrapText(true); // Updated column letters approximately
+        $sheet->getStyle('BF:BG')->getAlignment()->setWrapText(true); // Updated column letters approximately
         
         return [
             1 => ['font' => ['bold' => true]],

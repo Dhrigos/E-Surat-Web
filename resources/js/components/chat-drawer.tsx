@@ -75,6 +75,7 @@ export function ChatDrawer() {
     const [chatType, setChatType] = useState<'personal' | 'group'>('personal');
     const [groupName, setGroupName] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
     // UI States
     const [loadingMessages, setLoadingMessages] = useState(false);

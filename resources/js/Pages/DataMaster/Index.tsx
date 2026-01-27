@@ -7,14 +7,16 @@ import RankTab from '@/Components/DataMaster/RankTab';
 import UnitTab from '@/Components/DataMaster/UnitTab';
 import JabatanRoleTab from '@/Components/DataMaster/JabatanRoleTab';
 import TemplateTab from '@/Components/DataMaster/TemplateTab';
+import MitraTab from '@/Components/DataMaster/MitraTab';
 
 interface Props {
-    activeTab: 'ranks' | 'units' | 'roles' | 'templates';
+    activeTab: 'ranks' | 'units' | 'roles' | 'templates' | 'mitra';
     stats: {
         total_ranks: number;
         total_units: number;
         total_roles: number;
         total_templates: number;
+        total_mitra: number;
     };
     data: any; // Dynamic based on tab
     filters: any;
@@ -26,6 +28,7 @@ export default function Index({ activeTab, stats, data, filters }: Props) {
         { id: 'units', label: 'Unit & Organisasi', icon: Building2 },
         { id: 'roles', label: 'Role & Jabatan', icon: Shield },
         { id: 'templates', label: 'Jenis Surat', icon: FileText },
+        { id: 'mitra', label: 'Daftar Mitra', icon: Building2 }, // Using Building2 for Mitra as well
     ];
 
     const statsCards = [
@@ -57,6 +60,13 @@ export default function Index({ activeTab, stats, data, filters }: Props) {
             color: 'text-[#007ee7]',
             bg: 'bg-[#007ee7]/10',
         },
+        {
+            title: 'Total Mitra',
+            value: stats.total_mitra,
+            icon: Building2,
+            color: 'text-[#659800]',
+            bg: 'bg-[#659800]/10',
+        },
     ];
 
     const handleTabChange = (tabId: string) => {
@@ -79,7 +89,7 @@ export default function Index({ activeTab, stats, data, filters }: Props) {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     {statsCards.map((stat, index) => (
                         <Card key={index} className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.3)] bg-white dark:bg-[#262626] text-zinc-900 dark:text-[#FEFCF8]">
                             <CardContent className="p-6">
@@ -162,6 +172,12 @@ export default function Index({ activeTab, stats, data, filters }: Props) {
                         {activeTab === 'templates' && (
                             <TemplateTab
                                 templates={data.templates}
+                                filters={filters}
+                            />
+                        )}
+                        {activeTab === 'mitra' && (
+                            <MitraTab
+                                data={data}
                                 filters={filters}
                             />
                         )}

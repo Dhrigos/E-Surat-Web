@@ -44,6 +44,7 @@ class User extends Authenticatable
         'verified_at',
         'verified_by',
         'member_type',
+        'mitra_id',
     ];
 
     public function detail(): \Illuminate\Database\Eloquent\Relations\HasOne
@@ -104,6 +105,11 @@ class User extends Authenticatable
         return $this->hasOne(Location::class)->latestOfMany('captured_at');
     }
 
+    public function mitra(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Mitra::class);
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -127,6 +133,8 @@ class User extends Authenticatable
             'verification_locked_at' => 'datetime',
             'verified_at' => 'datetime',
             'password' => 'hashed',
+            'verifikasi' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 

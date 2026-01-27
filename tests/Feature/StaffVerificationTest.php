@@ -4,17 +4,17 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Role;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+
 use Tests\TestCase;
 
 class StaffVerificationTest extends TestCase
 {
-    use RefreshDatabase;
+
 
     public function test_verifying_user_records_admin_and_timestamp()
     {
         // 1. Create a Super Admin who will verify
-        $admin = User::factory()->create();
+        $admin = User::factory()->verified()->create();
         $adminRole = Role::firstOrCreate(['name' => 'super-admin']);
         $admin->assignRole($adminRole);
         
@@ -26,13 +26,13 @@ class StaffVerificationTest extends TestCase
         
         // 3. Act as Admin and toggle status
         $response = $this->actingAs($admin)
-            ->post(route('staff.toggle-status', $user->id));
+            ->put(route('staff.toggle-status', $user->id));
             
         // 4. Assert
         $response->assertRedirect();
         
         $user->refresh();
-        $this->assertEquals('1', $user->verifikasi);
+        $this->assertTrue((bool)$user->verifikasi);
         $this->assertTrue($user->is_active);
         
         // 5. Verify Timestamp and Verifier are recorded

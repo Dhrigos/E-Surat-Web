@@ -72,10 +72,16 @@ interface Staff {
         status_pernikahan?: string;
         nama_ibu_kandung?: string;
 
+        nomor_registrasi?: string;
+        matra?: string;
+        golongan?: { id: number; nama: string };
+        pangkat?: { id: number; nama: string };
+
         // Extended
         tinggi_badan?: string;
         berat_badan?: string;
         warna_kulit?: string;
+        warna_mata?: string;
         warna_rambut?: string;
         bentuk_rambut?: string;
         ukuran_pakaian?: string;
@@ -83,13 +89,25 @@ interface Staff {
         ukuran_topi?: string;
         ukuran_kaos_olahraga?: string;
         ukuran_sepatu_olahraga?: string;
+        ukuran_kaos_pdl?: string;
+        ukuran_seragam_tactical?: string;
+        ukuran_baju_tidur?: string;
+        ukuran_training_pack?: string;
+        ukuran_baju_renang?: string;
+        ukuran_sepatu_tactical?: string;
 
         // Regions
-        provinsi?: string;
-        kabupaten?: string;
-        kecamatan?: string;
-        desa?: string;
+        provinsi?: { code: string; name: string };
+        kabupaten?: { code: string; name: string };
+        kecamatan?: { code: string; name: string };
+        desa?: { code: string; name: string };
         jalan?: string;
+
+        domisili_provinsi?: { code: string; name: string };
+        domisili_kabupaten?: { code: string; name: string };
+        domisili_kecamatan?: { code: string; name: string };
+        domisili_desa?: { code: string; name: string };
+        domisili_jalan?: string;
 
         // Edu
         pendidikan_terakhir?: string;
@@ -651,10 +669,16 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount, 
                                     {viewingStaff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                 </AvatarFallback>
                             </Avatar>
-                            <div className="space-y-1">
-                                <h3 className="font-bold text-xl">{viewingStaff.name}</h3>
+                            <div className="space-y-1 min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-xl">{viewingStaff.name}</h3>
+                                    <span className="font-bold text-[#007ee7]">{viewingStaff.detail?.nomor_registrasi || '-'}</span>
+                                </div>
                                 <div className="flex items-center gap-2 text-gray-400 text-sm">
                                     <Mail className="w-4 h-4" /> {viewingStaff.email}
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                                    <Phone className="w-4 h-4" /> {viewingStaff.phone || '-'}
                                 </div>
                                 <div className="flex gap-2 mt-2">
                                     <Badge variant="outline" className={getRoleColor(viewingStaff.role)}>{viewingStaff.role}</Badge>
@@ -671,6 +695,12 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount, 
                                 <div className="space-y-3">
                                     <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Data Pribadi</h4>
                                     <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                                        <span className="text-gray-500">Matra</span>
+                                        <span className="font-medium">{viewingStaff.detail?.matra || '-'}</span>
+
+                                        <span className="text-gray-500">Golongan</span>
+                                        <span className="font-medium">{viewingStaff.detail?.golongan?.nama || '-'}</span>
+
                                         <span className="text-gray-500">NIK</span>
                                         <span className="font-medium">{viewingStaff.nik}</span>
 
@@ -683,6 +713,9 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount, 
                                         <span className="text-gray-500">Agama</span>
                                         <span className="font-medium">{viewingStaff.detail?.agama || '-'}</span>
 
+                                        <span className="text-gray-500">Status</span>
+                                        <span className="font-medium">{viewingStaff.detail?.status_pernikahan || '-'}</span>
+
                                         <span className="text-gray-500">Suku/Bangsa</span>
                                         <span className="font-medium">{viewingStaff.detail?.suku || '-'} / {viewingStaff.detail?.bangsa || '-'}</span>
 
@@ -690,44 +723,67 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount, 
                                         <span className="font-medium">{viewingStaff.detail?.nama_ibu_kandung || '-'}</span>
                                     </div>
                                 </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Alamat Domisili</h4>
+                                    <div className="text-sm space-y-1">
+                                        <p className="font-medium">{viewingStaff.detail?.domisili_jalan || viewingStaff.detail?.alamat}</p>
+                                        <p className="text-gray-400">
+                                            {viewingStaff.detail?.domisili_desa?.name ? `Desa ${viewingStaff.detail.domisili_desa.name}, ` : ''}
+                                            {viewingStaff.detail?.domisili_kecamatan?.name ? `Kec. ${viewingStaff.detail.domisili_kecamatan.name}` : ''}
+                                        </p>
+                                        <p className="text-gray-400">
+                                            {viewingStaff.detail?.domisili_kabupaten?.name ? `${viewingStaff.detail.domisili_kabupaten.name}, ` : ''}
+                                            {viewingStaff.detail?.domisili_provinsi?.name}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Column 2: Fisik & Ukuran & Kontak */}
+                            {/* Column 2: Fisik & Ukuran */}
                             <div className="space-y-6">
                                 <div className="space-y-3">
                                     <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Fisik & Ukuran</h4>
-                                    <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
-                                        <span className="text-gray-500">TB / BB</span>
+                                    <div className="grid grid-cols-[170px_1fr] gap-2 text-sm">
+                                        <span className="text-gray-500 whitespace-nowrap">TB / BB</span>
                                         <span className="font-medium">{viewingStaff.detail?.tinggi_badan || '-'} cm / {viewingStaff.detail?.berat_badan || '-'} kg</span>
 
-                                        <span className="text-gray-500">Warna Kulit</span>
+                                        <span className="text-gray-500 whitespace-nowrap">Warna Kulit</span>
                                         <span className="font-medium">{viewingStaff.detail?.warna_kulit || '-'}</span>
 
-                                        <span className="text-gray-500">Rambut</span>
+                                        <span className="text-gray-500 whitespace-nowrap">Warna Mata</span>
+                                        <span className="font-medium">{viewingStaff.detail?.warna_mata || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Rambut</span>
                                         <span className="font-medium">{viewingStaff.detail?.warna_rambut} / {viewingStaff.detail?.bentuk_rambut}</span>
 
-                                        <span className="text-gray-500">Ukuran Baju</span>
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Pakaian PDL</span>
                                         <span className="font-medium">{viewingStaff.detail?.ukuran_pakaian || '-'}</span>
 
-                                        <span className="text-gray-500">Ukuran Sepatu</span>
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Sepatu PDL</span>
                                         <span className="font-medium">{viewingStaff.detail?.ukuran_sepatu || '-'}</span>
 
-                                        <span className="text-gray-500">Ukuran Topi</span>
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Baret</span>
                                         <span className="font-medium">{viewingStaff.detail?.ukuran_topi || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Pakaian Olahraga</span>
+                                        <span className="font-medium">{viewingStaff.detail?.ukuran_kaos_olahraga || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Sepatu Olahraga</span>
+                                        <span className="font-medium">{viewingStaff.detail?.ukuran_sepatu_olahraga || '-'}</span>
                                     </div>
                                 </div>
-
-                                <div className="space-y-3">
-                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Alamat Lengkap</h4>
+                                <div className='space-y-3'>
+                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1 mt-4">Alamat KTP</h4>
                                     <div className="text-sm space-y-1">
-                                        <p className="font-medium">{viewingStaff.detail?.alamat}</p>
+                                        <p className="font-medium">{viewingStaff.detail?.jalan}</p>
                                         <p className="text-gray-400">
-                                            {viewingStaff.detail?.desa ? `Desa ${viewingStaff.detail.desa}, ` : ''}
-                                            {viewingStaff.detail?.kecamatan ? `Kec. ${viewingStaff.detail.kecamatan}` : ''}
+                                            {viewingStaff.detail?.desa?.name ? `Desa ${viewingStaff.detail.desa.name}, ` : ''}
+                                            {viewingStaff.detail?.kecamatan?.name ? `Kec. ${viewingStaff.detail.kecamatan.name}` : ''}
                                         </p>
                                         <p className="text-gray-400">
-                                            {viewingStaff.detail?.kabupaten ? `${viewingStaff.detail.kabupaten}, ` : ''}
-                                            {viewingStaff.detail?.provinsi}
+                                            {viewingStaff.detail?.kabupaten?.name ? `${viewingStaff.detail.kabupaten.name}, ` : ''}
+                                            {viewingStaff.detail?.provinsi?.name}
                                         </p>
                                     </div>
                                 </div>
@@ -735,6 +791,20 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount, 
 
                             {/* Column 3: Pendidikan & Pekerjaan */}
                             <div className="space-y-6">
+                                <div className="grid grid-cols-[170px_1fr] gap-2 text-sm mt-9">
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Seragam Tactical</span>
+                                    <span className="font-medium">{viewingStaff.detail?.ukuran_seragam_tactical || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Sepatu Tactical</span>
+                                    <span className="font-medium">{viewingStaff.detail?.ukuran_sepatu_tactical || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Baju Tidur</span>
+                                    <span className="font-medium">{viewingStaff.detail?.ukuran_baju_tidur || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Training Pack</span>
+                                    <span className="font-medium">{viewingStaff.detail?.ukuran_training_pack || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Baju Renang</span>
+                                    <span className="font-medium">{viewingStaff.detail?.ukuran_baju_renang || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Kaos PDL</span>
+                                    <span className="font-medium">{viewingStaff.detail?.ukuran_kaos_pdl || '-'}</span>
+                                </div>
                                 <div className="space-y-3">
                                     <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Pendidikan</h4>
                                     <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
@@ -744,7 +814,7 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount, 
                                         <span className="text-gray-500">Sekolah</span>
                                         <span className="font-medium">{viewingStaff.detail?.nama_sekolah || '-'}</span>
 
-                                        <span className="text-gray-500">Prodi</span>
+                                        <span className="text-gray-500">Jurusan/Prodi</span>
                                         <span className="font-medium">{viewingStaff.detail?.nama_prodi || '-'}</span>
 
                                         <span className="text-gray-500">Nilai/Lulus</span>
@@ -776,7 +846,7 @@ export default function StaffList({ staff, jabatan = [], filters, pendingCount, 
                         </div>
 
                         {/* Full Width: Prestasi & Organisasi */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-3">
                                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Riwayat Prestasi</h4>
                                 <ul className="text-sm space-y-1 list-disc list-inside text-gray-300">

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+
 use Tests\TestCase;
 use App\Models\UnitKerja;
 use App\Models\Jabatan;
@@ -12,7 +12,7 @@ use App\Services\OrganizationalTreeService;
 
 class OrganizationalTreeTest extends TestCase
 {
-    use RefreshDatabase;
+
 
     protected function setUp(): void
     {

@@ -49,12 +49,13 @@ class DataMasterUmumSeeder extends Seeder
 
         // Pekerjaan
         DB::table('pekerjaans')->insert([
-            ['name' => 'Pegawai negeri (pns)'],
-            ['name' => 'Tni/polri'],
-            ['name' => 'Pegawai swasta'],
-            ['name' => 'Wiraswasta/usahawan'],
-            ['name' => 'Buruh/karyawan lepas'],
-            ['name' => 'Petani/perkebunan'],
+            ['name' => 'Pegawai Negeri Sipil'],
+            ['name' => 'PPPK'],
+            ['name' => 'TNI/Polri'],
+            ['name' => 'Pegawai Swasta'],
+            ['name' => 'Wiraswasta/Usahawan'],
+            ['name' => 'Buruh/Karyawan Lepas'],
+            ['name' => 'Petani/Perkebunan'],
             ['name' => 'Nelayan'],
             ['name' => 'Pelajar/mahasiswa'],
             ['name' => 'Ibu rumah tangga'],
@@ -67,7 +68,8 @@ class DataMasterUmumSeeder extends Seeder
             ['name' => 'Pedagang/umkm'],
             ['name' => 'Pekerja pabrik'],
             ['name' => 'Asisten rumah tangga'],
-            ['name' => 'Tidak bekerja'],
+            ['name' => 'Kepala Desa'],
+            ['name' => 'Kepala Desa'],
             ['name' => 'Lainnya'],
         ]);  
 
@@ -104,6 +106,18 @@ class DataMasterUmumSeeder extends Seeder
             ['nama' => 'Manado/minahasa'],
             ['nama' => 'Aceh'],
             ['nama' => 'Lainnya / campuran / tidak diketahui'],
+        ]);
+
+        // Pendidikan
+        DB::table('pendidikans')->insert([
+            ['nama' => 'Sekolah Dasar', 'singkatan' => 'SD'],
+            ['nama' => 'Sekolah Menengah Pertama', 'singkatan' => 'SMP'],
+            ['nama' => 'Sekolah Menengah Atas / Kejuruan', 'singkatan' => 'SMA/K'],
+            ['nama' => 'Diploma 3', 'singkatan' => 'D3'],
+            ['nama' => 'Diploma 4', 'singkatan' => 'D4'],
+            ['nama' => 'Sarjana', 'singkatan' => 'S1'],
+            ['nama' => 'Magister', 'singkatan' => 'S2'],
+            ['nama' => 'Doktor', 'singkatan' => 'S3'],
         ]);
     }
 }

@@ -50,7 +50,7 @@ class ChatController extends Controller
             $q->where('user_id', $user->id);
         })
             ->whereHas('messages') // Only show active conversations in drawer initially
-            ->with(['lastMessage.sender', 'participants.roles', 'participants.jabatan'])
+            ->with(['lastMessage.sender', 'participants.roles'])
             ->withCount(['messages as unread_count' => function ($query) use ($user) {
                 $query->where('user_id', '!=', $user->id)
                       ->whereNull('read_at');
@@ -251,7 +251,7 @@ class ChatController extends Controller
         $conversation->participants()->attach($allParticipants);
 
         return response()->json([
-            'conversation' => $conversation->load(['participants.roles', 'participants.jabatan', 'messages.sender']),
+            'conversation' => $conversation->load(['participants.roles', 'messages.sender']),
         ]);
     }
 

@@ -3,9 +3,9 @@
 use App\Models\Location;
 use App\Models\LocationSession;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(RefreshDatabase::class)->beforeEach(function () {
+
+beforeEach(function () {
     config(['inertia.testing.ensure_pages_exist' => false]);
 });
 

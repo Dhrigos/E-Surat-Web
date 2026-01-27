@@ -22,6 +22,7 @@ class DataMasterController extends Controller
             'total_roles' => JabatanRole::count(),
             'total_templates' => LetterType::count(),
             'total_ranks' => \App\Models\Golongan::count() + \App\Models\Pangkat::count(),
+            'total_mitra' => \App\Models\Mitra::count(),
         ];
 
         $data = [];
@@ -39,6 +40,9 @@ class DataMasterController extends Controller
                 break;
             case 'templates':
                 $data = $this->getTemplatesData($request);
+                break;
+            case 'mitra':
+                $data = $this->getMitraData($request);
                 break;
         }
 
@@ -154,6 +158,27 @@ class DataMasterController extends Controller
 
         return [
             'templates' => $templates,
+        ];
+    }
+
+    private function getMitraData(Request $request)
+    {
+        $query = \App\Models\Mitra::query();
+
+        if ($request->has('search')) {
+             $search = $request->search;
+             $query->where(function ($q) use ($search) {
+                 $q->where('name', 'like', "%{$search}%")
+                   ->orWhere('email', 'like', "%{$search}%");
+             });
+        }
+
+        $mitras = $query->orderBy('name')
+             ->paginate(50)
+             ->withQueryString();
+
+        return [
+            'mitras' => $mitras,
         ];
     }
 }

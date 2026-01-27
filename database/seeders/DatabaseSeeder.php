@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolePermissionSeeder::class,
-            UserSeeder::class,
+
             \Laravolt\Indonesia\Seeds\DatabaseSeeder::class,
             JabatanSeeder::class,
             JabatanRoleSeeder::class,

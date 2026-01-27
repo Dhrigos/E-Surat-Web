@@ -125,11 +125,13 @@ class StaffController extends Controller implements HasMiddleware
             \Illuminate\Support\Facades\Log::info('StaffController::calonIndex accessed');
             $query = User::with([
                     'roles', 
-                    'calon.suku', 'calon.bangsa', 'calon.agama', 'calon.statusPernikahan', 'calon.golonganDarah',
-                    'calon.golongan', 'calon.pangkat', 'calon.pendidikan', 'calon.pekerjaan',
-                    'calon.provinsi', 'calon.kabupaten', 'calon.kecamatan', 'calon.desa',
-                    'prestasi', 'organisasis'
-                ])
+                'calon.suku', 'calon.bangsa', 'calon.agama', 'calon.statusPernikahan', 'calon.golonganDarah',
+                'calon.golongan', 'calon.pangkat', 'calon.pendidikan', 'calon.pekerjaan',
+                'calon.provinsi', 'calon.kabupaten', 'calon.kecamatan', 'calon.desa',
+                'calon.domisiliProvinsi', 'calon.domisiliKabupaten', 'calon.domisiliKecamatan', 'calon.domisiliDesa',
+                'calon.birthplace',
+                'prestasi', 'organisasis'
+            ])
                 ->where('member_type', 'calon_anggota')
                 ->whereDoesntHave('roles', function ($q) {
                     $q->where('name', 'super-admin');
@@ -194,6 +196,15 @@ class StaffController extends Controller implements HasMiddleware
 
             $users = $query->orderBy('name')->get()->map(function ($user) {
                 $detail = $user->calon;
+                if ($user->name === 'Jule') {
+                     \Illuminate\Support\Facades\Log::info('StaffController Debug Jule', [
+                         'id' => $user->id,
+                         'ukuran_kaos_pdl' => $detail->ukuran_kaos_pdl ?? 'NULL',
+                         'matra' => $detail->matra ?? 'NULL',
+                         'nomor_registrasi' => $detail->nomor_registrasi ?? 'NULL',
+                         'detail_exists' => $detail ? 'YES' : 'NO'
+                     ]);
+                }
 
                 return [
                     'id' => $user->id,
@@ -207,7 +218,7 @@ class StaffController extends Controller implements HasMiddleware
                     'position' => '-',
                     'pangkat' => '-',
                     'detail' => $detail ? [
-                        'tempat_lahir' => $detail->tempat_lahir,
+                        'tempat_lahir' => $detail->birthplace?->name ?? $detail->tempat_lahir,
                         'tanggal_lahir' => $detail->tanggal_lahir,
                         'jenis_kelamin' => $detail->jenis_kelamin,
                         'alamat' => $detail->alamat_domisili_lengkap,
@@ -225,10 +236,16 @@ class StaffController extends Controller implements HasMiddleware
                         'status_pernikahan' => $detail->statusPernikahan?->nama,
                         'nama_ibu_kandung' => $detail->nama_ibu_kandung,
                         
+                        'nomor_registrasi' => $detail->nomor_registrasi,
+                        'matra' => $detail->matra,
+                        'golongan' => $detail->golongan,
+                        'pangkat' => $detail->pangkat,
+                        
                         // Extended Data
                         'tinggi_badan' => $detail->tinggi_badan,
                         'berat_badan' => $detail->berat_badan,
                         'warna_kulit' => $detail->warna_kulit,
+                        'warna_mata' => $detail->warna_mata,
                         'warna_rambut' => $detail->warna_rambut,
                         'bentuk_rambut' => $detail->bentuk_rambut,
                         'ukuran_pakaian' => $detail->ukuran_pakaian,
@@ -236,12 +253,25 @@ class StaffController extends Controller implements HasMiddleware
                         'ukuran_topi' => $detail->ukuran_topi,
                         'ukuran_kaos_olahraga' => $detail->ukuran_kaos_olahraga,
                         'ukuran_sepatu_olahraga' => $detail->ukuran_sepatu_olahraga,
+                        'ukuran_kaos_pdl' => $detail->ukuran_kaos_pdl,
+                        'ukuran_seragam_tactical' => $detail->ukuran_seragam_tactical,
+                        'ukuran_baju_tidur' => $detail->ukuran_baju_tidur,
+                        'ukuran_training_pack' => $detail->ukuran_training_pack,
+                        'ukuran_baju_renang' => $detail->ukuran_baju_renang,
+                        'ukuran_sepatu_tactical' => $detail->ukuran_sepatu_tactical,
                         
                         // Regions
-                        'provinsi' => $detail->provinsi?->name,
-                        'kabupaten' => $detail->kabupaten?->name,
-                        'kecamatan' => $detail->kecamatan?->name,
-                        'desa' => $detail->desa?->name,
+                        'provinsi' => $detail->provinsi,
+                        'kabupaten' => $detail->kabupaten,
+                        'kecamatan' => $detail->kecamatan,
+                        'desa' => $detail->desa,
+                        'jalan' => $detail->jalan,
+                        
+                        'domisili_provinsi' => $detail->domisiliProvinsi,
+                        'domisili_kabupaten' => $detail->domisiliKabupaten,
+                        'domisili_kecamatan' => $detail->domisiliKecamatan,
+                        'domisili_desa' => $detail->domisiliDesa,
+                        'domisili_jalan' => $detail->domisili_jalan,
                         'jalan' => $detail->jalan,
 
                         // Education

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import AppLayout from '@/layouts/app-layout';
 import { useForm, Head, Link, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { DateSelect } from '@/components/ui/date-select';
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogOverlay } from '@/components/ui/dialog';
 import { JabatanSelectionModal } from '@/components/JabatanSelectionModal';
@@ -45,9 +47,11 @@ interface Props {
     agamas: Array<{ id: number; nama: string }>;
     status_pernikahans: Array<{ id: number; nama: string }>;
     goldars: Array<{ id: number; nama: string; rhesus?: string }>; // Added
-    pendidikans: Array<{ id: number; nama: string }>;
+    pendidikans: Array<{ id: number; singkatan: string }>;
     pekerjaans: Array<{ id: number; name: string }>;
     userWithRelations?: any;
+    settings?: Record<string, any>;
+    quotaUsage?: Record<string, number>;
 }
 
 export default function CompleteProfile({
@@ -65,9 +69,56 @@ export default function CompleteProfile({
     pendidikans = [],
     pekerjaans = [],
     userWithRelations,
+    settings = {},
+    quotaUsage = {},
 }: Props) {
     // Main Form Step (starts after E-KYC)
     const [step, setStep] = useState(1);
+
+    // Registration Status Check
+    const isRegistrationOpen = useMemo(() => {
+        if (!settings) return true;
+        if (settings.registration_open === '0' || settings.registration_open === false) return false;
+
+        const now = new Date();
+        if (settings.registration_start_date && new Date(settings.registration_start_date) > now) return false;
+        if (settings.registration_end_date && new Date(settings.registration_end_date) < now) return false;
+
+        return true;
+    }, [settings]);
+
+    // Calculate Available Quota
+    const isQuotaFull = useCallback((matra: string, golonganId: number | string) => {
+        if (!matra || !golonganId) return false;
+        const limit = settings[`quota_${matra.toLowerCase()}_${golonganId}`];
+        if (limit === undefined || limit === null || limit === '') return false;
+        const used = quotaUsage[`${matra.toUpperCase()}_${golonganId}`] || 0;
+        return used >= Number(limit);
+    }, [settings, quotaUsage]);
+
+    // Block logic
+    if (!isRegistrationOpen && auth.user.member_type !== 'anggota' && !rejectionReason) {
+        return (
+            <AppLayout>
+                <Head title="Pendaftaran Tutup" />
+                <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center text-white">
+                    <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+                    <h1 className="text-2xl font-bold mb-2">Pendaftaran Ditutup</h1>
+                    <p className="text-gray-400 max-w-md">
+                        Mohon maaf, pendaftaran Komponen Cadangan saat ini sedang ditutup.
+                        {settings.registration_start_date && (
+                            <span className="block mt-2 text-sm text-gray-500">
+                                Dibuka kembali: {format(new Date(settings.registration_start_date), 'dd MMMM yyyy')}
+                            </span>
+                        )}
+                    </p>
+                    <Link href={route('dashboard')}>
+                        <Button className="mt-6 bg-[#AC0021]">Kembali ke Dashboard</Button>
+                    </Link>
+                </div>
+            </AppLayout>
+        );
+    }
 
     // Initial values logic
     const initialPangkatId = auth.user?.detail?.pangkat_id;
@@ -98,6 +149,7 @@ export default function CompleteProfile({
         tinggi_badan: auth.user?.detail?.tinggi_badan || '',
         berat_badan: auth.user?.detail?.berat_badan || '',
         warna_kulit: auth.user?.detail?.warna_kulit || '',
+        warna_mata: auth.user?.detail?.warna_mata || '',
         warna_rambut: auth.user?.detail?.warna_rambut || '',
         bentuk_rambut: auth.user?.detail?.bentuk_rambut || '',
 
@@ -107,6 +159,12 @@ export default function CompleteProfile({
         ukuran_topi: auth.user?.detail?.ukuran_topi || '',
         ukuran_kaos_olahraga: auth.user?.detail?.ukuran_kaos_olahraga || '',
         ukuran_sepatu_olahraga: auth.user?.detail?.ukuran_sepatu_olahraga || '',
+        ukuran_kaos_pdl: auth.user?.detail?.ukuran_kaos_pdl || '',
+        ukuran_seragam_tactical: auth.user?.detail?.ukuran_seragam_tactical || '',
+        ukuran_baju_tidur: auth.user?.detail?.ukuran_baju_tidur || '',
+        ukuran_training_pack: auth.user?.detail?.ukuran_training_pack || '',
+        ukuran_baju_renang: auth.user?.detail?.ukuran_baju_renang || '',
+        ukuran_sepatu_tactical: auth.user?.detail?.ukuran_sepatu_tactical || '',
 
         alamat_domisili_lengkap: auth.user?.detail?.alamat_domisili_lengkap || '',
 
@@ -152,6 +210,11 @@ export default function CompleteProfile({
         district_id: auth.user?.detail?.district_id || '',
         village_id: auth.user?.detail?.village_id || '',
         jalan: auth.user?.detail?.jalan || '',
+        domisili_jalan: auth.user?.detail?.domisili_jalan || '',
+        domisili_province_id: auth.user?.detail?.domisili_province_id || '',
+        domisili_city_id: auth.user?.detail?.domisili_city_id || '',
+        domisili_district_id: auth.user?.detail?.domisili_district_id || '',
+        domisili_village_id: auth.user?.detail?.domisili_village_id || '',
         foto_profil: null as File | null,
         scan_ktp: null as File | null,
         scan_kta: null as File | null,
@@ -192,11 +255,30 @@ export default function CompleteProfile({
     const [villages, setVillages] = useState<any[]>([]);
     const [birthplaceCities, setBirthplaceCities] = useState<any[]>([]);
 
+    // Domicile address region states
+    const [domisiliCities, setDomisiliCities] = useState<any[]>([]);
+    const [domisiliDistricts, setDomisiliDistricts] = useState<any[]>([]);
+    const [domisiliVillages, setDomisiliVillages] = useState<any[]>([]);
+
     // Office address region states
     const [makos, setMakos] = useState<any[]>([]);
 
     // Preview states
     const [previews, setPreviews] = useState<Record<string, string>>({});
+
+    // Checkbox untuk "Alamat Domisili sama dengan KTP"
+    const [isSameAsKTP, setIsSameAsKTP] = useState(false);
+
+    // Refs for address textareas (uncontrolled to prevent lag)
+    const jalanRef = useRef<HTMLTextAreaElement>(null);
+    const domisiliJalanRef = useRef<HTMLTextAreaElement>(null);
+
+    // Refs for high-traffic text inputs (uncontrolled to prevent lag)
+    const namaIbuKandungRef = useRef<HTMLInputElement>(null);
+    const namaProfesiRef = useRef<HTMLInputElement>(null);
+    const namaPerusahaanRef = useRef<HTMLInputElement>(null);
+    const namaSekolahRef = useRef<HTMLInputElement>(null);
+    const namaProdiRef = useRef<HTMLInputElement>(null);
 
     // Get authenticated user data
     const { props } = usePage<{ auth: { user: { name: string; username: string } } }>();
@@ -235,10 +317,10 @@ export default function CompleteProfile({
     // Scroll container ref
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    // Reset scroll on step change
+    // Reset scroll on step change - use instant for better performance
     useEffect(() => {
         if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
         }
     }, [step]);
 
@@ -429,6 +511,32 @@ export default function CompleteProfile({
 
     }, []);
 
+    // Effect to copy KTP address to Domicile address when checkbox is checked
+    // Only runs when checkbox state changes, not on every keystroke
+    useEffect(() => {
+        if (isSameAsKTP) {
+            // Copy current KTP address data to domicile fields
+            setData(prev => ({
+                ...prev,
+                domisili_jalan: prev.jalan,
+                domisili_province_id: prev.province_id,
+                domisili_city_id: prev.city_id,
+                domisili_district_id: prev.district_id,
+                domisili_village_id: prev.village_id,
+            }));
+
+            // Sync textarea ref value
+            if (jalanRef.current && domisiliJalanRef.current) {
+                domisiliJalanRef.current.value = jalanRef.current.value;
+            }
+
+            // Sync the region data arrays
+            setDomisiliCities(cities);
+            setDomisiliDistricts(districts);
+            setDomisiliVillages(villages);
+        }
+    }, [isSameAsKTP]); // Only run when checkbox state changes
+
     const fetchCities = (provinceCode: string) => {
         setData('province_id', provinceCode);
         clearErrors('province_id');
@@ -455,6 +563,28 @@ export default function CompleteProfile({
         clearErrors('district_id');
         setVillages([]);
         axios.get(route('regions.villages', { district_code: districtCode })).then(res => setVillages(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
+    };
+
+    // Domicile address fetch functions
+    const fetchDomisiliCities = (provinceCode: string) => {
+        setData('domisili_province_id', provinceCode);
+        clearErrors('domisili_province_id');
+        setDomisiliCities([]); setDomisiliDistricts([]); setDomisiliVillages([]);
+        axios.get(route('regions.cities', { province_code: provinceCode })).then(res => setDomisiliCities(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
+    };
+
+    const fetchDomisiliDistricts = (cityCode: string) => {
+        setData('domisili_city_id', cityCode);
+        clearErrors('domisili_city_id');
+        setDomisiliDistricts([]); setDomisiliVillages([]);
+        axios.get(route('regions.districts', { city_code: cityCode })).then(res => setDomisiliDistricts(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
+    };
+
+    const fetchDomisiliVillages = (districtCode: string) => {
+        setData('domisili_district_id', districtCode);
+        clearErrors('domisili_district_id');
+        setDomisiliVillages([]);
+        axios.get(route('regions.villages', { district_code: districtCode })).then(res => setDomisiliVillages(Object.entries(res.data).map(([code, name]) => ({ code, name })).sort((a: any, b: any) => a.name.localeCompare(b.name))));
     };
 
     // Office address fetch functions
@@ -496,7 +626,6 @@ export default function CompleteProfile({
                 'doc_sk_sehat',
                 'doc_drh',
                 'doc_latsarmil',
-                'doc_izin_instansi',
                 'doc_izin_ortu',
             ];
 
@@ -911,7 +1040,7 @@ export default function CompleteProfile({
                                 {/* Quota Information */}
                                 <Alert className="bg-[#1a1a1a] border-[#AC0021]/30">
                                     <AlertCircle className="h-4 w-4 text-[#AC0021]" />
-                                    <AlertTitle className="text-sm md:text-base text-[#FEFCF8] font-bold">Informasi Alokasi Penerimaan Komponen Cadangan 2022</AlertTitle>
+                                    <AlertTitle className="text-sm md:text-base text-[#FEFCF8] font-bold">Informasi Alokasi Penerimaan Komponen Cadangan {new Date().getFullYear()}</AlertTitle>
                                     <AlertDescription>
                                         <div className="mt-2 md:mt-4 w-full overflow-x-auto">
                                             <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-0 w-full min-w-[280px]">
@@ -925,40 +1054,64 @@ export default function CompleteProfile({
                                                 <div className="py-3 md:py-5 px-2 md:px-4 text-[#B0B0B0] border-b border-white/5 flex items-center text-xs md:text-base">Total</div>
                                                 <div className="py-3 md:py-5 px-2 md:px-4 border-b border-white/5 flex items-center justify-center">
                                                     <div className="flex flex-col items-center">
-                                                        <span className="text-lg md:text-2xl text-[#FEFCF8] font-bold">1500</span>
+                                                        <span className="text-lg md:text-2xl text-[#FEFCF8] font-bold">
+                                                            {(Number(settings.quota_ad_1 || 0) + Number(settings.quota_ad_2 || 0) + Number(settings.quota_ad_3 || 0)).toLocaleString()}
+                                                        </span>
                                                         <span className="text-[10px] md:text-xs text-[#B0B0B0]">orang</span>
                                                     </div>
                                                 </div>
                                                 <div className="py-3 md:py-5 px-2 md:px-4 border-b border-white/5 flex items-center justify-center">
                                                     <div className="flex flex-col items-center">
-                                                        <span className="text-lg md:text-2xl text-[#FEFCF8] font-bold">500</span>
+                                                        <span className="text-lg md:text-2xl text-[#FEFCF8] font-bold">
+                                                            {(Number(settings.quota_al_1 || 0) + Number(settings.quota_al_2 || 0) + Number(settings.quota_al_3 || 0)).toLocaleString()}
+                                                        </span>
                                                         <span className="text-[10px] md:text-xs text-[#B0B0B0]">orang</span>
                                                     </div>
                                                 </div>
                                                 <div className="py-3 md:py-5 px-2 md:px-4 border-b border-white/5 flex items-center justify-center">
                                                     <div className="flex flex-col items-center">
-                                                        <span className="text-lg md:text-2xl text-[#FEFCF8] font-bold">500</span>
+                                                        <span className="text-lg md:text-2xl text-[#FEFCF8] font-bold">
+                                                            {(Number(settings.quota_au_1 || 0) + Number(settings.quota_au_2 || 0) + Number(settings.quota_au_3 || 0)).toLocaleString()}
+                                                        </span>
                                                         <span className="text-[10px] md:text-xs text-[#B0B0B0]">orang</span>
                                                     </div>
                                                 </div>
 
                                                 {/* Perwira Row */}
                                                 <div className="py-2 md:py-4 px-2 md:px-4 text-[#B0B0B0] border-b border-white/5 flex items-center text-xs md:text-base">Perwira</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">36</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">12</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">50</div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_ad_1 || '-'}
+                                                </div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_al_1 || '-'}
+                                                </div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_au_1 || '-'}
+                                                </div>
 
                                                 {/* Bintara Row */}
                                                 <div className="py-2 md:py-4 px-2 md:px-4 text-[#B0B0B0] border-b border-white/5 flex items-center text-xs md:text-base">Bintara</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">168</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">56</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">350</div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_ad_2 || '-'}
+                                                </div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_al_2 || '-'}
+                                                </div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] border-b border-white/5 flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_au_2 || '-'}
+                                                </div>
 
                                                 {/* Tamtama Row */}
                                                 <div className="py-2 md:py-4 px-2 md:px-4 text-[#B0B0B0] flex items-center text-xs md:text-base">Tamtama</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] flex items-center justify-center text-sm md:text-base">1296</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] flex items-center justify-center text-sm md:text-base">432</div>
-                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] flex items-center justify-center text-sm md:text-base">100</div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_ad_3 || '-'}
+                                                </div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_al_3 || '-'}
+                                                </div>
+                                                <div className="py-2 md:py-4 px-2 md:px-4 text-center font-semibold text-[#FEFCF8] flex items-center justify-center text-sm md:text-base">
+                                                    {settings.quota_au_3 || '-'}
+                                                </div>
                                             </div>
                                         </div>
                                     </AlertDescription>
@@ -1083,10 +1236,11 @@ export default function CompleteProfile({
                                         <button
                                             type="button"
                                             onClick={() => { setData('golongan_id', 1); }}
+                                            disabled={isQuotaFull(data.matra, 1)}
                                             className={`relative p-6 rounded-xl border-2 transition-all ${data.golongan_id === 1
                                                 ? 'border-[#AC0021] bg-[#AC0021]/10'
                                                 : 'border-white/10 bg-[#1a1a1a] hover:border-white/20'
-                                                }`}
+                                                } ${isQuotaFull(data.matra, 1) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                                         >
                                             <div className="flex flex-col items-center gap-4">
                                                 <div className="text-center">
@@ -1102,6 +1256,13 @@ export default function CompleteProfile({
                                                         </div>
                                                     </div>
                                                 )}
+                                                {isQuotaFull(data.matra, 1) && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl backdrop-blur-sm">
+                                                        <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg transform -rotate-12 border border-white/20">
+                                                            KUOTA PENUH
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </button>
 
@@ -1109,10 +1270,11 @@ export default function CompleteProfile({
                                         <button
                                             type="button"
                                             onClick={() => { setData('golongan_id', 2); }}
+                                            disabled={isQuotaFull(data.matra, 2)}
                                             className={`relative p-6 rounded-xl border-2 transition-all ${data.golongan_id === 2
                                                 ? 'border-[#AC0021] bg-[#AC0021]/10'
                                                 : 'border-white/10 bg-[#1a1a1a] hover:border-white/20'
-                                                }`}
+                                                } ${isQuotaFull(data.matra, 2) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                                         >
                                             <div className="flex flex-col items-center gap-4">
                                                 <div className="text-center">
@@ -1128,6 +1290,13 @@ export default function CompleteProfile({
                                                         </div>
                                                     </div>
                                                 )}
+                                                {isQuotaFull(data.matra, 2) && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl backdrop-blur-sm">
+                                                        <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg transform -rotate-12 border border-white/20">
+                                                            KUOTA PENUH
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </button>
 
@@ -1135,10 +1304,11 @@ export default function CompleteProfile({
                                         <button
                                             type="button"
                                             onClick={() => { setData('golongan_id', 3); }}
+                                            disabled={isQuotaFull(data.matra, 3)}
                                             className={`relative p-6 rounded-xl border-2 transition-all ${data.golongan_id === 3
                                                 ? 'border-[#AC0021] bg-[#AC0021]/10'
                                                 : 'border-white/10 bg-[#1a1a1a] hover:border-white/20'
-                                                }`}
+                                                } ${isQuotaFull(data.matra, 3) ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                                         >
                                             <div className="flex flex-col items-center gap-4">
                                                 <div className="text-center">
@@ -1152,6 +1322,13 @@ export default function CompleteProfile({
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                             </svg>
                                                         </div>
+                                                    </div>
+                                                )}
+                                                {isQuotaFull(data.matra, 3) && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl backdrop-blur-sm">
+                                                        <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg transform -rotate-12 border border-white/20">
+                                                            KUOTA PENUH
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1495,78 +1672,107 @@ export default function CompleteProfile({
                                     </div>
 
                                     {/* Right Side: 2x2 Grid (Email, Skin, Hair Color, Hair Type) */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <Label className="text-[#FEFCF8] font-medium">Email</Label>
-                                            <FastInput
-                                                value={auth.user.email || ''}
-                                                disabled
-                                                className="bg-[#2a2a2a]/50 border-white/10 text-gray-400 cursor-not-allowed"
-                                                placeholder="Email"
-                                            />
+                                    {/* Right Side Wrapper */}
+                                    <div className="flex flex-col gap-6">
+                                        {/* Top: Email & Skin (2 cols) */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Email</Label>
+                                                <FastInput
+                                                    value={auth.user.email || ''}
+                                                    disabled
+                                                    className="bg-[#2a2a2a]/50 border-white/10 text-gray-400 cursor-not-allowed"
+                                                    placeholder="Email"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Warna Kulit</Label>
+                                                <Select
+                                                    value={data.warna_kulit}
+                                                    onValueChange={(val) => {
+                                                        setData('warna_kulit', val);
+                                                        clearErrors('warna_kulit');
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
+                                                        <SelectValue placeholder="Pilih Warna Kulit" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {['Sawo Matang', 'Kuning Langsat', 'Putih', 'Hitam', 'Coklat'].map((opt) => (
+                                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors.warna_kulit && <p className="text-[#AC0021] text-sm">{errors.warna_kulit}</p>}
+                                            </div>
                                         </div>
 
-                                        <div className="space-y-2">
-                                            <Label className="text-[#FEFCF8] font-medium">Warna Kulit</Label>
-                                            <Select
-                                                value={data.warna_kulit}
-                                                onValueChange={(val) => {
-                                                    setData('warna_kulit', val);
-                                                    clearErrors('warna_kulit');
-                                                }}
-                                            >
-                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
-                                                    <SelectValue placeholder="Pilih Warna Kulit" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {['Sawo Matang', 'Kuning Langsat', 'Putih', 'Hitam', 'Coklat'].map((opt) => (
-                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {errors.warna_kulit && <p className="text-[#AC0021] text-sm">{errors.warna_kulit}</p>}
-                                        </div>
+                                        {/* Bottom: Eyes, Hair Color, Hair Shape (3 cols) */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
 
-                                        <div className="space-y-2">
-                                            <Label className="text-[#FEFCF8] font-medium">Warna Rambut</Label>
-                                            <Select
-                                                value={data.warna_rambut}
-                                                onValueChange={(val) => {
-                                                    setData('warna_rambut', val);
-                                                    clearErrors('warna_rambut');
-                                                }}
-                                            >
-                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
-                                                    <SelectValue placeholder="Pilih Warna Rambut" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {['Hitam', 'Coklat', 'Pirang', 'Putih/Uban', 'Merah'].map((opt) => (
-                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {errors.warna_rambut && <p className="text-[#AC0021] text-sm">{errors.warna_rambut}</p>}
-                                        </div>
+                                            <div className="space-y-2 mt-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Warna Rambut</Label>
+                                                <Select
+                                                    value={data.warna_rambut}
+                                                    onValueChange={(val) => {
+                                                        setData('warna_rambut', val);
+                                                        clearErrors('warna_rambut');
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
+                                                        <SelectValue placeholder="Pilih Warna Rambut" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {['Hitam', 'Coklat', 'Pirang', 'Putih/Uban'].map((opt) => (
+                                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors.warna_rambut && <p className="text-[#AC0021] text-sm">{errors.warna_rambut}</p>}
+                                            </div>
 
-                                        <div className="space-y-2">
-                                            <Label className="text-[#FEFCF8] font-medium">Bentuk Rambut</Label>
-                                            <Select
-                                                value={data.bentuk_rambut}
-                                                onValueChange={(val) => {
-                                                    setData('bentuk_rambut', val);
-                                                    clearErrors('bentuk_rambut');
-                                                }}
-                                            >
-                                                <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
-                                                    <SelectValue placeholder="Pilih Bentuk Rambut" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {['Lurus', 'Ikal', 'Bergelombang', 'Keriting'].map((opt) => (
-                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {errors.bentuk_rambut && <p className="text-[#AC0021] text-sm">{errors.bentuk_rambut}</p>}
+                                            <div className="space-y-2 mt-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Bentuk Rambut</Label>
+                                                <Select
+                                                    value={data.bentuk_rambut}
+                                                    onValueChange={(val) => {
+                                                        setData('bentuk_rambut', val);
+                                                        clearErrors('bentuk_rambut');
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
+                                                        <SelectValue placeholder="Pilih Bentuk Rambut" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {['Lurus', 'Ikal', 'Bergelombang', 'Keriting'].map((opt) => (
+                                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors.bentuk_rambut && <p className="text-[#AC0021] text-sm">{errors.bentuk_rambut}</p>}
+                                            </div>
+
+                                            <div className="space-y-2 mt-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Warna Mata</Label>
+                                                <Select
+                                                    value={data.warna_mata}
+                                                    onValueChange={(val) => {
+                                                        setData('warna_mata', val);
+                                                        clearErrors('warna_mata');
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
+                                                        <SelectValue placeholder="Pilih Warna Mata" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {['Hitam', 'Cokelat'].map((opt) => (
+                                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors.warna_mata && <p className="text-[#AC0021] text-sm">{errors.warna_mata}</p>}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1581,11 +1787,43 @@ export default function CompleteProfile({
                                     <Label className="text-[#FEFCF8] font-medium text-lg">Ukuran Pakaian & Sepatu</Label>
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                         {[
-                                            { key: 'ukuran_pakaian', label: 'Ukuran Pakaian', options: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] },
-                                            { key: 'ukuran_sepatu', label: 'Ukuran Sepatu', options: Array.from({ length: 14 }, (_, i) => (35 + i).toString()) },
-                                            { key: 'ukuran_topi', label: 'Ukuran Topi', options: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] },
-                                            { key: 'ukuran_kaos_olahraga', label: 'Ukuran Kaos Olahraga', options: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] },
-                                            { key: 'ukuran_sepatu_olahraga', label: 'Ukuran Sepatu Olahraga', options: Array.from({ length: 14 }, (_, i) => (35 + i).toString()) }
+                                            { key: 'ukuran_pakaian', label: 'Ukuran Pakaian PDL', options: ['S', 'M', 'L', 'XL', '2XL', '3XL'] },
+                                            { key: 'ukuran_kaos_pdl', label: 'Ukuran Kaos PDL', options: ['S', 'M', 'L', 'XL', '2XL', '3XL'] },
+                                            { key: 'ukuran_seragam_tactical', label: 'Ukuran Seragam Tactical', options: ['S', 'M', 'L', 'XL', '2XL', '3XL'] },
+                                            { key: 'ukuran_kaos_olahraga', label: 'Ukuran Kaos Olahraga', options: ['S', 'M', 'L', 'XL', '2XL', '3XL'] },
+                                            { key: 'ukuran_baju_tidur', label: 'Ukuran Baju Tidur', options: ['S', 'M', 'L', 'XL', '2XL', '3XL'] },
+                                        ].map((field) => (
+                                            <div key={field.key} className="space-y-2">
+                                                <Label className="text-[#FEFCF8] text-sm font-normal">{field.label}</Label>
+                                                <Select
+                                                    value={(data as any)[field.key]?.toString()}
+                                                    onValueChange={(val) => {
+                                                        setData(field.key as any, val);
+                                                        clearErrors(field.key as any);
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]">
+                                                        <SelectValue placeholder={`Pilih ${field.label}`} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {field.options.map((opt) => (
+                                                            <SelectItem key={opt} value={opt}>
+                                                                {opt}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                        {[
+                                            { key: 'ukuran_baju_renang', label: 'Ukuran Baju Renang', options: ['S', 'M', 'L', 'XL', '2XL', '3XL'] },
+                                            { key: 'ukuran_training_pack', label: 'Ukuran Training Pack', options: ['S', 'M', 'L', 'XL', '2XL', '3XL'] },
+                                            { key: 'ukuran_topi', label: 'Ukuran Baret', options: ['S', 'M', 'L', 'XL', '2XL', '3XL'] },
+                                            { key: 'ukuran_sepatu', label: 'Ukuran Sepatu PDL', options: Array.from({ length: 14 }, (_, i) => (35 + i).toString()) },
+                                            { key: 'ukuran_sepatu_olahraga', label: 'Ukuran Sepatu Olahraga', options: Array.from({ length: 14 }, (_, i) => (35 + i).toString()) },
+                                            { key: 'ukuran_sepatu_tactical', label: 'Ukuran Sepatu Tactical', options: Array.from({ length: 14 }, (_, i) => (35 + i).toString()) },
                                         ].map((field) => (
                                             <div key={field.key} className="space-y-2">
                                                 <Label className="text-[#FEFCF8] text-sm font-normal">{field.label}</Label>
@@ -1616,10 +1854,27 @@ export default function CompleteProfile({
                                 <div className="space-y-6 pt-4 border-t border-white/10">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2 md:col-span-2">
-                                            <Label className="text-[#FEFCF8] font-medium">Alamat KTP</Label>
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-[#FEFCF8] font-medium text-lg">Alamat KTP</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <Checkbox
+                                                        id="sameAsKTP"
+                                                        checked={isSameAsKTP}
+                                                        onCheckedChange={(checked) => setIsSameAsKTP(checked as boolean)}
+                                                        className="border-red/80 data-[state=checked]:bg-red/80 data-[state=checked]:border-red/80"
+                                                    />
+                                                    <Label
+                                                        htmlFor="sameAsKTP"
+                                                        className="text-[#FEFCF8] text-sm font-normal cursor-pointer"
+                                                    >
+                                                        Alamat Domisili sama dengan KTP
+                                                    </Label>
+                                                </div>
+                                            </div>
                                             <Textarea
-                                                value={data.jalan}
-                                                onChange={e => { setData('jalan', e.target.value); clearErrors('jalan'); }}
+                                                ref={jalanRef}
+                                                defaultValue={data.jalan}
+                                                onBlur={(e) => { setData('jalan', e.target.value); clearErrors('jalan'); }}
                                                 className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-[#AC0021] min-h-[100px] ${errors.jalan ? 'border-[#AC0021]' : ''}`}
                                                 placeholder="Nama Jalan, No. Rumah, RT/RW"
                                             />
@@ -1678,6 +1933,76 @@ export default function CompleteProfile({
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Domicile Address Section - Hidden when checkbox is checked */}
+                                {!isSameAsKTP && (
+                                    <div className="space-y-12 pt-4 border-t border-white/10">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2 md:col-span-2">
+                                                <Label className="text-[#FEFCF8] font-medium text-lg">Alamat Domisili</Label>
+                                                <Textarea
+                                                    ref={domisiliJalanRef}
+                                                    defaultValue={data.domisili_jalan}
+                                                    onBlur={(e) => { setData('domisili_jalan', e.target.value); clearErrors('domisili_jalan'); }}
+                                                    className={`bg-[#2a2a2a] border-white/10 text-[#FEFCF8] focus:border-[#AC0021] min-h-[100px] ${errors.domisili_jalan ? 'border-[#AC0021]' : ''}`}
+                                                    placeholder="Nama Jalan, No. Rumah, RT/RW"
+                                                />
+                                                {errors.domisili_jalan && <p className="text-[#AC0021] text-sm">{errors.domisili_jalan}</p>}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Provinsi</Label>
+                                                <SearchableSelect
+                                                    value={data.domisili_province_id}
+                                                    onValueChange={fetchDomisiliCities}
+                                                    options={provinces.map(p => ({ value: p.code, label: p.name }))}
+                                                    placeholder="Pilih Provinsi"
+                                                    searchPlaceholder="Cari Provinsi..."
+                                                    error={!!errors.domisili_province_id}
+                                                />
+                                                {errors.domisili_province_id && <p className="text-[#AC0021] text-sm">{errors.domisili_province_id}</p>}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Kota/Kabupaten</Label>
+                                                <SearchableSelect
+                                                    value={data.domisili_city_id}
+                                                    onValueChange={fetchDomisiliDistricts}
+                                                    options={domisiliCities.map(c => ({ value: c.code, label: c.name }))}
+                                                    placeholder="Pilih Kota/Kabupaten"
+                                                    searchPlaceholder="Cari Kota/Kabupaten..."
+                                                    disabled={!data.domisili_province_id}
+                                                    error={!!errors.domisili_city_id}
+                                                />
+                                                {errors.domisili_city_id && <p className="text-[#AC0021] text-sm">{errors.domisili_city_id}</p>}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Kecamatan</Label>
+                                                <SearchableSelect
+                                                    value={data.domisili_district_id}
+                                                    onValueChange={fetchDomisiliVillages}
+                                                    options={domisiliDistricts.map(d => ({ value: d.code, label: d.name }))}
+                                                    placeholder="Pilih Kecamatan"
+                                                    searchPlaceholder="Cari Kecamatan..."
+                                                    disabled={!data.domisili_city_id}
+                                                    error={!!errors.domisili_district_id}
+                                                />
+                                                {errors.domisili_district_id && <p className="text-[#AC0021] text-sm">{errors.domisili_district_id}</p>}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[#FEFCF8] font-medium">Kelurahan</Label>
+                                                <SearchableSelect
+                                                    value={data.domisili_village_id}
+                                                    onValueChange={(val) => { setData('domisili_village_id', val); clearErrors('domisili_village_id'); }}
+                                                    options={domisiliVillages.map(v => ({ value: v.code, label: v.name }))}
+                                                    placeholder="Pilih Kelurahan"
+                                                    searchPlaceholder="Cari Kelurahan..."
+                                                    disabled={!data.domisili_district_id}
+                                                    error={!!errors.domisili_village_id}
+                                                />
+                                                {errors.domisili_village_id && <p className="text-[#AC0021] text-sm">{errors.domisili_village_id}</p>}
+                                            </div>
+                                        </div>
+                                    </div >
+                                )}
                             </div>
                         )}
 
@@ -1712,7 +2037,7 @@ export default function CompleteProfile({
                                                 <SelectContent>
                                                     {pendidikans.map((p) => (
                                                         <SelectItem key={p.id} value={p.id.toString()}>
-                                                            {p.nama}
+                                                            {p.singkatan}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
@@ -2036,21 +2361,6 @@ export default function CompleteProfile({
                                     {/* Profession Details (shown when Bekerja is selected) */}
                                     {data.is_bekerja === 'bekerja' && (
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                                            {/* Nama Profesi */}
-                                            <div className="space-y-2">
-                                                <Label className="text-[#FEFCF8] flex items-center gap-1">
-                                                    Nama Profesi <span className="text-red-500">*</span>
-                                                </Label>
-                                                <Input
-                                                    name="nama_profesi"
-                                                    value={data.nama_profesi}
-                                                    onChange={(e) => setData('nama_profesi', e.target.value)}
-                                                    className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]"
-                                                    placeholder="Masukkan nama profesi"
-                                                />
-                                                {errors.nama_profesi && <p className="text-[#AC0021] text-sm">{errors.nama_profesi}</p>}
-                                            </div>
-
                                             {/* Jenis Profesi */}
                                             <div className="space-y-2">
                                                 <Label className="text-[#FEFCF8] flex items-center gap-1">
@@ -2074,15 +2384,32 @@ export default function CompleteProfile({
                                                 {errors.pekerjaan_id && <p className="text-[#AC0021] text-sm">{errors.pekerjaan_id}</p>}
                                             </div>
 
+                                            {/* Nama Profesi */}
+                                            <div className="space-y-2">
+                                                <Label className="text-[#FEFCF8] flex items-center gap-1">
+                                                    Nama Profesi <span className="text-red-500">*</span>
+                                                </Label>
+                                                <Input
+                                                    ref={namaProfesiRef}
+                                                    name="nama_profesi"
+                                                    defaultValue={data.nama_profesi}
+                                                    onBlur={(e) => setData('nama_profesi', e.target.value)}
+                                                    className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]"
+                                                    placeholder="Masukkan nama profesi"
+                                                />
+                                                {errors.nama_profesi && <p className="text-[#AC0021] text-sm">{errors.nama_profesi}</p>}
+                                            </div>
+
                                             {/* Nama Perusahaan/Instansi */}
                                             <div className="space-y-2">
                                                 <Label className="text-[#FEFCF8] flex items-center gap-1">
                                                     Nama Perusahaan/Instansi <span className="text-red-500">*</span>
                                                 </Label>
                                                 <Input
+                                                    ref={namaPerusahaanRef}
                                                     name="nama_perusahaan"
-                                                    value={data.nama_perusahaan}
-                                                    onChange={(e) => setData('nama_perusahaan', e.target.value)}
+                                                    defaultValue={data.nama_perusahaan}
+                                                    onBlur={(e) => setData('nama_perusahaan', e.target.value)}
                                                     className="bg-[#2a2a2a] border-white/10 text-[#FEFCF8]"
                                                     placeholder="Masukkan nama perusahaan/instansi"
                                                 />
@@ -2332,7 +2659,8 @@ export default function CompleteProfile({
                                     ].map((doc) => (
                                         <div key={doc.key} className="space-y-2">
                                             <Label className="text-[#FEFCF8] font-medium min-h-[48px] flex items-center block">
-                                                {doc.label} <span className="text-red-500 ml-1">*</span>
+                                                {doc.label}
+                                                {doc.key !== 'doc_izin_instansi' && <span className="text-red-500 ml-1">*</span>}
                                             </Label>
                                             <div
                                                 onClick={() => document.getElementById(doc.key)?.click()}

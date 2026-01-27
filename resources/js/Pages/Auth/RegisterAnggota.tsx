@@ -11,10 +11,10 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import axios from 'axios';
 
-export default function Register({ settings = {} }: { settings?: Record<string, any> }) {
+export default function RegisterAnggota({ settings = {} }: { settings?: Record<string, any> }) {
     const { data, setData, post, processing, errors, transform } = useForm({
         name: '',
-        member_type: 'calon_anggota', // Hardcoded for public registration
+        member_type: 'anggota', // Hardcoded for Anggota registration
         username: '',
         email: '',
         phone_number: '',
@@ -134,7 +134,7 @@ export default function Register({ settings = {} }: { settings?: Record<string, 
         }));
 
         // Submit registration with OTP
-        post(route('register'), {
+        post(route('register.anggota.post'), {
             onSuccess: () => {
                 toast.success('Registrasi berhasil! Silakan login');
             },
@@ -315,7 +315,7 @@ export default function Register({ settings = {} }: { settings?: Record<string, 
                             </div>
 
                             <CardTitle className="text-xl md:text-2xl font-black text-[#AC0021] mb-2 -mt-6 tracking-tight whitespace-nowrap">
-                                Pendaftaran Pengguna Baru
+                                Pendaftaran Anggota
                             </CardTitle>
 
                             <p className="text-gray-400 text-sm mb-6 -mt-2 max-w-xs mx-auto">
@@ -659,7 +659,7 @@ export default function Register({ settings = {} }: { settings?: Record<string, 
                             )}
 
                             {/* Login Link  */}
-                            <div className="mt-4 text-center border-t border-white/10 pt-4">
+                            <div className="mt-4 text-center border-t border-white/10 pt-4 space-y-3">
                                 <div className="text-sm text-gray-400">
                                     Sudah punya akun?{' '}
                                     <Link
@@ -667,6 +667,16 @@ export default function Register({ settings = {} }: { settings?: Record<string, 
                                         className="text-[#AC0021] p-0 h-auto font-bold hover:underline transition-colors"
                                     >
                                         Masuk
+                                    </Link>
+                                </div>
+
+                                <div className="text-sm text-gray-400 border-t border-white/5 pt-3">
+                                    Bukan Anggota TNI/Polri?{' '}
+                                    <Link
+                                        href={route('register')}
+                                        className="text-[#AC0021] p-0 h-auto font-bold hover:underline transition-colors"
+                                    >
+                                        Daftar sebagai Calon
                                     </Link>
                                 </div>
                             </div>

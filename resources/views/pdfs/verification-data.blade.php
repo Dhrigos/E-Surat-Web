@@ -87,9 +87,12 @@
 
     <div class="section-title">Informasi Pribadi</div>
     <table>
-        <tr>
             <th>Nama Lengkap</th>
             <td>{{ $user->name }}</td>
+        </tr>
+        <tr>
+            <th>Nomor Registrasi</th>
+            <td>{{ $detail->nomor_registrasi ?? '-' }}</td>
         </tr>
         <tr>
             <th>NIK</th>
@@ -126,6 +129,12 @@
             <th>Pilihan Golongan</th>
             <td>{{ $detail->golongan->nama ?? '-' }}</td>
         </tr>
+        @if($detail->pangkat)
+        <tr>
+            <th>Pilihan Pangkat</th>
+            <td>{{ $detail->pangkat->nama ?? '-' }}</td>
+        </tr>
+        @endif
         <tr>
             <th>Agama</th>
             <td>{{ $detail->agama->nama ?? '-' }}</td>
@@ -151,9 +160,19 @@
             <td>{{ $detail->nama_ibu_kandung ?? '-' }}</td>
         </tr>
         <tr>
-            <th>Alamat</th>
+            <th>Alamat Domisili</th>
             <td>
-                {{ $detail->alamat_domisili_lengkap ?? '-' }}<br>
+                {{ $detail->alamat_domisili_lengkap ?? ($detail->domisili_jalan ?? '-') }}<br>
+                @if($detail->domisiliDesa) Des. {{ $detail->domisiliDesa->name }}, @elseif($detail->domisili_village_id && $detail->domisiliDesa) Des. {{ $detail->domisiliDesa->name }}, @endif
+                @if($detail->domisiliKecamatan) Kec. {{ $detail->domisiliKecamatan->name }}, @endif
+                @if($detail->domisiliKabupaten) {{ $detail->domisiliKabupaten->name }}, @endif
+                @if($detail->domisiliProvinsi) Prov. {{ $detail->domisiliProvinsi->name }} @endif
+            </td>
+        </tr>
+        <tr>
+            <th>Alamat KTP</th>
+            <td>
+                {{ $detail->jalan ?? '-' }}<br>
                 @if($detail->desa) Kel/Des. {{ $detail->desa->name }}, @endif
                 @if($detail->kecamatan) Kec. {{ $detail->kecamatan->name }}, @endif
                 @if($detail->kabupaten) {{ $detail->kabupaten->name }}, @endif
@@ -163,38 +182,76 @@
     </table>
 
     <div class="section-title page-break">Detail Informasi Pribadi</div>
-    <table>
+    <table style="width: 100%; border: none;">
         <tr>
-            <th>Warna Kulit</th>
-            <td>{{ $detail->warna_kulit ?? '-' }}</td>
-        </tr>
-        <tr>
-            <th>Warna Rambut</th>
-            <td>{{ $detail->warna_rambut ?? '-' }}</td>
-        </tr>
-        <tr>
-            <th>Bentuk Rambut</th>
-            <td>{{ $detail->bentuk_rambut ?? '-' }}</td>
-        </tr>
-        <tr>
-            <th>Ukuran Pakaian</th>
-            <td>{{ $detail->ukuran_pakaian ?? '-' }}</td>
-        </tr>
-        <tr>
-            <th>Ukuran Sepatu</th>
-            <td>{{ $detail->ukuran_sepatu ?? '-' }}</td>
-        </tr>
-        <tr>
-            <th>Ukuran Topi</th>
-            <td>{{ $detail->ukuran_topi ?? '-' }}</td>
-        </tr>
-        <tr>
-            <th>Ukuran Kaos Olahraga</th>
-            <td>{{ $detail->ukuran_kaos_olahraga ?? '-' }}</td>
-        </tr>
-        <tr>
-            <th>Ukuran Sepatu Olahraga</th>
-            <td>{{ $detail->ukuran_sepatu_olahraga ?? '-' }}</td>
+            <td style="width: 50%; vertical-align: top; padding: 0; border: none;">
+                <table style="width: 95%; margin-right: 5%;">
+                    <tr>
+                        <th>Warna Kulit</th>
+                        <td>{{ $detail->warna_kulit ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Warna Mata</th>
+                        <td>{{ $detail->warna_mata ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Warna Rambut</th>
+                        <td>{{ $detail->warna_rambut ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Bentuk Rambut</th>
+                        <td>{{ $detail->bentuk_rambut ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Pakaian</th>
+                        <td>{{ $detail->ukuran_pakaian ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Sepatu</th>
+                        <td>{{ $detail->ukuran_sepatu ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Topi</th>
+                        <td>{{ $detail->ukuran_topi ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                         <th>Ukuran Kaos Olahraga</th>
+                         <td>{{ $detail->ukuran_kaos_olahraga ?? '-' }}</td>
+                     </tr>
+                </table>
+            </td>
+            <td style="width: 50%; vertical-align: top; padding: 0; border: none;">
+                <table style="width: 100%;">
+                    <tr>
+                        <th>Ukuran Sepatu Olahraga</th>
+                        <td>{{ $detail->ukuran_sepatu_olahraga ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Kaos PDL</th>
+                        <td>{{ $detail->ukuran_kaos_pdl ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Seragam Tactical</th>
+                        <td>{{ $detail->ukuran_seragam_tactical ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Baju Tidur</th>
+                        <td>{{ $detail->ukuran_baju_tidur ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Training Pack</th>
+                        <td>{{ $detail->ukuran_training_pack ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Baju Renang</th>
+                        <td>{{ $detail->ukuran_baju_renang ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ukuran Sepatu Tactical</th>
+                        <td>{{ $detail->ukuran_sepatu_tactical ?? '-' }}</td>
+                    </tr>
+                </table>
+            </td>
         </tr>
     </table>
 

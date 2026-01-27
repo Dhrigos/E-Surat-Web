@@ -43,6 +43,7 @@ interface UserDetail {
     tinggi_badan?: string;
     berat_badan?: string;
     warna_kulit?: string;
+    warna_mata?: string;
     warna_rambut?: string;
     bentuk_rambut?: string;
     ukuran_pakaian?: string;
@@ -50,12 +51,33 @@ interface UserDetail {
     ukuran_topi?: string;
     ukuran_kaos_olahraga?: string;
     ukuran_sepatu_olahraga?: string;
+    ukuran_kaos_pdl?: string;
+    ukuran_seragam_tactical?: string;
+    ukuran_baju_tidur?: string;
+    ukuran_training_pack?: string;
+    ukuran_baju_renang?: string;
+    ukuran_sepatu_tactical?: string;
+
+    // New fields
+    nomor_registrasi?: string;
+    matra?: string;
+    golongan?: { id: number; nama: string };
+    pangkat_id?: number; // Added to match usage
 
     // Regions
-    desa?: { id: number; name: string };
-    kecamatan?: { id: number; name: string };
-    kabupaten?: { id: number; name: string };
-    provinsi?: { id: number; name: string };
+    desa?: { code: string; name: string };
+    kecamatan?: { code: string; name: string };
+    kabupaten?: { code: string; name: string };
+    provinsi?: { code: string; name: string };
+    jalan?: string;
+
+    // Domicile Regions
+    domisili_jalan?: string;
+    domisili_desa?: { code: string; name: string };
+    domisili_kecamatan?: { code: string; name: string };
+    domisili_kabupaten?: { code: string; name: string };
+    domisili_provinsi?: { code: string; name: string };
+
 
     // Education
     pendidikan?: { id: number; nama: string };
@@ -89,6 +111,7 @@ interface User {
     id: number;
     name: string;
     email: string;
+    phone?: string;
     member_type: 'anggota' | 'calon_anggota';
     member?: UserDetail;
     calon?: UserDetail;
@@ -548,9 +571,15 @@ export default function VerificationQueue({ users, currentUserId, activeType = '
                                 </AvatarFallback>
                             </Avatar>
                             <div className="space-y-1 min-w-0 flex-1">
-                                <h3 className="font-bold text-lg md:text-xl truncate">{selectedUser.name}</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-lg md:text-xl truncate">{selectedUser.name}</h3>
+                                    <span className="font-bold text-[#007ee7]">[{getDetail(selectedUser)?.nomor_registrasi || '-'}]</span>
+                                </div>
                                 <div className="flex items-center gap-2 text-gray-400 text-sm truncate">
                                     <Mail className="w-4 h-4 shrink-0" /> <span className="truncate">{selectedUser.email}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-400 text-sm truncate">
+                                    <Phone className="w-4 h-4 shrink-0" /> <span className="truncate">{selectedUser.phone || '-'}</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2 mt-2">
                                     {/* Locked Badge substitute for role/status badges in this context */}
@@ -578,6 +607,12 @@ export default function VerificationQueue({ users, currentUserId, activeType = '
                                 <div className="space-y-3">
                                     <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Data Pribadi</h4>
                                     <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                                        <span className="text-gray-500">Matra</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.matra || '-'}</span>
+
+                                        <span className="text-gray-500">Golongan</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.golongan?.nama || '-'}</span>
+
                                         <span className="text-gray-500">NIK</span>
                                         <span className="font-medium">{getDetail(selectedUser)?.nik}</span>
 
@@ -595,6 +630,12 @@ export default function VerificationQueue({ users, currentUserId, activeType = '
                                         <span className="text-gray-500">Agama</span>
                                         <span className="font-medium">{getDetail(selectedUser)?.agama?.nama || '-'}</span>
 
+                                        <span className="text-gray-500">Status</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.status_pernikahan?.nama || '-'}</span>
+
+                                        <span className="text-gray-500">Gol. Darah</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.golongan_darah?.nama || '-'}</span>
+
                                         <span className="text-gray-500">Suku/Bangsa</span>
                                         <span className="font-medium">
                                             {getDetail(selectedUser)?.suku?.nama || '-'} / {getDetail(selectedUser)?.bangsa?.nama || '-'}
@@ -606,9 +647,62 @@ export default function VerificationQueue({ users, currentUserId, activeType = '
                                 </div>
 
                                 <div className="space-y-3">
-                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Alamat Lengkap</h4>
+                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Alamat Domisili</h4>
                                     <div className="text-sm space-y-1">
-                                        <p className="font-medium">{getDetail(selectedUser)?.alamat_domisili_lengkap}</p>
+                                        <p className="font-medium">{getDetail(selectedUser)?.domisili_jalan || getDetail(selectedUser)?.alamat_domisili_lengkap}</p>
+                                        <p className="text-gray-400">
+                                            {(getDetail(selectedUser)?.domisili_desa?.name || getDetail(selectedUser)?.desa?.name) ? `Desa ${getDetail(selectedUser)?.domisili_desa?.name || getDetail(selectedUser)?.desa?.name}, ` : ''}
+                                            {(getDetail(selectedUser)?.domisili_kecamatan?.name || getDetail(selectedUser)?.kecamatan?.name) ? `Kec. ${getDetail(selectedUser)?.domisili_kecamatan?.name || getDetail(selectedUser)?.kecamatan?.name}` : ''}
+                                        </p>
+                                        <p className="text-gray-400">
+                                            {(getDetail(selectedUser)?.domisili_kabupaten?.name || getDetail(selectedUser)?.kabupaten?.name) ? `${getDetail(selectedUser)?.domisili_kabupaten?.name || getDetail(selectedUser)?.kabupaten?.name}, ` : ''}
+                                            {getDetail(selectedUser)?.domisili_provinsi?.name || getDetail(selectedUser)?.provinsi?.name}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Column 2: Fisik & Ukuran & Kontak */}
+                            <div className="space-y-6">
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Fisik & Ukuran</h4>
+                                    <div className="grid grid-cols-[170px_1fr] gap-2 text-sm">
+                                        <span className="text-gray-500 whitespace-nowrap">TB / BB</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.tinggi_badan || '-'} cm / {getDetail(selectedUser)?.berat_badan || '-'} kg</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Warna Kulit</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.warna_kulit || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Warna Mata</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.warna_mata || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Rambut</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.warna_rambut} / {getDetail(selectedUser)?.bentuk_rambut}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Pakaian PDL</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_pakaian || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Sepatu PDL</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_sepatu || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Baret</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_topi || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Pakaian Olahraga</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_kaos_olahraga || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Sepatu Olahraga</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_sepatu_olahraga || '-'}</span>
+
+                                        <span className="text-gray-500 whitespace-nowrap">Ukuran Kaos PDL</span>
+                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_kaos_pdl || '-'}</span>
+
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1 mt-4">Alamat KTP</h4>
+                                    <div className="text-sm space-y-1">
+                                        <p className="font-medium">{getDetail(selectedUser)?.jalan}</p>
                                         <p className="text-gray-400">
                                             {getDetail(selectedUser)?.desa ? `Desa ${getDetail(selectedUser)?.desa?.name}, ` : ''}
                                             {getDetail(selectedUser)?.kecamatan ? `Kec. ${getDetail(selectedUser)?.kecamatan?.name}` : ''}
@@ -621,40 +715,20 @@ export default function VerificationQueue({ users, currentUserId, activeType = '
                                 </div>
                             </div>
 
-                            {/* Column 2: Fisik & Ukuran & Kontak */}
-                            <div className="space-y-6">
-                                <div className="space-y-3">
-                                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Fisik & Ukuran</h4>
-                                    <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
-                                        <span className="text-gray-500">TB / BB</span>
-                                        <span className="font-medium">{getDetail(selectedUser)?.tinggi_badan || '-'} cm / {getDetail(selectedUser)?.berat_badan || '-'} kg</span>
-
-                                        <span className="text-gray-500">Warna Kulit</span>
-                                        <span className="font-medium">{getDetail(selectedUser)?.warna_kulit || '-'}</span>
-
-                                        <span className="text-gray-500">Rambut</span>
-                                        <span className="font-medium">{getDetail(selectedUser)?.warna_rambut} / {getDetail(selectedUser)?.bentuk_rambut}</span>
-
-                                        <span className="text-gray-500">Ukuran Pakaian</span>
-                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_pakaian || '-'}</span>
-
-                                        <span className="text-gray-500">Ukuran Sepatu</span>
-                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_sepatu || '-'}</span>
-
-                                        <span className="text-gray-500">Ukuran Topi</span>
-                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_topi || '-'}</span>
-
-                                        <span className="text-gray-500">Ukuran Pakaian Olahraga</span>
-                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_kaos_olahraga || '-'}</span>
-
-                                        <span className="text-gray-500">Ukuran Sepatu Olahraga</span>
-                                        <span className="font-medium">{getDetail(selectedUser)?.ukuran_sepatu_olahraga || '-'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
                             {/* Column 3: Pendidikan & Pekerjaan */}
                             <div className="space-y-6">
+                                <div className="grid grid-cols-[170px_1fr] gap-2 text-sm mt-9">
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Seragam Tactical</span>
+                                    <span className="font-medium">{getDetail(selectedUser)?.ukuran_seragam_tactical || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Baju Tidur</span>
+                                    <span className="font-medium">{getDetail(selectedUser)?.ukuran_baju_tidur || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Training Pack</span>
+                                    <span className="font-medium">{getDetail(selectedUser)?.ukuran_training_pack || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Baju Renang</span>
+                                    <span className="font-medium">{getDetail(selectedUser)?.ukuran_baju_renang || '-'}</span>
+                                    <span className="text-gray-500 whitespace-nowrap">Ukuran Sepatu Tactical</span>
+                                    <span className="font-medium">{getDetail(selectedUser)?.ukuran_sepatu_tactical || '-'}</span>
+                                </div>
                                 <div className="space-y-3">
                                     <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 pb-1">Pendidikan</h4>
                                     <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
@@ -664,7 +738,7 @@ export default function VerificationQueue({ users, currentUserId, activeType = '
                                         <span className="text-gray-500">Sekolah</span>
                                         <span className="font-medium">{getDetail(selectedUser)?.nama_sekolah || '-'}</span>
 
-                                        <span className="text-gray-500">Prodi</span>
+                                        <span className="text-gray-500">Jurusan/Prodi</span>
                                         <span className="font-medium">{getDetail(selectedUser)?.nama_prodi || '-'}</span>
 
                                         <span className="text-gray-500">Nilai/Lulus</span>

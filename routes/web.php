@@ -3,6 +3,21 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+Route::get('/mitra/login', [\App\Http\Controllers\Auth\MitraAuthController::class, 'loginForm'])->name('mitra.login')->middleware('guest');
+Route::post('/mitra/login', [\App\Http\Controllers\Auth\MitraAuthController::class, 'login'])->name('mitra.login.post')->middleware('guest');
+Route::post('/mitra/logout', [\App\Http\Controllers\Auth\MitraAuthController::class, 'logout'])->name('mitra.logout')->middleware('auth');
+
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('mitra')->name('mitra.')->group(function () {
+        Route::get('/dashboard', function () {
+            return \Inertia\Inertia::render('Mitra/Dashboard');
+        })->name('dashboard');
+
+        Route::get('/members', [\App\Http\Controllers\Mitra\MemberController::class, 'index'])->name('members.index');
+        Route::post('/members', [\App\Http\Controllers\Mitra\MemberController::class, 'store'])->name('members.store');
+    });
+});
+
 Route::get('/', function () {
     return Inertia::render('Welcome/Index');
 })->name('welcome');
@@ -36,6 +51,11 @@ Route::post('/send-otp-reset', [\App\Http\Controllers\OtpController::class, 'sen
 Route::post('/check-otp', [\App\Http\Controllers\OtpController::class, 'checkOtp'])->name('otp.check'); // New step 2 verification
 Route::post('/verify-otp-reset', [\App\Http\Controllers\OtpController::class, 'verifyAndReset'])->name('otp.verify-reset');
 Route::post('/register', [\App\Http\Controllers\Auth\RegisterController::class, 'store'])->name('register.store');
+
+// Anggota Registration Routes
+Route::get('/register/anggota', [\App\Http\Controllers\Auth\RegisterAnggotaController::class, 'showRegistrationForm'])->name('register.anggota')->middleware('guest');
+Route::post('/register/anggota', [\App\Http\Controllers\Auth\RegisterAnggotaController::class, 'register'])->name('register.anggota.post')->middleware('guest');
+
 Route::post('/api/validate/register', [\App\Http\Controllers\Api\ValidationController::class, 'checkRegisterInput'])->name('api.validate.register');
 
 Route::get('/regions/provinces', [\App\Http\Controllers\RegionController::class, 'provinces'])->name('regions.provinces');
@@ -97,6 +117,14 @@ Route::middleware(['auth'])->group(function () {
                 Route::post('/pangkat', [\App\Http\Controllers\MasterDataController::class, 'storePangkat'])->name('pangkat.store');
                 Route::put('/pangkat/{id}', [\App\Http\Controllers\MasterDataController::class, 'updatePangkat'])->name('pangkat.update');
                 Route::delete('/pangkat/{id}', [\App\Http\Controllers\MasterDataController::class, 'destroyPangkat'])->name('pangkat.destroy');
+
+                // Mitra
+                Route::resource('mitra', \App\Http\Controllers\DataMaster\MitraController::class)->except(['create', 'edit', 'show']);
+                
+                // Mitra Admins (Nested)
+                Route::get('mitra/{mitra}/admins', [\App\Http\Controllers\DataMaster\MitraAdminController::class, 'index'])->name('mitra.admins.index');
+                Route::post('mitra/{mitra}/admins', [\App\Http\Controllers\DataMaster\MitraAdminController::class, 'store'])->name('mitra.admins.store');
+                Route::delete('mitra/{mitra}/admins/{user}', [\App\Http\Controllers\DataMaster\MitraAdminController::class, 'destroy'])->name('mitra.admins.destroy');
                 
                 // Legacy Workflow Update (Placeholder)
                 Route::put('/{id}', function () {

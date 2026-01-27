@@ -62,6 +62,15 @@ class CompleteProfileController extends Controller
             'existingFiles' => $existingData,
             'rejectionReason' => $user->rejection_reason,
             'userWithRelations' => $user,
+            
+            // Registration Settings & Quota Logic
+            'settings' => \App\Models\SystemSetting::where('group', 'registration')->pluck('value', 'key'),
+            'quotaUsage' => $isAnggota ? [] : UserCalon::selectRaw('matra, golongan_id, count(*) as total')
+                ->groupBy('matra', 'golongan_id')
+                ->get()
+                ->mapWithKeys(function ($item) {
+                     return ["{$item->matra}_{$item->golongan_id}" => $item->total];
+                }),
         ]);
     }
 
@@ -80,9 +89,18 @@ class CompleteProfileController extends Controller
             'alamat_domisili_lengkap' => 'nullable|string',
         ];
 
+        // Check if registration is open
+        $settings = \App\Models\SystemSetting::where('group', 'registration')->pluck('value', 'key');
+        if (isset($settings['registration_open']) && ($settings['registration_open'] == '0' || $settings['registration_open'] === false)) {
+             return back()->withErrors(['registration' => 'Pendaftaran sedang ditutup.']);
+        }
+
         // Add anggota-specific validation rules
         if ($isAnggota) {
             $rules['nia_nrp'] = 'required|string|min:14|max:255|unique:user_member,nia_nrp'.($detail ? ','.$detail->id : '');
+            // ... (rest of validation)
+
+            // ...
             $rules['jabatan_id'] = 'nullable|exists:jabatan,id';
             $rules['jabatan_role_id'] = 'nullable|exists:jabatan_roles,id';
             $rules['pangkat_id'] = 'nullable|exists:pangkat,id';
@@ -97,6 +115,26 @@ class CompleteProfileController extends Controller
             // Calon anggota specific fields
             $rules['matra'] = 'required|string|in:AD,AL,AU';
             $rules['nomor_kk'] = 'required|string|min:16|max:16';
+
+            // Validate Quota
+            $matra = $request->input('matra');
+            $golonganId = $request->input('golongan_id');
+            // Basic check if present before logic
+            if ($matra && $golonganId) {
+                $quotaKey = 'quota_' . strtolower($matra) . '_' . $golonganId;
+                $limit = $settings[$quotaKey] ?? null;
+    
+                if ($limit !== null && $limit !== '') {
+                    $usage = UserCalon::where('matra', $matra)->where('golongan_id', $golonganId)->count();
+                    if ($detail && $detail->matra == $matra && $detail->golongan_id == $golonganId) {
+                        $usage--; 
+                    }
+                    if ($usage >= (int)$limit) {
+                        return back()->withErrors(['golongan_id' => 'Kuota untuk Matra dan Jenjang ini sudah penuh.']);
+                    }
+                }
+            }
+            
             $rules['golongan_id'] = 'required|exists:golongans,id';
             $rules['golongan_id'] = 'required|exists:golongans,id';
 
@@ -109,6 +147,7 @@ class CompleteProfileController extends Controller
             $rules['tinggi_badan'] = 'required|numeric|min:100|max:250';
             $rules['berat_badan'] = 'required|numeric|min:30|max:200';
             $rules['warna_kulit'] = 'required|string|max:50';
+            $rules['warna_mata'] = 'required|string|in:Hitam,Cokelat';
             $rules['warna_rambut'] = 'required|string|max:50';
             $rules['bentuk_rambut'] = 'required|string|max:50';
             $rules['birthplace_province_id'] = 'required|string';
@@ -157,6 +196,14 @@ class CompleteProfileController extends Controller
         $rules['district_id'] = 'required|string';
         $rules['village_id'] = 'required|string';
         $rules['jalan'] = 'required|string';
+
+        // Domicile address validation
+        $rules['domisili_province_id'] = 'nullable|string';
+        $rules['domisili_city_id'] = 'nullable|string';
+        $rules['domisili_district_id'] = 'nullable|string';
+        $rules['domisili_village_id'] = 'nullable|string';
+        $rules['domisili_jalan'] = 'nullable|string';
+
         // birthplace_province_id validation moved to Calon specific block
         // birthplace_province_id validation moved to Calon specific block
 
@@ -319,6 +366,15 @@ class CompleteProfileController extends Controller
                 $data
             );
         } else {
+            // Generate nomor_registrasi for new calon anggota (if not exists)
+            if (!$detail || empty($detail->nomor_registrasi)) {
+                $data['nomor_registrasi'] = UserCalon::generateNomorRegistrasi(
+                    $data['matra'],
+                    $data['golongan_id'],
+                    $data['jenis_kelamin']
+                );
+            }
+            
             UserCalon::updateOrCreate(
                 ['user_id' => $user->id],
                 $data

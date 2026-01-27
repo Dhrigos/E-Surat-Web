@@ -14,6 +14,7 @@ interface DateSelectProps {
     startYear?: number;
     endYear?: number;
     className?: string;
+    triggerClassName?: string;
     error?: boolean;
     placeholder?: string;
 }
@@ -24,8 +25,10 @@ export function DateSelect({
     startYear = 1950,
     endYear = new Date().getFullYear(),
     className,
+    triggerClassName,
     error
 }: DateSelectProps) {
+    // ... (state initialization remains unchanged)
     // Lazy initialization to ensure state is present on first render if value exists
     const [selectedDay, setSelectedDay] = React.useState<string>(() => {
         if (!value) return "";
@@ -45,13 +48,14 @@ export function DateSelect({
         return parts.length === 3 ? parts[0] : "";
     });
 
+    // ... (useEffect and helper functions remain unchanged)
+
     // Sync from prop changes (if external update happens)
     React.useEffect(() => {
         if (value) {
             const parts = value.split('-');
             if (parts.length === 3) {
                 const [y, m, d] = parts;
-                // Only update if different to avoid cycles, though React prevents no-op updates
                 const newY = y;
                 const newM = parseInt(m).toString();
                 const newD = parseInt(d).toString();
@@ -79,21 +83,18 @@ export function DateSelect({
     const days = Array.from({ length: daysInMonth(selectedMonth, selectedYear) }, (_, i) => i + 1);
 
     const updateDate = (d: string, m: string, y: string) => {
-        // Only trigger onChange if all parts are present
         if (d && m && y) {
-            // Clamp day if necessary
             const maxDays = daysInMonth(m, y);
             let dayNum = parseInt(d);
             if (dayNum > maxDays) {
                 dayNum = maxDays;
-                setSelectedDay(dayNum.toString()); // Update visual state immediately
+                setSelectedDay(dayNum.toString());
             }
 
             const monthStr = m.padStart(2, '0');
             const dayStr = dayNum.toString().padStart(2, '0');
             onChange(`${y}-${monthStr}-${dayStr}`);
         }
-        // Do NOT emit empty string for partials to avoid clearing parent state and causing loop
     };
 
     const handleDayChange = (val: string) => {
@@ -114,7 +115,7 @@ export function DateSelect({
     return (
         <div className={cn("grid grid-cols-3 gap-2 w-full", className)}>
             <Select value={selectedDay} onValueChange={handleDayChange}>
-                <SelectTrigger className={cn("w-full bg-[#2a2a2a] border-white/10 text-white", error && "border-red-500")}>
+                <SelectTrigger className={cn("w-full bg-[#2a2a2a] border-white/10 text-white", triggerClassName, error && "border-red-500")}>
                     <SelectValue placeholder="Tanggal" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[200px]">
@@ -125,7 +126,7 @@ export function DateSelect({
             </Select>
 
             <Select value={selectedMonth} onValueChange={handleMonthChange}>
-                <SelectTrigger className={cn("w-full bg-[#2a2a2a] border-white/10 text-white", error && "border-red-500")}>
+                <SelectTrigger className={cn("w-full bg-[#2a2a2a] border-white/10 text-white", triggerClassName, error && "border-red-500")}>
                     <SelectValue placeholder="Bulan" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[200px]">
@@ -136,7 +137,7 @@ export function DateSelect({
             </Select>
 
             <Select value={selectedYear} onValueChange={handleYearChange}>
-                <SelectTrigger className={cn("w-full bg-[#2a2a2a] border-white/10 text-white", error && "border-red-500")}>
+                <SelectTrigger className={cn("w-full bg-[#2a2a2a] border-white/10 text-white", triggerClassName, error && "border-red-500")}>
                     <SelectValue placeholder="Tahun" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[200px]">

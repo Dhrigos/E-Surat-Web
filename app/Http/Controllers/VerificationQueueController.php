@@ -65,6 +65,12 @@ class VerificationQueueController extends Controller
                     'calon.kabupaten',
                     'calon.kecamatan',
                     'calon.desa',
+                    'calon.domisiliProvinsi',
+                    'calon.domisiliKabupaten',
+                    'calon.domisiliKecamatan',
+                    'calon.domisiliDesa',
+                    'calon.golongan',
+                    'calon.pangkat',
                     'organisasis',
                     'prestasi',
                 ]);
@@ -277,8 +283,9 @@ class VerificationQueueController extends Controller
             'calon.suku', 'calon.bangsa', 'calon.agama', 
             'calon.statusPernikahan', 'calon.golonganDarah',
             'calon.birthplace',
-            'calon.golongan',
+            'calon.golongan', 'calon.pangkat',
             'calon.provinsi', 'calon.kabupaten', 'calon.kecamatan', 'calon.desa',
+            'calon.domisiliProvinsi', 'calon.domisiliKabupaten', 'calon.domisiliKecamatan', 'calon.domisiliDesa',
             'calon.pekerjaan',
             'organisasis',
             'prestasi'

@@ -137,6 +137,24 @@ export function AppSidebar() {
         });
     }
 
+    // Mitra Admin Menu
+    const isMitraAdmin = user.roles?.some((role: any) => role.name === 'mitra-admin');
+    if (isMitraAdmin) {
+        mainNavItems = [
+            {
+                title: 'Dashboard',
+                href: route('mitra.dashboard', undefined, false),
+                icon: Home,
+            },
+            {
+                title: 'Daftar Anggota',
+                href: route('mitra.members.index', undefined, false),
+                icon: Users,
+            },
+
+        ];
+    }
+
     return (
         <>
             <Sidebar collapsible="icon" className="hidden md:flex top-16 md:top-20 h-[calc(100svh-4rem)] md:h-[calc(100svh-5rem)] fixed left-0 z-40 bg-sidebar border-r border-neutral-800 shadow-sm">
